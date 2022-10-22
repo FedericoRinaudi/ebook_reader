@@ -131,7 +131,6 @@ fn main() {
         .title(WINDOW_TITLE)
         .window_size((800.0, 800.0));
 
-
     // create the initial app state
     let initial_state = State {
         chapter: render_chapter(epub.borrow_mut().get_current_str().unwrap()),
