@@ -5,33 +5,20 @@ use epub::doc::EpubDoc;
 use roxmltree::{Document, Node, ParsingOptions};
 use druid::{im::Vector, Widget, LocalizedString, WindowDesc, AppLauncher, Data, Lens, WidgetExt};
 use std::rc::Rc;
-use druid::widget::{Scroll, Flex, Button, Label, CrossAxisAlignment, List};
+use druid::text::RichText;
+use druid::widget::{Scroll, Flex, Button, CrossAxisAlignment, List, RawLabel};
+
 
 #[derive(Clone, Data, Lens)]
 struct State {
-    chapter: Vector<Tag>,
+    chapter: Vector<RichText>,
     epub: Rc<RefCell<EpubDoc<File>>>  //Da spostare (forse) in env
 }
 
-#[derive(Clone, Data, Lens)]
-pub struct Tag {
-    content: String
-}
-
-impl Tag {
-    pub fn new(text: &str) -> Self {
-        Self {
-            content: text.to_string()
-        }
-    }
-}
-
-
-fn render_tag(n: Node, current_label_text: &mut String, tags: &mut Vector<Tag>) {
+fn render_tag(n: Node, current_label_text: &mut String, tags: &mut Vector<RichText>) {
     if n.is_text() {
         let text = n.text().unwrap();
         let content: Vec<_> = text.split_ascii_whitespace().collect();
-
         if text.starts_with(char::is_whitespace) {
             current_label_text.push(' ');
         }
@@ -39,7 +26,7 @@ fn render_tag(n: Node, current_label_text: &mut String, tags: &mut Vector<Tag>) 
         if text.ends_with(char::is_whitespace) {
             current_label_text.push(' ');
         }
-        tags.push_back(Tag::new(&current_label_text));
+        tags.push_back(RichText::new(current_label_text.as_str().into()));
         current_label_text.replace_range(0.., "");
     }
     /*
@@ -48,8 +35,8 @@ fn render_tag(n: Node, current_label_text: &mut String, tags: &mut Vector<Tag>) 
     }*/
 
     match n.tag_name().name() {
-        "br" => tags.push_back(Tag::new("")),
-        "hr" => tags.push_back(Tag::new("****")),
+        "br" => tags.push_back(RichText::new("".into())),
+        "hr" => tags.push_back(RichText::new("****".into())),
         "img" =>  {},
         "a" => {
             /*
@@ -86,18 +73,18 @@ fn render_tag(n: Node, current_label_text: &mut String, tags: &mut Vector<Tag>) 
     };
 }
 
-fn render_all_child_tags(root: Node, text: &mut String, tags: &mut Vector<Tag>){
+fn render_all_child_tags(root: Node, text: &mut String, tags: &mut Vector<RichText>){
     render_tag(root, text, tags);
     for child in root.children(){
         render_all_child_tags(child, text, tags)
     }
 }
 
-fn render_chapter(chapter_str: String) -> Vector<Tag>{
+fn render_chapter(chapter_str: String) -> Vector<RichText>{
     let opt = ParsingOptions { allow_dtd: true };
     let doc = Document::parse_with_options(&chapter_str, opt).unwrap();
     let body = doc.root_element().last_element_child().unwrap();
-    let mut tags :Vector<Tag> = Vector::new();
+    let mut tags :Vector<RichText> = Vector::new();
     let mut str = String::new();
     render_all_child_tags(body, &mut str, &mut tags);
     tags
@@ -107,14 +94,23 @@ fn render_chapter(chapter_str: String) -> Vector<Tag>{
 
 fn build_widget() -> impl Widget<State> {
     let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
-    let button = Button::new("next page").on_click(|_ctx, data: &mut State, _env| {
+    let button_next = Button::new("next page").on_click(|_ctx, data: &mut State, _env| {
         if data.epub.borrow_mut().go_next().is_ok(){
             data.chapter = render_chapter(data.epub.borrow_mut().get_current_str().unwrap());
         }
     });
-    col.add_child(button);
+    let button_prev = Button::new("prev page").on_click(|_ctx, data: &mut State, _env| {
+        if data.epub.borrow_mut().go_prev().is_ok(){
+            data.chapter = render_chapter(data.epub.borrow_mut().get_current_str().unwrap());
+        }
+    });
+    let mut row:Flex<State>=Flex::row();
+    row.add_child(button_prev);
+    row.add_child(button_next);
+
+    col.add_child(row);
     let page = List::new(||{
-            Label::new(|item: &Tag, _env: &_| item.content.clone())
+            RawLabel::new()
         }
     ).lens(State::chapter);
     col.add_child(page);
