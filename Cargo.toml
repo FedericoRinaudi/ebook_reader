@@ -9,3 +9,4 @@ edition = "2021"
 epub = "1.2.2"
 roxmltree = "0.15.0"
 druid = { git = "https://github.com/linebender/druid.git", features=["im", "svg", "image", "png", "jpeg"] }
+unicode-segmentation = "1.10.0"

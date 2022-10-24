@@ -3,6 +3,7 @@ use druid::{FontStyle, FontWeight, im::Vector};
 use druid::text::{RichText, Attribute};
 use std::collections::HashMap;
 use std::option::Option::{Some, None};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum AttributeCase {
@@ -66,14 +67,33 @@ impl CurrentRichText {
 
 }
 
-fn render_text(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vector<RichText>) {
+
+const MAX_PAGE_LINES: usize = 42;
+
+
+#[derive(Debug, Clone)]
+struct CurrentPage {
+    page: Vector<RichText>,
+    num_lines: usize
+}
+
+impl CurrentPage {
+    fn new() -> Self {
+        Self {
+            page: Vector::new(),
+            num_lines: 0
+        }
+    }
+}
+
+fn render_text(n: Node, current_rich_text: &mut CurrentRichText, pages: &mut Vector<Vector<RichText>>, current_page: &mut CurrentPage) {
     for child in n.children() {
-        render(child, current_rich_text, rich_texts);
+        render(child, current_rich_text, pages, current_page);
     }
 }
 
 
-fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vector<RichText>) {
+fn render(n: Node, current_rich_text: &mut CurrentRichText, pages: &mut Vector<Vector<RichText>>, current_page: &mut CurrentPage) {
     macro_rules! new_line {
     //TODO: quando  anzi che portarmi dietro una stringa mi porto dietro un rich text propago lo stile alla nuova riga
         () => {
@@ -87,8 +107,19 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vec
                 }
             }
             //TODO: rimuovo gli unwrap e gestisco il caso di errore
-            rich_texts.push_back(rich_text); //vado a capo
-            current_rich_text.text.replace_range(0.., ""); //resetto la stringa
+            let text_estimated_lines = (current_rich_text.text.graphemes(true).count() / 100) + 1 ;
+            /*if current_rich_text.text.len() % 100 != 0 || current_rich_text.text.len() == 0 {
+                text_estimated_lines += 1;
+            }*/
+            if (text_estimated_lines + current_page.num_lines) > MAX_PAGE_LINES { //la pagina è ancora piena
+                pages.push_back((*current_page).page.clone()); //aggiungo la pagina al capitolo
+                (*current_page) = CurrentPage::new();
+            }
+
+            current_page.page.push_back(rich_text);
+            current_page.num_lines += text_estimated_lines;
+
+            current_rich_text.text = String::new(); //resetto la stringa
             (*current_rich_text).attributes = current_rich_text.attributes.clone().into_iter()
                 .filter(|(_, v)| v.last().unwrap().end.is_none())
                 .map(|(key, val)|(key, vec![RangeAttribute::new((*val.last().unwrap()).attribute.clone(), 0 as usize, None)]))
@@ -96,6 +127,15 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vec
         };
     }
 
+    let mut rich_text = RichText::new(current_rich_text.text.as_str().into());
+    for range_attributes in current_rich_text.attributes.values(){
+        for range_attr in range_attributes{
+            match range_attr.end {
+                Some(end) => rich_text.add_attribute((*range_attr).start..end, range_attr.attribute.clone()),
+                None => rich_text.add_attribute((*range_attr).start.., range_attr.attribute.clone()),
+            };
+        }
+    }
 
     if n.is_text() {
         let text = n.text().unwrap();
@@ -138,13 +178,13 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vec
                 _ => c.render_text(n),
             }*/
             //TODO: gestisco il tag prima di ricorrere
-            render_text(n, current_rich_text, rich_texts);
+            render_text(n, current_rich_text, pages, current_page);
         }
         "em" => {
             //TODO: aggiungo le righe commentate se penso sia il caso di gestire il caso in cui sia presente il tag 'em' nonstante il font fosse già italic
             //let prev_style = current_rich_text.attributes.get(AttributeCase::Style).map(|el|{(*el).clone()});
             current_rich_text.add_attr(AttributeCase::Style, Attribute::Style(FontStyle::Italic));
-            render_text(n, current_rich_text, rich_texts);
+            render_text(n, current_rich_text, pages, current_page);
             current_rich_text.rm_attr(AttributeCase::Style);
             /*match prev_style {
                 Some(p_s) => current_rich_text.add_attr("Style".to_string(), p_s.attribute),
@@ -153,14 +193,14 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vec
         }
         "strong" => {
             current_rich_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
-            render_text(n, current_rich_text, rich_texts);
+            render_text(n, current_rich_text, pages, current_page);
             current_rich_text.rm_attr(AttributeCase::Weight);
         }
         "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
             new_line!();
             //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
             current_rich_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
-            render_text(n, current_rich_text, rich_texts);
+            render_text(n, current_rich_text, pages, current_page);
             current_rich_text.rm_attr(AttributeCase::Weight);
             new_line!();
 
@@ -168,13 +208,13 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vec
         "blockquote" | "div" | "p" | "tr" => {
             // TODO compress newlines
             new_line!();
-            render_text(n, current_rich_text, rich_texts);
+            render_text(n, current_rich_text, pages, current_page);
             new_line!();
         }
         "li" => {
             new_line!();
             current_rich_text.text.push_str("- ");
-            render_text(n, current_rich_text, rich_texts);
+            render_text(n, current_rich_text, pages, current_page);
             new_line!();
         }
         //TODO: implementare tag pre
@@ -187,16 +227,18 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vec
                 .for_each(|s| c.text.push_str(&s));
             c.text.push('\n');
         }*/
-        _ => render_text(n, current_rich_text, rich_texts),
+        _ => render_text(n, current_rich_text, pages, current_page),
     }
 }
 
-pub fn render_chapter(chapter_str: String) -> Vector<RichText>{
+pub fn render_chapter(chapter_str: String) -> Vector<Vector<RichText>>{
     let opt = ParsingOptions { allow_dtd: true };
     let doc = Document::parse_with_options(&chapter_str, opt).unwrap();
     let body = doc.root_element().last_element_child().unwrap();
-    let mut rich_texts :Vector<RichText> = Vector::new();
+    let mut pages :Vector<Vector<RichText>> = Vector::new();
     let mut rich_text = CurrentRichText::new();
-    render(body, &mut rich_text, &mut rich_texts);
-    rich_texts
+    let mut current_page = CurrentPage::new();
+    render(body, &mut rich_text, &mut pages, &mut current_page);
+    pages.push_back(current_page.page);
+    pages
 }
