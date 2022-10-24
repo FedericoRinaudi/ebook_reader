@@ -4,6 +4,13 @@ use druid::text::{RichText, Attribute};
 use std::collections::HashMap;
 use std::option::Option::{Some, None};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum AttributeCase {
+    Style,
+    Weight
+    //TODO: aggiungo e aggiorno i casi man mano che mi servono
+}
+
 #[derive(Debug, Clone)]
 struct RangeAttribute {
     attribute: Attribute,
@@ -24,7 +31,7 @@ impl RangeAttribute {
 }
 
 struct CurrentRichText {
-    attributes: HashMap<String, Vec<RangeAttribute>>,
+    attributes: HashMap<AttributeCase, Vec<RangeAttribute>>,
     text: String
 }
 
@@ -37,7 +44,7 @@ impl CurrentRichText {
         }
     }
 
-    fn add_attr(&mut self, attr_name: String, attr: Attribute){
+    fn add_attr(&mut self, attr_name: AttributeCase, attr: Attribute){
         self.attributes.entry(attr_name)
             .and_modify(|range_attribute|{
                     range_attribute.push(RangeAttribute::new(attr.clone(), self.text.len(), Option::None));
@@ -45,7 +52,7 @@ impl CurrentRichText {
             .or_insert(vec![RangeAttribute::new(attr, self.text.len(), Option::None)]);
     }
 
-    fn rm_attr(&mut self, attr_name: String){
+    fn rm_attr(&mut self, attr_name: AttributeCase){
         self.attributes.entry(attr_name)
             .and_modify(|range_attribute|{
                 match range_attribute.last_mut() {
@@ -135,26 +142,26 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, rich_texts: &mut Vec
         }
         "em" => {
             //TODO: aggiungo le righe commentate se penso sia il caso di gestire il caso in cui sia presente il tag 'em' nonstante il font fosse già italic
-            //let prev_style = current_rich_text.attributes.get("Style").map(|el|{(*el).clone()});
-            current_rich_text.add_attr("Style".to_string(), Attribute::Style(FontStyle::Italic));
+            //let prev_style = current_rich_text.attributes.get(AttributeCase::Style).map(|el|{(*el).clone()});
+            current_rich_text.add_attr(AttributeCase::Style, Attribute::Style(FontStyle::Italic));
             render_text(n, current_rich_text, rich_texts);
-            current_rich_text.rm_attr("Style".to_string());
+            current_rich_text.rm_attr(AttributeCase::Style);
             /*match prev_style {
                 Some(p_s) => current_rich_text.add_attr("Style".to_string(), p_s.attribute),
                 None => {}
             }*/
         }
         "strong" => {
-            current_rich_text.add_attr("Weight".to_string(), Attribute::Weight(FontWeight::BOLD));
+            current_rich_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
             render_text(n, current_rich_text, rich_texts);
-            current_rich_text.rm_attr("Weight".to_string());
+            current_rich_text.rm_attr(AttributeCase::Weight);
         }
         "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
             new_line!();
             //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
-            current_rich_text.add_attr("Weight".to_string(), Attribute::Weight(FontWeight::BOLD));
+            current_rich_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
             render_text(n, current_rich_text, rich_texts);
-            current_rich_text.rm_attr("Weight".to_string());
+            current_rich_text.rm_attr(AttributeCase::Weight);
             new_line!();
 
         }
