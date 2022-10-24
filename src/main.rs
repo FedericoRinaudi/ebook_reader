@@ -40,11 +40,11 @@ fn build_widget() -> impl Widget<EbookState> {
     col.add_child(row);
     let page = List::new(|| {
         let mut label = RawLabel::new();
-        //label.set_line_break_mode(LineBreaking::WordWrap);
+        label.set_line_break_mode(LineBreaking::WordWrap);
         label
     }).lens(EbookState::chapter);
     col.add_child(page);
-    Scroll::new(col)
+    Scroll::new(col).vertical()
 }
 
 
