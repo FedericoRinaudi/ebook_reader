@@ -7,9 +7,11 @@ use epub::doc::EpubDoc;
 use druid::{im::Vector, Widget, LocalizedString, WindowDesc, AppLauncher, Data, Lens, WidgetExt};
 use std::rc::Rc;
 use druid::text::{RichText};
-use druid::widget::{Scroll, Flex, Button, CrossAxisAlignment, List, RawLabel};
+use druid::widget::{Scroll, Flex, Button, CrossAxisAlignment, List, RawLabel, LineBreaking};
 
 use crate::render::render_chapter;
+
+
 
 
 #[derive(Clone, Data, Lens)]
@@ -36,9 +38,11 @@ fn build_widget() -> impl Widget<EbookState> {
     row.add_child(button_next);
 
     col.add_child(row);
-    let page = List::new(||
-            RawLabel::new()
-        ).lens(EbookState::chapter);
+    let page = List::new(|| {
+        let mut label = RawLabel::new();
+        //label.set_line_break_mode(LineBreaking::WordWrap);
+        label
+    }).lens(EbookState::chapter);
     col.add_child(page);
     Scroll::new(col)
 }
@@ -53,7 +57,7 @@ fn main() {
     //const TEXT_BOX_WIDTH: f64 = 200.0;
     const WINDOW_TITLE :LocalizedString<EbookState> = LocalizedString::new("Hello World!");
     // describe the main window
-    let main_window = WindowDesc::new(build_widget)
+    let main_window = WindowDesc::new(build_widget())
         .title(WINDOW_TITLE)
         .window_size((800.0, 800.0));
 

@@ -8,6 +8,4 @@ edition = "2021"
 [dependencies]
 epub = "1.2.2"
 roxmltree = "0.15.0"
-[dependencies.druid]
-version = "0.7.0"
-features = ["im", "svg", "image"]
+druid = { git = "https://github.com/linebender/druid.git", features=["im", "svg", "image", "png", "jpeg"] }
