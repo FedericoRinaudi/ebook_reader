@@ -6,9 +6,11 @@ use std::path::PathBuf;
 use epub::doc::EpubDoc;
 use druid::{im::Vector, Widget, LocalizedString, WindowDesc, AppLauncher, Data, Lens, WidgetExt};
 use std::rc::Rc;
-use druid::text::RichText;
+use druid::text::{RichText};
 use druid::widget::{Scroll, Flex, Button, CrossAxisAlignment, List, RawLabel};
+
 use crate::render::render_chapter;
+
 
 #[derive(Clone, Data, Lens)]
 struct EbookState {
@@ -22,6 +24,7 @@ fn build_widget() -> impl Widget<EbookState> {
         if data.epub.borrow_mut().go_next().is_ok(){
             data.chapter = render_chapter(data.epub.borrow_mut().get_current_str().unwrap());
         }
+        //println!("{:?}", data.chapter)
     });
     let button_prev = Button::new("prev page").on_click(|_ctx, data: &mut EbookState, _env| {
         if data.epub.borrow_mut().go_prev().is_ok(){
@@ -33,10 +36,9 @@ fn build_widget() -> impl Widget<EbookState> {
     row.add_child(button_next);
 
     col.add_child(row);
-    let page = List::new(||{
+    let page = List::new(||
             RawLabel::new()
-        }
-    ).lens(EbookState::chapter);
+        ).lens(EbookState::chapter);
     col.add_child(page);
     Scroll::new(col)
 }
