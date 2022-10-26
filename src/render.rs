@@ -5,12 +5,14 @@ use std::collections::HashMap;
 use std::option::Option::{Some, None};
 use unicode_segmentation::UnicodeSegmentation;
 
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum AttributeCase {
     Style,
     Weight
     //TODO: aggiungo e aggiorno i casi man mano che mi servono
 }
+
 
 #[derive(Debug, Clone)]
 struct RangeAttribute {
@@ -125,16 +127,6 @@ fn render(n: Node, current_rich_text: &mut CurrentRichText, pages: &mut Vector<V
                 .map(|(key, val)|(key, vec![RangeAttribute::new((*val.last().unwrap()).attribute.clone(), 0 as usize, None)]))
                 .collect();
         };
-    }
-
-    let mut rich_text = RichText::new(current_rich_text.text.as_str().into());
-    for range_attributes in current_rich_text.attributes.values(){
-        for range_attr in range_attributes{
-            match range_attr.end {
-                Some(end) => rich_text.add_attribute((*range_attr).start..end, range_attr.attribute.clone()),
-                None => rich_text.add_attribute((*range_attr).start.., range_attr.attribute.clone()),
-            };
-        }
     }
 
     if n.is_text() {
