@@ -16,17 +16,17 @@ fn build_widget() -> impl Widget<Book> {
         data.go_to_prev_page_if_exist();
     });
 
-    let mut row:Flex<Book>=Flex::row();
+    let mut row: Flex<Book> = Flex::row();
     row.add_child(button_prev);
     row.add_child(button_next);
-    col.add_child(row);
+    col.add_child(row.padding(30.0));
 
     let page = List::new(|| {
         let mut label = RawLabel::new();
         label.set_line_break_mode(LineBreaking::WordWrap);
         label
     }).lens(Book::current_page);
-    col.add_child(page);
+    col.add_child(page.padding(30.0));
     col.scroll().vertical()
 }
 
@@ -40,7 +40,7 @@ fn main() {
     // describe the main window
     let main_window = WindowDesc::new(build_widget())
         .title(WINDOW_TITLE)
-        .window_size((800.0, 800.0));
+        .window_size((800.0, 1000.0));
 
     // start the application
     AppLauncher::with_window(main_window)
