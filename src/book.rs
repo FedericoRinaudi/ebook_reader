@@ -345,16 +345,15 @@ impl Book {
 
     pub fn go_to_prev_page_if_exist(&mut self){
         if (*self).current_page_number_in_chapter == 0 { //SONO ALLA PRIMA PAGINA DEL CAPITOLO, TORNO ALL'UlTIMA PAGINA DEL PRECEDENTE
-            if (*self).current_page_number_in_chapter > 0 {
+            if (*self).current_chapter_number > 0 {
                 (*self).current_chapter_number -= 1;
                 let chapter = (*self).chapters.get((*self).current_chapter_number).unwrap();
                 (*self).current_page_number_in_chapter = chapter.get_number_of_pages() - 1;
                 (*self).current_page = chapter.get_page((*self).current_page_number_in_chapter).unwrap();
             }
         } else { //CAMBIO PAGINA
-            let chapter = (*self).chapters.get((*self).current_chapter_number).unwrap();
-            (*self).current_page_number_in_chapter = chapter.get_number_of_pages() - 1;
-            (*self).current_page = chapter.get_page((*self).current_page_number_in_chapter).unwrap();
+            (*self).current_page_number_in_chapter = (*self).current_page_number_in_chapter - 1;
+            (*self).current_page = (*self).chapters.get((*self).current_chapter_number).unwrap().get_page((*self).current_page_number_in_chapter).unwrap();
         }
     }
 
