@@ -302,7 +302,7 @@ pub struct Book {
 
 impl Book {
 
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, ()> {
+    pub fn new<P: AsRef<Path>>(path: P, initial_chapter_number: usize, initial_page_number_in_chapter: usize) -> Result<Self, ()> {
         let mut epub_doc = match EpubDoc::new(path){
             Ok(epub) => epub,
             Err(_) => return Result::Err(())
@@ -317,16 +317,24 @@ impl Book {
             epub_doc.go_next().is_ok()
         } {}
 
-        let first_chapter = Chapter::new(chapters_xml.get(0).unwrap().clone());
+        let initial_chapter = Chapter::new(match chapters_xml.get(initial_chapter_number){
+            Some(chapter_xml) => chapter_xml.clone(),
+            None => return Err(())
+        });
+
+        let initial_page = match initial_chapter.get_page(initial_page_number_in_chapter){
+            Some(page) => page,
+            None => return Err(())
+        };
 
         Result::Ok(
             //TODO: gestisco diversamente gli unwrap (se per esempio avessi il primo capitolo vuoto si spaccherebbe tutto, è corretto?)
             Self {
                 chapters_xml,
-                current_chapter_number: 0,
-                current_page_number_in_chapter: 0,
-                current_chapter: first_chapter.clone(),
-                current_page: first_chapter.get_page(0).unwrap()
+                current_chapter_number: initial_chapter_number,
+                current_page_number_in_chapter: initial_page_number_in_chapter,
+                current_chapter: initial_chapter,
+                current_page: initial_page
             }
         )
     }
