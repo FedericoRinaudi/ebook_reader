@@ -34,7 +34,7 @@ fn build_widget() -> impl Widget<Book> {
 fn main() {
 
     //TODO: gestisco il caso in cui non sia possibile aprire l'ebook
-    let initial_state = Book::new(PathBuf::from("./libro.epub")).unwrap();
+    let initial_state = Book::new(PathBuf::from("./alices.epub")).unwrap();
 
     const WINDOW_TITLE :LocalizedString<Book> = LocalizedString::new("Hello World!");
     // describe the main window

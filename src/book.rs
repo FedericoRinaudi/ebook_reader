@@ -292,11 +292,13 @@ impl Chapter {
 
 #[derive(Clone, Data, Lens)]
 pub struct Book {
-    chapters: Vector<Chapter>,
+    chapters_xml: Vector<String>,
     current_chapter_number: usize,
     current_page_number_in_chapter: usize,
+    current_chapter: Chapter,
     pub current_page: Page
 }
+
 
 impl Book {
 
@@ -306,55 +308,55 @@ impl Book {
             Err(_) => return Result::Err(())
         };
 
-        let mut chapters = Vector::new();
+        let mut chapters_xml = Vector::new();
 
         while {
             //TODO: gestisco diversamente l'unwrap... qua in effetti spesso va in errore
             let chapter_xml = epub_doc.get_current_str().unwrap();
-            let chapter = Chapter::new(chapter_xml);
-            chapters.push_back(chapter);
+            chapters_xml.push_back(chapter_xml);
             epub_doc.go_next().is_ok()
         } {}
+
+        let first_chapter = Chapter::new(chapters_xml.get(0).unwrap().clone());
 
         Result::Ok(
             //TODO: gestisco diversamente gli unwrap (se per esempio avessi il primo capitolo vuoto si spaccherebbe tutto, è corretto?)
             Self {
-                chapters: chapters.clone(),
+                chapters_xml,
                 current_chapter_number: 0,
                 current_page_number_in_chapter: 0,
-                current_page: chapters.get(0).unwrap().get_page(0).unwrap()
+                current_chapter: first_chapter.clone(),
+                current_page: first_chapter.get_page(0).unwrap()
             }
         )
     }
 
     pub fn go_to_next_page_if_exist(&mut self) {
         (*self).current_page_number_in_chapter += 1;
-        if (*self).current_page_number_in_chapter >= (*self).chapters.get((*self).current_chapter_number).unwrap().get_number_of_pages() {
-            match (*self).chapters.get((*self).current_chapter_number + 1){
-                Some(_) => {
-                    (*self).current_chapter_number += 1;
-                    (*self).current_page_number_in_chapter = 0;
-                    (*self).current_page = (*self).chapters.get((*self).current_chapter_number).unwrap().get_page(0).unwrap();
-                }
-                None => return
+        if (*self).current_page_number_in_chapter >= self.current_chapter.get_number_of_pages() { //SONO ALL'ULTIMA PAGINA DEL CAPITOLO
+            if (*self).chapters_xml.get((*self).current_chapter_number + 1).is_some() { //NON SONO ALL'ULTIMO CAPITOLO?
+                (*self).current_chapter_number += 1;
+                (*self).current_page_number_in_chapter = 0;
+                (*self).current_chapter = Chapter::new(self.chapters_xml.get((*self).current_chapter_number).unwrap().clone());
+            }else{
+                return;
             };
-        } else { //CAMBIO PAGINA
-            (*self).current_page = (*self).chapters.get((*self).current_chapter_number).unwrap().get_page((*self).current_page_number_in_chapter).unwrap();
         }
+        (*self).current_page = self.current_chapter.get_page((*self).current_page_number_in_chapter).unwrap();
     }
 
     pub fn go_to_prev_page_if_exist(&mut self){
         if (*self).current_page_number_in_chapter == 0 { //SONO ALLA PRIMA PAGINA DEL CAPITOLO, TORNO ALL'UlTIMA PAGINA DEL PRECEDENTE
             if (*self).current_chapter_number > 0 {
                 (*self).current_chapter_number -= 1;
-                let chapter = (*self).chapters.get((*self).current_chapter_number).unwrap();
-                (*self).current_page_number_in_chapter = chapter.get_number_of_pages() - 1;
-                (*self).current_page = chapter.get_page((*self).current_page_number_in_chapter).unwrap();
+                (*self).current_chapter = Chapter::new(self.chapters_xml.get((*self).current_chapter_number).unwrap().clone());
+                (*self).current_page_number_in_chapter = self.current_chapter.get_number_of_pages();
+            } else {
+                return;
             }
-        } else { //CAMBIO PAGINA
-            (*self).current_page_number_in_chapter = (*self).current_page_number_in_chapter - 1;
-            (*self).current_page = (*self).chapters.get((*self).current_chapter_number).unwrap().get_page((*self).current_page_number_in_chapter).unwrap();
         }
+        (*self).current_page_number_in_chapter = (*self).current_page_number_in_chapter - 1;
+        (*self).current_page = self.current_chapter.get_page((*self).current_page_number_in_chapter).unwrap();
     }
 
 }
