@@ -1,6 +1,8 @@
+use std::path::PathBuf;
 use roxmltree::{Document, Node, ParsingOptions};
 use druid::{FontStyle, FontWeight, im::Vector, Data, Lens};
-use druid::text::Attribute;
+use druid::text::{Attribute};
+use std::io::Read;
 use crate::book::epub_text::{EpubText, AttributeCase};
 
 use crate::book::page::Page;
@@ -12,12 +14,12 @@ pub(crate) struct Chapter {
 
 impl Chapter {
 
-    pub(crate) fn new(chapter_xml: String) -> Self {
+    pub fn new(chapter_path: &str, ebook_path: &str, chapter_xml: String) -> Self {
         let opt = ParsingOptions { allow_dtd: true };
         let doc = Document::parse_with_options(&chapter_xml, opt).unwrap();
         let body = doc.root_element().last_element_child().unwrap();
         Self {
-            pages: Self::xml_to_pages(body),
+            pages: Self::xml_to_pages(body, chapter_path, ebook_path)
         }
     }
 
@@ -29,21 +31,21 @@ impl Chapter {
         self.pages.len()
     }
 
-    fn xml_to_pages(body: Node) -> Vector<Page> {
+    fn xml_to_pages(body: Node, chapter_path: &str, ebook_path: &str) -> Vector<Page> {
         let mut pages :Vector<Page> = Vector::new();
         let mut current_text = EpubText::new();
         let mut current_page = Page::new();
-        Self::xml_to_state(body, &mut current_text, &mut pages, &mut current_page);
+        Self::xml_to_state(body, &mut current_text, &mut pages, &mut current_page, chapter_path, ebook_path);
         pages.push_back(current_page);
         pages
     }
 
-    fn xml_to_state(n: Node, current_text: &mut EpubText, pages: &mut Vector<Page>, current_page: &mut Page) {
+    fn xml_to_state(n: Node, current_text: &mut EpubText, pages: &mut Vector<Page>, current_page: &mut Page, chapter_path: &str, ebook_path: &str) {
         /*  Def Macros */
         macro_rules! recur_on_children {
             () => {
                 for child in n.children() {
-                    Self::xml_to_state(child, current_text, pages, current_page);
+                    Self::xml_to_state(child, current_text, pages, current_page, chapter_path, ebook_path);
                 }
             }
         }
@@ -90,7 +92,27 @@ impl Chapter {
             },
             "img" => {
                 new_line!();
-                current_text.push_str("[IMG]");
+                let ebook_path_buf = PathBuf::from(ebook_path);
+                let chapter_path_buf = PathBuf::from(chapter_path);
+                let image_path = PathBuf::from(n.attribute("src").unwrap());
+                let zipfile = std::fs::File::open(ebook_path_buf).unwrap();
+
+                let mut archive = zip::ZipArchive::new(zipfile).unwrap();
+
+                let complete_img_path = unify_paths(chapter_path_buf.clone(), image_path.clone()).into_os_string().into_string().unwrap();
+                let mut file = match archive.by_name(&complete_img_path) {
+                    Ok(file) => {
+                        file
+                    },
+                    Err(..) => {
+                        return;
+                    }
+                };
+
+                let mut contents :Vec<u8> = vec![];
+                //TODO: rimuovo l'unwrap, altrimenti se non trovo la foto si spacca tutto
+                file.read_to_end(&mut contents).unwrap();
+                current_page.add_image(&contents);
                 new_line!();
             } ,
             "a" => {
@@ -157,4 +179,18 @@ impl Chapter {
         }
     }
 
+}
+
+fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
+    if !p1.is_dir(){
+        p1.pop();
+    }
+    for el in p2.into_iter() {
+        if el == ".." {
+            p1.pop();
+        } else {
+            p1.push(el);
+        }
+    }
+    p1
 }

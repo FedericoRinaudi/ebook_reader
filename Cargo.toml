@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-epub = "1.2.2"
+epub = { git = "https://github.com/danigm/epub-rs.git" }
 roxmltree = "0.15.0"
 druid = { git = "https://github.com/linebender/druid.git", features=["im", "svg", "image", "png", "jpeg"] }
 unicode-segmentation = "1.10.0"
+zip = "0.6.3"

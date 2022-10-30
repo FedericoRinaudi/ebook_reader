@@ -2,9 +2,11 @@ mod book;
 
 use std::path::PathBuf;
 use druid::{AppLauncher, LocalizedString, Widget, WidgetExt, WindowDesc};
-use druid::widget::{Button, CrossAxisAlignment, Flex, LineBreaking, List, RawLabel};
+use druid::piet::InterpolationMode;
+use druid::widget::{Button, CrossAxisAlignment, FillStrat, Flex, Image, LineBreaking, List, RawLabel, ViewSwitcher};
 
 use crate::book::Book;
+use crate::book::page::PageElementContent;
 
 
 fn build_widget() -> impl Widget<Book> {
@@ -22,9 +24,24 @@ fn build_widget() -> impl Widget<Book> {
     col.add_child(row.padding(30.0));
 
     let page = List::new(|| {
-        let mut label = RawLabel::new();
-        label.set_line_break_mode(LineBreaking::WordWrap);
-        label
+        ViewSwitcher::new(
+            |data: &PageElementContent, _| data.clone() ,
+            |_, data: &PageElementContent, _| -> Box<dyn Widget<PageElementContent>> {
+                match data {
+                    PageElementContent::Text(_) => {
+                        let mut label = RawLabel::new();
+                        label.set_line_break_mode(LineBreaking::WordWrap);
+                        Box::new(label)
+                    }
+                    PageElementContent::Image(img_buf) => {
+                        let mut img = Image::new(img_buf.clone());
+                        img.set_fill_mode(FillStrat::ScaleDown);
+                        img = img.interpolation_mode(InterpolationMode::Bilinear);
+                        Box::new(img)
+                    }
+                }
+            }
+        )
     }).lens(Book::current_page);
     col.add_child(page.padding(30.0));
     col.scroll().vertical()

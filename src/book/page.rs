@@ -1,14 +1,60 @@
 use druid::im::Vector;
-use druid::text::RichText;
+use druid::text::{EnvUpdateCtx, Link, RichText, TextStorage};
 use druid::widget::ListIter;
 use unicode_segmentation::UnicodeSegmentation;
-use druid::{Data,Lens};
+use druid::{ArcStr, Data, Env, ImageBuf, Lens};
+use druid::piet::{PietTextLayoutBuilder, TextStorage as PietTextStorage};
 use crate::book::epub_text::EpubText;
 
 const MAX_PAGE_LINES: usize = 42;
+
+
+#[derive(Clone, Data)]
+pub enum PageElementContent {
+    Text(RichText),
+    Image(ImageBuf)
+}
+
+impl PietTextStorage for PageElementContent {
+    fn as_str(&self) -> &str {
+        match self {
+            PageElementContent::Text(t) => t.as_str(),
+            PageElementContent::Image(_) => "[IMG]"
+        }
+    }
+}
+
+
+impl TextStorage for PageElementContent {
+    fn add_attributes(
+        &self,
+        builder: PietTextLayoutBuilder,
+        env: &Env,
+    ) -> PietTextLayoutBuilder {
+        match self {
+            PageElementContent::Text(t) => t.add_attributes(builder, env),
+            PageElementContent::Image(_) => RichText::new("".into()).add_attributes(builder, env)
+        }
+    }
+
+    fn env_update(&self, ctx: &EnvUpdateCtx) -> bool {
+        match self {
+            PageElementContent::Text(t) => t.env_update(ctx),
+            PageElementContent::Image(_) => true
+        }
+    }
+
+    fn links(&self) -> &[Link] {
+        match self {
+            PageElementContent::Text(t) => t.links(),
+            PageElementContent::Image(_) => Default::default()
+        }
+    }
+}
+
 #[derive(Clone, Data, Lens)]
 pub struct Page {
-    page: Vector<RichText>,
+    page: Vector<PageElementContent>,
     num_lines: usize
 }
 
@@ -33,23 +79,34 @@ impl Page {
                 };
             }
         }
-        self.page.push_back(rich_text);
+        self.page.push_back(PageElementContent::Text(rich_text));
         (*self).num_lines += text_estimated_lines;
         Ok(())
+    }
+    pub fn add_image(&mut self, img_data: &[u8]) {
+        self.page.push_back(match ImageBuf::from_data(img_data){
+            Ok(im) => {
+                //TODO: faccio una stima migliore, per ora se ho un immagine cambio pagina
+                self.num_lines += MAX_PAGE_LINES;
+                PageElementContent::Image(im)
+            }
+            Err(_) => {PageElementContent::Text(RichText::new(ArcStr::from("[Error rendering image]")))}
+        });
     }
 }
 
 
-impl ListIter<RichText> for Page {
-    fn for_each(&self, cb: impl FnMut(&RichText, usize)) {
+impl ListIter<PageElementContent> for Page {
+    fn for_each(&self, cb: impl FnMut(&PageElementContent, usize)) {
         self.page.for_each(cb);
     }
 
-    fn for_each_mut(&mut self, cb: impl FnMut(&mut RichText, usize)) {
+    fn for_each_mut(&mut self, cb: impl FnMut(&mut PageElementContent, usize)) {
         self.page.for_each_mut(cb);
     }
 
     fn data_len(&self) -> usize {
-        self.page.data_len()
+        self.page.len()
     }
 }
+
