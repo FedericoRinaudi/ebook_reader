@@ -1,8 +1,8 @@
 mod book;
 
 use std::path::PathBuf;
-use druid::{Widget, LocalizedString, WindowDesc, AppLauncher, WidgetExt};
-use druid::widget::{Flex, Button, CrossAxisAlignment, List, RawLabel, LineBreaking};
+use druid::{AppLauncher, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid::widget::{Button, CrossAxisAlignment, Flex, LineBreaking, List, RawLabel};
 
 use crate::book::Book;
 
