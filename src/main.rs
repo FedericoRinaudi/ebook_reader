@@ -6,7 +6,7 @@ use druid::piet::InterpolationMode;
 use druid::widget::{Button, CrossAxisAlignment, FillStrat, Flex, Image, LineBreaking, List, RawLabel, ViewSwitcher};
 
 use crate::book::Book;
-use crate::book::page::PageElementContent;
+use crate::book::page_element::PageElement;
 
 
 fn build_widget() -> impl Widget<Book> {
@@ -25,15 +25,15 @@ fn build_widget() -> impl Widget<Book> {
 
     let page = List::new(|| {
         ViewSwitcher::new(
-            |data: &PageElementContent, _| data.clone() ,
-            |_, data: &PageElementContent, _| -> Box<dyn Widget<PageElementContent>> {
+            |data: &PageElement, _| data.clone() ,
+            |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                 match data {
-                    PageElementContent::Text(_) => {
+                    PageElement::Text(_) => {
                         let mut label = RawLabel::new();
                         label.set_line_break_mode(LineBreaking::WordWrap);
                         Box::new(label)
                     }
-                    PageElementContent::Image(img_buf) => {
+                    PageElement::Image(img_buf) => {
                         let mut img = Image::new(img_buf.clone());
                         img.set_fill_mode(FillStrat::ScaleDown);
                         img = img.interpolation_mode(InterpolationMode::Bilinear);

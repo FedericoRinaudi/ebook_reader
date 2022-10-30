@@ -1,6 +1,7 @@
 mod epub_text;
 pub mod page;
 mod chapter;
+pub(crate) mod page_element;
 
 use druid::{Data, im::Vector, Lens};
 use std::option::Option::{None, Some};
