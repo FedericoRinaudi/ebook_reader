@@ -2,6 +2,7 @@ use roxmltree::{Document, Node, ParsingOptions};
 use druid::{FontStyle, FontWeight, im::Vector, Data, Lens};
 use druid::text::{RichText, Attribute};
 use std::collections::HashMap;
+use std::fs::File;
 use std::option::Option::{Some, None};
 use std::path::Path;
 use druid::widget::ListIter;
@@ -308,18 +309,27 @@ impl Book {
             Err(_) => return Result::Err(())
         };
 
+        let spine = Book::get_spine(&epub_doc);
         let mut chapters_xml = Vector::new();
 
+        for (_,path) in spine {
+            let xml = epub_doc.get_resource_str_by_path(path).unwrap();
+            chapters_xml.push_back(xml);
+        };
+
+        /*
         while {
             //TODO: gestisco diversamente l'unwrap... qua in effetti spesso va in errore
             let chapter_xml = epub_doc.get_current_str().unwrap();
             chapters_xml.push_back(chapter_xml);
             epub_doc.go_next().is_ok()
         } {}
+        */
 
-        let initial_chapter = Chapter::new(match chapters_xml.get(initial_chapter_number){
-            Some(chapter_xml) => chapter_xml.clone(),
-            None => return Err(())
+        let initial_chapter = Chapter::new(
+            match chapters_xml.get(initial_chapter_number){
+                Some(chapter_xml) => chapter_xml.clone(),
+                None => return Err(())
         });
 
         let initial_page = match initial_chapter.get_page(initial_page_number_in_chapter){
@@ -338,6 +348,37 @@ impl Book {
             }
         )
     }
+
+    // Alice's Fix
+
+    fn convert_path_separators(href: &str) -> String {
+        let mut path = String::from(href);
+        if cfg!(windows) {
+            path = path.replace("\\", "/");
+            return path
+        }
+        path
+    }
+
+    fn get_spine(mut epub_doc: &EpubDoc<File>) -> Vec<(String, String)> {
+
+        let mut manifest_new:HashMap<&str, String> = HashMap::new();
+        (&epub_doc.resources).into_iter().for_each(|e|{
+            //let start = &(e.1).0.to_str().unwrap().find("@");
+            manifest_new.insert(&*e.0, Book::convert_path_separators((e.1).0.to_str().unwrap())); //[start..]);
+        });
+        // let meta = &epub_doc.metadata;
+        // println!("{}", self.meta);
+        let mut spine: Vec<(String, String)> = Vec::new();
+        &epub_doc.spine.iter().enumerate().for_each(|e|{
+            spine.push((e.0.to_string(), manifest_new.remove((e.1).as_str()).unwrap().to_string()));
+        });
+        //println!("{:?}", spine);
+        spine
+    }
+
+    //
+
 
     pub fn go_to_next_page_if_exist(&mut self) {
         (*self).current_page_number_in_chapter += 1;
