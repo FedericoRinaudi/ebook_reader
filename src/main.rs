@@ -34,10 +34,13 @@ fn build_widget() -> impl Widget<Book> {
                         Box::new(label)
                     }
                     PageElement::Image(img_buf) => {
-                        let mut img = Image::new(img_buf.clone());
-                        img.set_fill_mode(FillStrat::ScaleDown);
-                        img = img.interpolation_mode(InterpolationMode::Bilinear);
-                        Box::new(img)
+                        Box::new(
+                            Flex::row().with_child(
+                                Image::new(img_buf.clone())
+                                .fill_mode(FillStrat::ScaleDown)
+                                .interpolation_mode(InterpolationMode::Bilinear)
+                            )
+                        )
                     }
                 }
             }
@@ -51,7 +54,7 @@ fn build_widget() -> impl Widget<Book> {
 fn main() {
 
     //TODO: gestisco il caso in cui non sia possibile aprire l'ebook
-    let initial_state = Book::new(PathBuf::from("./alices.epub"), 0, 0).unwrap();
+    let initial_state = Book::new(PathBuf::from("./libro.epub"), 0, 0).unwrap();
 
     const WINDOW_TITLE :LocalizedString<Book> = LocalizedString::new("Hello World!");
     // describe the main window
