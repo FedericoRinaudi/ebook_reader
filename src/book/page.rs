@@ -48,8 +48,8 @@ impl Page {
     pub fn add_image(&mut self, img_data: &[u8]) {
         self.page.push_back(match ImageBuf::from_data(img_data) {
             Ok(im) => {
-                //TODO: faccio una stima migliore, per ora se ho un immagine cambio pagina
-                self.num_lines += MAX_PAGE_LINES;
+                //TODO: fare una stima migliore
+                self.num_lines += MAX_PAGE_LINES / 4;
                 PageElement::Image(im)
             }
             Err(_) => PageElement::Text(RichText::new(ArcStr::from("[Error rendering image]"))),

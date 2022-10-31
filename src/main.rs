@@ -50,7 +50,7 @@ fn main() {
     //TODO: gestisco il caso in cui non sia possibile aprire l'ebook
     let initial_state = Book::new(PathBuf::from("./libro.epub"), 0, 0).unwrap();
 
-    const WINDOW_TITLE: LocalizedString<Book> = LocalizedString::new("Hello World!");
+    const WINDOW_TITLE: LocalizedString<Book> = LocalizedString::new("ebook reader");
     // describe the main window
     let main_window = WindowDesc::new(build_widget())
         .title(WINDOW_TITLE)

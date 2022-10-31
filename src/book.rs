@@ -104,7 +104,6 @@ impl Book {
             Err(_) => return Result::Err(()),
         };
         let mut chapters_xml_and_path = Vector::new();
-
         while {
             //TODO: gestisco diversamente l'unwrap... qua in effetti spesso va in errore
             let chapter_xml = epub_doc.get_current_str().unwrap();
@@ -145,8 +144,8 @@ impl Book {
     }
 
     pub fn go_to_next_page_if_exist(&mut self) {
-        (*self).current_page_number_in_chapter += 1;
-        if (*self).current_page_number_in_chapter >= self.current_chapter.get_number_of_pages() {
+        if (*self).current_page_number_in_chapter + 1 >= self.current_chapter.get_number_of_pages()
+        {
             //SONO ALL'ULTIMA PAGINA DEL CAPITOLO
             if (*self)
                 .chapters_xml_and_path
@@ -165,6 +164,8 @@ impl Book {
             } else {
                 return;
             };
+        } else {
+            (*self).current_page_number_in_chapter += 1;
         }
         (*self).current_page = self
             .current_chapter
