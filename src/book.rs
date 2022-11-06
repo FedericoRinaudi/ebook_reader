@@ -10,7 +10,7 @@ use epub::doc::EpubDoc;
 use std::option::Option::{None, Some};
 use std::path::Path;
 
-#[derive(Clone, Data, Lens)]
+#[derive(Default, Clone, Data, Lens)]
 pub struct Book {
     chapters_xml_and_path: Vector<(String, String)>, //TODO: faccio una struct anzi che tuple
     path: String,
@@ -92,6 +92,14 @@ impl Book {
 
     //
     */
+    
+    pub fn empty_book() -> Self{
+        Self::default()
+    }
+
+    pub fn is_empty(&self) -> bool{
+        self.chapters_xml_and_path.len() == 0
+    }
 
     pub fn new<P: AsRef<Path>>(
         path: P,

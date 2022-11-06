@@ -8,7 +8,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 const MAX_PAGE_LINES: usize = 42;
 
-#[derive(Clone, Data, Lens)]
+#[derive(Default, Clone, Data, Lens)]
 pub struct Page {
     page: Vector<PageElement>,
     num_lines: usize,

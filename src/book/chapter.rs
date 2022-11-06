@@ -7,7 +7,9 @@ use std::path::PathBuf;
 
 use crate::book::page::Page;
 
-#[derive(Clone, Data, Lens)]
+const MAX_SIZE: f64 = 30.0;
+
+#[derive(Clone, Data, Lens, Default)]
 pub(crate) struct Chapter {
     pages: Vector<Page>,
 }
@@ -165,13 +167,65 @@ impl Chapter {
                 recur_on_children!();
                 current_text.rm_attr(AttributeCase::Weight);
             }
-            "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+            "h1" => {
                 new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
+                current_text.add_attr(AttributeCase::Style, Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE)));
                 recur_on_children!();
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
+
+            }
+            "h2"=> {
+                    new_line!();
+                    //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
+                    current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
+                    current_text.add_attr(AttributeCase::Style, Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE-5.00)));
+                    recur_on_children!();
+                    current_text.rm_attr(AttributeCase::Weight);
+                    new_line!();
+
+            }
+            "h3"=> {
+                    new_line!();
+                    //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
+                    current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
+                    current_text.add_attr(AttributeCase::Style, Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE-10.00)));
+                    recur_on_children!();
+                    current_text.rm_attr(AttributeCase::Weight);
+                    new_line!();
+
+            }
+            "h4"=> {
+                    new_line!();
+                    //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
+                    current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
+                    current_text.add_attr(AttributeCase::Style, Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE-15.00)));
+                    recur_on_children!();
+                    current_text.rm_attr(AttributeCase::Weight);
+                    new_line!();
+
+            }
+            "h5"=> {
+                    new_line!();
+                    //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
+                    current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
+                    current_text.add_attr(AttributeCase::Style, Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE-17.00)));
+                    recur_on_children!();
+                    current_text.rm_attr(AttributeCase::Weight);
+                    new_line!();
+
+            }
+            "h6"=> {
+                    new_line!();
+                    //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
+                    current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
+                    current_text.add_attr(AttributeCase::Style, Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE-20.00)));
+                    recur_on_children!();
+                    current_text.rm_attr(AttributeCase::Weight);
+                    new_line!();
+
             }
             "blockquote" | "div" | "p" | "tr" => {
                 // TODO compress newlines
