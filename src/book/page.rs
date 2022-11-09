@@ -6,7 +6,7 @@ use druid::widget::ListIter;
 use druid::{ArcStr, Data, ImageBuf, Lens};
 use unicode_segmentation::UnicodeSegmentation;
 
-const MAX_PAGE_LINES: usize = 42;
+const MAX_PAGE_LINES: usize = 38;
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct Page {

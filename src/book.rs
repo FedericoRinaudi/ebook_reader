@@ -16,6 +16,7 @@ pub struct Book {
     path: String,
     current_chapter_number: usize,
     current_page_number_in_chapter: usize,
+    current_page_number: usize,
     current_chapter: Chapter,
     pub current_page: Page,
 }
@@ -92,12 +93,12 @@ impl Book {
 
     //
     */
-    
-    pub fn empty_book() -> Self{
+
+    pub fn empty_book() -> Self {
         Self::default()
     }
 
-    pub fn is_empty(&self) -> bool{
+    pub fn is_empty(&self) -> bool {
         self.chapters_xml_and_path.len() == 0
     }
 
@@ -105,6 +106,7 @@ impl Book {
         path: P,
         initial_chapter_number: usize,
         initial_page_number_in_chapter: usize,
+        //   initial_page_number:usize,
     ) -> Result<Self, ()> {
         let book_path = path.as_ref().to_path_buf();
         let mut epub_doc = match EpubDoc::new(path) {
@@ -145,6 +147,8 @@ impl Book {
                 path: book_path.into_os_string().into_string().unwrap(),
                 current_chapter_number: initial_chapter_number,
                 current_page_number_in_chapter: initial_page_number_in_chapter,
+                //  current_page_number:initial_page_number,
+                current_page_number: initial_page_number_in_chapter,
                 current_chapter: initial_chapter,
                 current_page: initial_page,
             },
@@ -163,6 +167,7 @@ impl Book {
                 //NON SONO ALL'ULTIMO CAPITOLO?
                 (*self).current_chapter_number += 1;
                 (*self).current_page_number_in_chapter = 0;
+                (*self).current_page_number += 1;
                 let (chapter_xml, chapter_path) = self
                     .chapters_xml_and_path
                     .get((*self).current_chapter_number)
@@ -174,11 +179,46 @@ impl Book {
             };
         } else {
             (*self).current_page_number_in_chapter += 1;
+            (*self).current_page_number = (*self).current_page_number + 1;
         }
         (*self).current_page = self
             .current_chapter
             .get_page((*self).current_page_number_in_chapter)
             .unwrap();
+    }
+    pub fn go_fast_forward_if_exist(&mut self) {
+        for _ in 0..10 {
+            if (*self).current_page_number_in_chapter + 1
+                >= self.current_chapter.get_number_of_pages()
+            {
+                //SONO ALL'ULTIMA PAGINA DEL CAPITOLO
+                if (*self)
+                    .chapters_xml_and_path
+                    .get((*self).current_chapter_number + 1)
+                    .is_some()
+                {
+                    //NON SONO ALL'ULTIMO CAPITOLO?
+                    (*self).current_chapter_number += 1;
+                    (*self).current_page_number_in_chapter = 0;
+                    (*self).current_page_number += 1;
+                    let (chapter_xml, chapter_path) = self
+                        .chapters_xml_and_path
+                        .get((*self).current_chapter_number)
+                        .unwrap()
+                        .clone();
+                    (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
+                } else {
+                    return;
+                };
+            } else {
+                (*self).current_page_number_in_chapter += 1;
+                (*self).current_page_number = (*self).current_page_number + 1;
+            }
+            (*self).current_page = self
+                .current_chapter
+                .get_page((*self).current_page_number_in_chapter)
+                .unwrap();
+        }
     }
 
     pub fn go_to_prev_page_if_exist(&mut self) {
@@ -198,9 +238,41 @@ impl Book {
             }
         }
         (*self).current_page_number_in_chapter = (*self).current_page_number_in_chapter - 1;
+        (*self).current_page_number = (*self).current_page_number - 1;
         (*self).current_page = self
             .current_chapter
             .get_page((*self).current_page_number_in_chapter)
             .unwrap();
+    }
+
+    pub fn go_fast_back_if_exist(&mut self) {
+        for _ in 0..10 {
+            if (*self).current_page_number_in_chapter == 0 {
+                //SONO ALLA PRIMA PAGINA DEL CAPITOLO, TORNO ALL'UlTIMA PAGINA DEL PRECEDENTE
+                if (*self).current_chapter_number > 0 {
+                    (*self).current_chapter_number -= 1;
+                    let (chapter_xml, chapter_path) = self
+                        .chapters_xml_and_path
+                        .get((*self).current_chapter_number)
+                        .unwrap()
+                        .clone();
+                    (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
+                    (*self).current_page_number_in_chapter =
+                        self.current_chapter.get_number_of_pages();
+                } else {
+                    return;
+                }
+            }
+            (*self).current_page_number_in_chapter = (*self).current_page_number_in_chapter - 1;
+            (*self).current_page_number = (*self).current_page_number - 1;
+            (*self).current_page = self
+                .current_chapter
+                .get_page((*self).current_page_number_in_chapter)
+                .unwrap();
+        }
+    }
+
+    pub fn get_current_page_number(&self) -> usize {
+        return (*self).current_page_number;
     }
 }

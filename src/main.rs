@@ -1,51 +1,73 @@
 mod book;
 
 use druid::widget::{
-    Button, CrossAxisAlignment, FillStrat, Flex, Image, LineBreaking, List, RawLabel, ViewSwitcher,
+    Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List,
+    RawLabel, ViewSwitcher,
 };
-use druid::{AppLauncher, LocalizedString, Widget, WidgetExt, WindowDesc, Data, Lens};
+use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
 use std::path::PathBuf;
 
 use crate::book::page_element::PageElement;
 use crate::book::Book;
 
 #[derive(Default, Clone, Data, Lens)]
-pub struct ApplicationState{
-    pub current_book: Book
+pub struct ApplicationState {
+    pub current_book: Book,
 }
-
+//SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 fn build_widget() -> impl Widget<ApplicationState> {
     let a: ViewSwitcher<ApplicationState, bool> = ViewSwitcher::new(
-        |data: &ApplicationState, _|data.current_book.is_empty(),
+        |data: &ApplicationState, _| data.current_book.is_empty(),
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
             if data.current_book.is_empty() {
-                return Box::new(Button::new("libro").on_click(|_ctx, data: &mut ApplicationState, _env| {
-                    data.current_book = Book::new(PathBuf::from("./libro.epub"), 0, 0).unwrap();
-                }));
+                return Box::new(Button::new("libro").on_click(
+                    |_ctx, data: &mut ApplicationState, _env| {
+                        data.current_book = Book::new(PathBuf::from("./libro.epub"), 0, 0).unwrap();
+                    },
+                ));
             } else {
                 return Box::new(render_book());
             }
-        });
+        },
+    );
     a
 }
-
+//FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
 fn render_book() -> impl Widget<ApplicationState> {
-    let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
-    let button_next = Button::new("next page").on_click(|_ctx, data: &mut ApplicationState, _env| {
+    let mut wrapper = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
+    let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
+    let mut row_due = Flex::row();
+    let button_next = Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
         data.current_book.go_to_next_page_if_exist();
     });
-    let button_prev = Button::new("prev page").on_click(|_ctx, data: &mut ApplicationState, _env| {
+    let button_fast_forward =
+        Button::new(">>").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            data.current_book.go_fast_forward_if_exist();
+        });
+    let button_prev = Button::new("<").on_click(|_ctx, data: &mut ApplicationState, _env| {
         data.current_book.go_to_prev_page_if_exist();
     });
-    let button_close_book = Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book = Book::empty_book();
+    let button_fast_back = Button::new("<<").on_click(|_ctx, data: &mut ApplicationState, _env| {
+        data.current_book.go_fast_back_if_exist();
+    });
+    let button_close_book =
+        Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            data.current_book = Book::empty_book();
+        });
+
+    let lbl_num_pag = Label::new(|data: &ApplicationState, _env: &_| {
+        format!("{}", data.current_book.get_current_page_number())
     });
 
     let mut row: Flex<ApplicationState> = Flex::row();
+    row.add_child(button_fast_back);
     row.add_child(button_prev);
     row.add_child(button_next);
+    row.add_child(button_fast_forward);
+    row_due.add_child(lbl_num_pag);
+
     row.add_child(button_close_book);
-    col.add_child(row.padding(30.0));
+    //  col.add_child(row.padding(30.0));
 
     let page =
         List::new(|| {
@@ -64,16 +86,26 @@ fn render_book() -> impl Widget<ApplicationState> {
                     }
                 },
             )
-        }).lens(Book::current_page);
-        //.lens(ApplicationState::current_book::current_page);
+        })
+        .lens(Book::current_page);
+
     col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
-    col.scroll().vertical()
+    let page_with_scroll = col.scroll().vertical();
+
+    wrapper.add_child(Flex::row().fix_height(8.0));
+    wrapper.add_flex_child(row, FlexParams::new(0.07, CrossAxisAlignment::Center));
+    wrapper.add_child(Flex::row().fix_height(7.0));
+    wrapper.add_flex_child(
+        page_with_scroll.fix_width(700.0).fix_height(1000.0),
+        FlexParams::new(0.92, CrossAxisAlignment::Baseline),
+    );
+    wrapper.add_child(Flex::row().fix_height(7.0));
+    wrapper.add_flex_child(row_due, FlexParams::new(0.01, CrossAxisAlignment::Center));
+
+    wrapper
 }
 
 fn main() {
-    //TODO: gestisco il caso in cui non sia possibile aprire l'ebook
-    //let initial_state = Book::new(PathBuf::from("./libro.epub"), 0, 0).unwrap();
-
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
     // describe the main window
     let main_window = WindowDesc::new(build_widget())
@@ -82,6 +114,8 @@ fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .launch(ApplicationState{current_book: Book::empty_book()})
+        .launch(ApplicationState {
+            current_book: Book::empty_book(),
+        })
         .expect("Failed to launch application");
 }
