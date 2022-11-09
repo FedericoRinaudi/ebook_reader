@@ -35,7 +35,6 @@ fn build_widget() -> impl Widget<ApplicationState> {
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
 fn render_book() -> impl Widget<ApplicationState> {
     let mut wrapper = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
-    let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
     let mut row_due = Flex::row();
     let button_next = Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
         data.current_book.go_to_next_page_if_exist();
@@ -69,28 +68,37 @@ fn render_book() -> impl Widget<ApplicationState> {
     row.add_child(button_close_book);
     //  col.add_child(row.padding(30.0));
 
-    let page =
-        List::new(|| {
-            ViewSwitcher::new(
-                |data: &PageElement, _| data.clone(),
-                |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                    match data {
-                        PageElement::Text(_) => {
-                            let mut label = RawLabel::new();
-                            label.set_line_break_mode(LineBreaking::WordWrap);
-                            Box::new(label)
-                        }
-                        PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
-                            Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
-                        )),
-                    }
-                },
-            )
-        })
-        .lens(Book::current_page);
+    let page_with_scroll =
+        ViewSwitcher::new(
+            |data: &ApplicationState, _| data.current_book.current_page.clone(),
+            |_, _, _| -> Box<dyn Widget<ApplicationState>> {
+                let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
+                let page =
+                    List::new(|| {
+                        ViewSwitcher::new(
+                            |data: &PageElement, _| data.clone(),
+                            |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                                match data {
+                                    PageElement::Text(_) => {
+                                        let mut label = RawLabel::new();
+                                        label.set_line_break_mode(LineBreaking::WordWrap);
+                                        Box::new(label)
+                                    }
+                                    PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
+                                        Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
+                                    )),
+                                }
+                            },
+                        )
+                    })
+                        .lens(Book::current_page);
 
-    col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
-    let page_with_scroll = col.scroll().vertical();
+                col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
+                Box::new(col.scroll().vertical())
+            },
+        );
+
+
 
     wrapper.add_child(Flex::row().fix_height(8.0));
     wrapper.add_flex_child(row, FlexParams::new(0.07, CrossAxisAlignment::Center));
