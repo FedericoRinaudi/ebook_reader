@@ -2,8 +2,8 @@ use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::text::Attribute;
 use druid::{im::Vector, Data, FontStyle, FontWeight, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
-use std::io::Read;
 use std::path::PathBuf;
+use std::io::Read;
 
 use crate::book::page::Page;
 
@@ -13,6 +13,7 @@ const MAX_SIZE: f64 = 35.0;
 pub(crate) struct Chapter {
     pages: Vector<Page>,
 }
+
 
 impl Chapter {
     pub fn new(chapter_path: &str, ebook_path: &str, chapter_xml: String) -> Self {
@@ -125,9 +126,13 @@ impl Chapter {
                     .into_os_string()
                     .into_string()
                     .unwrap();
-                let mut file = match archive.by_name(&complete_img_path) {
+
+                let better_path = convert_path_separators(complete_img_path);
+
+                let mut file = match archive.by_name(&better_path) {
                     Ok(file) => file,
-                    Err(..) => {
+                    Err(e) => {
+                        eprintln!("Error in opening archive at {}", e);
                         return;
                     }
                 };
@@ -278,4 +283,13 @@ fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
         }
     }
     p1
+}
+
+fn convert_path_separators(href: String) -> String {
+    let mut path = String::from(href);
+    if cfg!(windows) {
+        path = path.replace("\\", "/");
+        return path
+    }
+    path
 }

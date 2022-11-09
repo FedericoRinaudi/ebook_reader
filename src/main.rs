@@ -13,6 +13,7 @@ use crate::book::Book;
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub current_book: Book,
+    //
 }
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 fn build_widget() -> impl Widget<ApplicationState> {
@@ -97,7 +98,6 @@ fn render_book() -> impl Widget<ApplicationState> {
                 Box::new(col.scroll().vertical())
             },
         );
-
 
 
     wrapper.add_child(Flex::row().fix_height(8.0));
