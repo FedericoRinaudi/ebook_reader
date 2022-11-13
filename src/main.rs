@@ -1,14 +1,15 @@
 mod book;
 
-use druid::widget::{
-    Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List,
-    RawLabel, ViewSwitcher,
-};
-use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid::widget::{Button, Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LensWrap, LineBreaking, List, RawLabel, TextBox, ViewSwitcher};
+use druid::{AppLauncher, ArcStr, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
 use std::path::PathBuf;
+use druid::kurbo::Arc;
+use druid::text::RichText;
+use roxmltree::NodeType::Text;
 
 use crate::book::page_element::PageElement;
 use crate::book::Book;
+
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
@@ -27,7 +28,7 @@ fn build_widget() -> impl Widget<ApplicationState> {
                     },
                 ));
             } else {
-                return Box::new(render_book());
+                  return Box::new(render_book())
             }
         },
     );
@@ -55,6 +56,17 @@ fn render_book() -> impl Widget<ApplicationState> {
             data.current_book = Book::empty_book();
         });
 
+    let switch_mode = ViewSwitcher::new(
+        |data: &ApplicationState, _| data.current_book.clone(),
+        |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
+            let tag:&str;
+            if data.current_book.edit {tag = "Read"} else {tag = "Edit"};
+            let switch = Button::new(tag).on_click(|_ctx, data: &mut ApplicationState, _env| {
+                data.current_book.edit = !data.current_book.edit;
+            });
+            Box::new(switch)
+        });
+
     let lbl_num_pag = Label::new(|data: &ApplicationState, _env: &_| {
         format!("{}", data.current_book.get_current_page_number())
     });
@@ -64,6 +76,7 @@ fn render_book() -> impl Widget<ApplicationState> {
     row.add_child(button_prev);
     row.add_child(button_next);
     row.add_child(button_fast_forward);
+    row.add_child(switch_mode);
     row_due.add_child(lbl_num_pag);
 
     row.add_child(button_close_book);
@@ -71,30 +84,36 @@ fn render_book() -> impl Widget<ApplicationState> {
 
     let page_with_scroll =
         ViewSwitcher::new(
-            |data: &ApplicationState, _| data.current_book.current_page.clone(),
-            |_, _, _| -> Box<dyn Widget<ApplicationState>> {
+            |data: &ApplicationState, _| data.current_book.clone(),
+            |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
                 let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
-                let page =
-                    List::new(|| {
-                        ViewSwitcher::new(
-                            |data: &PageElement, _| data.clone(),
-                            |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                                match data {
-                                    PageElement::Text(_) => {
-                                        let mut label = RawLabel::new();
-                                        label.set_line_break_mode(LineBreaking::WordWrap);
-                                        Box::new(label)
+                if !data.current_book.edit {
+                    let page =
+                        List::new(|| {
+                            ViewSwitcher::new(
+                                |data: &PageElement, _| data.clone(),
+                                |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                                    match data {
+                                        PageElement::Text(_) => {
+                                            let mut label = RawLabel::new();
+                                            label.set_line_break_mode(LineBreaking::WordWrap);
+                                            Box::new(label)
+                                        }
+                                        PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
+                                            Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
+                                        )),
                                     }
-                                    PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
-                                        Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
-                                    )),
-                                }
-                            },
-                        )
-                    })
-                        .lens(Book::current_page);
-
-                col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
+                                },
+                            )
+                        })
+                            .lens(Book::current_page);
+                    col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
+                }else{
+                    let text = data.current_book.current_chapter.get_xml();
+                    let mut label = Label::new(text);
+                    label.set_line_break_mode(LineBreaking::WordWrap);
+                    col.add_child(Box::new(label).padding(30.0).lens(ApplicationState::current_book));
+                }
                 Box::new(col.scroll().vertical())
             },
         );
@@ -123,7 +142,7 @@ fn main() {
     // start the application
     AppLauncher::with_window(main_window)
         .launch(ApplicationState {
-            current_book: Book::empty_book(),
+            current_book: Book::empty_book()
         })
         .expect("Failed to launch application");
 }

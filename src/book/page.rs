@@ -57,6 +57,7 @@ impl Page {
     }
 }
 
+
 impl ListIter<PageElement> for Page {
     fn for_each(&self, cb: impl FnMut(&PageElement, usize)) {
         self.page.for_each(cb);

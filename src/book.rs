@@ -13,12 +13,14 @@ use std::path::Path;
 #[derive(Default, Clone, Data, Lens)]
 pub struct Book {
     chapters_xml_and_path: Vector<(String, String)>, //TODO: faccio una struct anzi che tuple
-    path: String,
+    pub path: String,
     current_chapter_number: usize,
     current_page_number_in_chapter: usize,
     current_page_number: usize,
-    current_chapter: Chapter,
+    pub current_chapter: Chapter,
     pub current_page: Page,
+    // pub current_html: Page,
+    pub edit: bool //Make enum eventually
 }
 
 impl Book {
@@ -151,6 +153,7 @@ impl Book {
                 current_page_number: initial_page_number_in_chapter,
                 current_chapter: initial_chapter,
                 current_page: initial_page,
+                edit: false
             },
         )
     }
