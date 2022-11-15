@@ -1,0 +1,3 @@
+./libri/alices.epub 0 0
+./libri/libro.epub 15 1
+./libri/sample.epub 0 0

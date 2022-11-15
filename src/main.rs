@@ -1,11 +1,16 @@
 mod book;
 
+use std::fs;
+use std::fs::{ File, OpenOptions};
+use std::io::{BufReader, BufRead, Write};
 use druid::widget::{
     Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List,
     RawLabel, ViewSwitcher,
 };
 use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
 use std::path::PathBuf;
+use walkdir::WalkDir;
+
 
 use crate::book::page_element::PageElement;
 use crate::book::Book;
@@ -13,17 +18,22 @@ use crate::book::Book;
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub current_book: Book,
-    //
+}
+#[derive(Default, Clone, Data, Lens)]
+pub struct BookInfo {
+    name:String,
+    start_chapter:usize,
+    start_page_in_chapter:usize
 }
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
-fn build_widget() -> impl Widget<ApplicationState> {
+fn build_widget(library: Vec<BookInfo>) -> impl Widget<ApplicationState> {
     let a: ViewSwitcher<ApplicationState, bool> = ViewSwitcher::new(
         |data: &ApplicationState, _| data.current_book.is_empty(),
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
             if data.current_book.is_empty() {
                 return Box::new(Button::new("libro").on_click(
                     |_ctx, data: &mut ApplicationState, _env| {
-                        data.current_book = Book::new(PathBuf::from("./libro.epub"), 0, 0).unwrap();
+                        data.current_book = Book::new(PathBuf::from("./libri/libro.epub"), 0, 0).unwrap();
                     },
                 ));
             } else {
@@ -52,6 +62,17 @@ fn render_book() -> impl Widget<ApplicationState> {
     });
     let button_close_book =
         Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let mut output = OpenOptions::new().append(true).create(true).open("tmp.txt").expect("Unable to open file");
+            let mut input=BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
+            for line in input.lines() {
+               if !(line.as_ref().unwrap().clone().split_whitespace().next().unwrap().to_string()==data.current_book.get_path())
+               {
+                   output.write_all((line.unwrap().clone()+"\n").as_bytes()).expect("TODO: panic message");
+               }
+                else { output.write_all((data.current_book.get_path()+" "+ data.current_book.get_current_chapter_number().to_string().as_str() +" "+data.current_book.get_current_page_number_in_chapter().to_string().as_str()+"\n").as_bytes()); }
+            }
+            fs::remove_file("file.txt");
+            fs::rename("tmp.txt","file.txt");
             data.current_book = Book::empty_book();
         });
 
@@ -115,8 +136,68 @@ fn render_book() -> impl Widget<ApplicationState> {
 
 fn main() {
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
+    let mut vet:Vec<String>=Vec::new();//contiene i libri letti in WalkDir
+    let mut library:Vec<BookInfo>=Vec::new(); //contiene tutti i libri letti dal file
+    let mut i=0;
+    let mut name:String=String::new();
+    let mut start_chapter:usize=0;
+    let mut start_page_in_chapter:usize=0;
+    let mut find=0;
+
+    for entry in WalkDir::new("./libri/")
+    {
+        if ! entry.as_ref().unwrap().path().to_str().unwrap().to_string().eq("./libri/")
+        {
+            vet.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
+        }
+    }
+
+    let reader = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
+
+    for line in reader.lines() {
+        for word in line.unwrap().split_whitespace() {
+            if i==0
+            {
+                name=word.to_string();
+                i+=1;
+            }
+            else if i==1
+            {
+                start_chapter= usize::from_str_radix(word,10).unwrap();
+                i+=1;
+            }
+            else {
+                i=0;
+                start_page_in_chapter=usize::from_str_radix(word,10).unwrap();
+                library.push(BookInfo{
+                    name:name.clone(),
+                    start_chapter:start_chapter.clone(),
+                    start_page_in_chapter:start_page_in_chapter.clone()
+                })
+            }
+        }
+    }
+
+    let mut output = OpenOptions::new().append(true).open("file.txt").expect("Unable to open file");
+
+    for pathElement in vet
+    {
+        for fileElement in &library
+        {
+            if fileElement.name.eq(&pathElement.clone())
+            {
+                find=1;
+            }
+        }
+        if find==0
+        { output.write_all((pathElement.clone()+" 0 0\n").as_bytes()).expect("write failed"); }
+        else { find=0; }
+    }
+
+
+
     // describe the main window
-    let main_window = WindowDesc::new(build_widget())
+    let main_window = WindowDesc::new(build_widget(library))
         .title(WINDOW_TITLE)
         .window_size((800.0, 1000.0));
 

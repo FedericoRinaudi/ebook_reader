@@ -275,4 +275,7 @@ impl Book {
     pub fn get_current_page_number(&self) -> usize {
         return (*self).current_page_number;
     }
+    pub fn get_path(&self)->String{ return self.path.clone();}
+    pub fn get_current_page_number_in_chapter(&self)->usize{return  self.current_page_number_in_chapter;}
+    pub fn get_current_chapter_number(&self)->usize{return  self.current_chapter_number;}
 }
