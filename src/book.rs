@@ -16,7 +16,7 @@ pub struct Book {
     path: String,
     current_chapter_number: usize,
     current_page_number_in_chapter: usize,
-    current_page_number: usize,
+    pub current_page_number: usize,
     current_chapter: Chapter,
     pub current_page: Page,
 }
@@ -106,6 +106,7 @@ impl Book {
         path: P,
         initial_chapter_number: usize,
         initial_page_number_in_chapter: usize,
+        current_page_number: usize
         //   initial_page_number:usize,
     ) -> Result<Self, ()> {
         let book_path = path.as_ref().to_path_buf();
@@ -139,7 +140,7 @@ impl Book {
             Some(page) => page,
             None => return Err(()),
         };
-
+        println!("{:?}", &(chapters_xml_and_path[0]));
         Result::Ok(
             //TODO: gestisco diversamente gli unwrap (se per esempio avessi il primo capitolo vuoto si spaccherebbe tutto, è corretto?)
             Self {
@@ -147,8 +148,7 @@ impl Book {
                 path: book_path.into_os_string().into_string().unwrap(),
                 current_chapter_number: initial_chapter_number,
                 current_page_number_in_chapter: initial_page_number_in_chapter,
-                //  current_page_number:initial_page_number,
-                current_page_number: initial_page_number_in_chapter,
+                current_page_number,
                 current_chapter: initial_chapter,
                 current_page: initial_page,
             },
@@ -226,11 +226,13 @@ impl Book {
             //SONO ALLA PRIMA PAGINA DEL CAPITOLO, TORNO ALL'UlTIMA PAGINA DEL PRECEDENTE
             if (*self).current_chapter_number > 0 {
                 (*self).current_chapter_number -= 1;
+                println!("{}", self.current_chapter_number);
                 let (chapter_xml, chapter_path) = self
                     .chapters_xml_and_path
                     .get((*self).current_chapter_number)
-                    .unwrap()
+                    .expect("Errore")
                     .clone();
+                println!("Sono arrivato al chap {} pag {}", self.current_chapter_number, self.current_page_number);
                 (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
                 (*self).current_page_number_in_chapter = self.current_chapter.get_number_of_pages();
             } else {
@@ -279,3 +281,4 @@ impl Book {
     pub fn get_current_page_number_in_chapter(&self)->usize{return  self.current_page_number_in_chapter;}
     pub fn get_current_chapter_number(&self)->usize{return  self.current_chapter_number;}
 }
+

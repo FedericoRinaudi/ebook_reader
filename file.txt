@@ -1,3 +1,4 @@
-./libri/alices.epub 0 0
-./libri/libro.epub 15 1
-./libri/sample.epub 0 0
+./libri/alices.epub 0 0 0
+./libri/libro.epub 15 1 0
+./libri/sample.epub 11 4 62
+./libri/ 0 0 0
