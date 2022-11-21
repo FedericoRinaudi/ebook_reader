@@ -15,7 +15,6 @@ use crate::book::chapter::Chapter;
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub current_book: Book,
-    //
 }
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 fn build_widget() -> impl Widget<ApplicationState> {
@@ -63,6 +62,8 @@ fn render_book() -> impl Widget<ApplicationState> {
             let tag:&str;
             if data.current_book.edit {tag = "Read"} else {tag = "Edit"};
             let switch = Button::new(tag).on_click(|_ctx, data: &mut ApplicationState, _env| {
+                //println!("{}", data.current_book.chapters_xml_and_path[data.current_book.current_chapter_number].0);
+                data.current_book.chapters_xml_and_path[data.current_book.current_chapter_number].0 = data.current_book.current_chapter.xml.clone();
                 data.current_book.edit = !data.current_book.edit;
             });
             Box::new(switch)
@@ -112,7 +113,8 @@ fn render_book() -> impl Widget<ApplicationState> {
                     // let text = data.current_book.current_chapter.get_xml();
                     let mut text = TextBox::new();
                     let lens = lens!(ApplicationState, current_book).then(lens!(Book, current_chapter).then(lens!(Chapter, xml)));
-                    col.add_child(Box::new(text).padding(30.0).lens(lens));
+                    let boxed_text = Box::new(text.with_line_wrapping(true).lens(lens));
+                    col.add_child(boxed_text);
                 }
                 Box::new(col.scroll().vertical())
             },

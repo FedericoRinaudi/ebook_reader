@@ -12,9 +12,9 @@ use std::path::Path;
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct Book {
-    chapters_xml_and_path: Vector<(String, String)>, //TODO: faccio una struct anzi che tuple
+    pub chapters_xml_and_path: Vector<(String, String)>, //TODO: faccio una struct anzi che tuple
     pub path: String,
-    current_chapter_number: usize,
+    pub current_chapter_number: usize,
     current_page_number_in_chapter: usize,
     current_page_number: usize,
     pub current_chapter: Chapter,
