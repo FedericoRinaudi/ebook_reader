@@ -1,4 +1,4 @@
-mod chapter;
+pub mod chapter;
 mod epub_text;
 pub mod page;
 pub(crate) mod page_element;

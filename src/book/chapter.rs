@@ -12,7 +12,7 @@ const MAX_SIZE: f64 = 35.0;
 #[derive(Default, Clone, Data, Lens)]
 pub struct Chapter {
     pages: Vector<Page>,
-    xml: String
+    pub xml: String
 }
 
 
@@ -63,7 +63,7 @@ impl Chapter {
         chapter_path: &str,
         ebook_path: &str,
     ) {
-        /*  Def Macros */
+        /* Def Macros */
         macro_rules! recur_on_children {
             () => {
                 for child in n.children() {

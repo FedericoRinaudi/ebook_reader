@@ -1,7 +1,7 @@
 mod book;
 
 use druid::widget::{Button, Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LensWrap, LineBreaking, List, RawLabel, TextBox, ViewSwitcher};
-use druid::{AppLauncher, ArcStr, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid::{AppLauncher, ArcStr, Data, Lens, lens, LensExt, LocalizedString, Widget, WidgetExt, WindowDesc};
 use std::path::PathBuf;
 use druid::kurbo::Arc;
 use druid::text::RichText;
@@ -9,6 +9,7 @@ use roxmltree::NodeType::Text;
 
 use crate::book::page_element::PageElement;
 use crate::book::Book;
+use crate::book::chapter::Chapter;
 
 
 #[derive(Default, Clone, Data, Lens)]
@@ -105,14 +106,13 @@ fn render_book() -> impl Widget<ApplicationState> {
                                     }
                                 },
                             )
-                        })
-                            .lens(Book::current_page);
+                        }).lens(Book::current_page);
                     col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
                 }else{
-                    let text = data.current_book.current_chapter.get_xml();
-                    let mut label = Label::new(text);
-                    label.set_line_break_mode(LineBreaking::WordWrap);
-                    col.add_child(Box::new(label).padding(30.0).lens(ApplicationState::current_book));
+                    // let text = data.current_book.current_chapter.get_xml();
+                    let mut text = TextBox::new();
+                    let lens = lens!(ApplicationState, current_book).then(lens!(Book, current_chapter).then(lens!(Chapter, xml)));
+                    col.add_child(Box::new(text).padding(30.0).lens(lens));
                 }
                 Box::new(col.scroll().vertical())
             },
