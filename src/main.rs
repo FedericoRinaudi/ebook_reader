@@ -93,7 +93,7 @@ fn render_book() -> impl Widget<ApplicationState> {
             let _ = fs::remove_file("file.txt");
             let _ = fs::rename("tmp.txt","file.txt");
 
-
+            data.library=readFromFile();
             data.current_book = Book::empty_book();
 
         });
@@ -160,19 +160,67 @@ fn main() {
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
     let mut vet:Vec<String>=Vec::new();//contiene i libri letti in WalkDir
     let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
-    let mut i=0;
-    let mut name:String=String::new();
-    let mut start_chapter:usize=0;
-    let mut start_page_in_chapter:usize=0;
-    let mut tot_pages:usize=0;
+   
+   
     let mut find=0;
 
     for entry in WalkDir::new("./libri/")
     {
         vet.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
+
     }
 
+    library=readFromFile();
+
+   
+
+    let mut output = OpenOptions::new().append(true).open("file.txt").expect("Unable to open file");
+
+    for path_element in vet
+    {
+        for file_element in &library
+        {
+            if file_element.name.eq(&path_element.clone())
+            {
+                find=1;
+            }
+        }
+        if find==0
+        { output.write_all((path_element.clone()+" 0 0 0\n").as_bytes()).expect("write failed"); }
+        else { find=0; }
+    }
+    library=readFromFile();
+
+
+
+    // describe the main window
+    let main_window = WindowDesc::new(build_widget())
+        .title(WINDOW_TITLE)
+        .window_size((800.0, 1000.0));
+
+    // start the application
+    AppLauncher::with_window(main_window)
+        .launch(ApplicationState {
+            current_book: Book::empty_book(),
+            library:library
+        })
+        .expect("Failed to launch application");
+
+
+
+
+}
+
+fn readFromFile()->Vector<BookInfo>
+{
+    let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
     let reader = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
+    let mut name:String=String::new();
+    let mut start_chapter:usize=0;
+    let mut start_page_in_chapter:usize=0;
+    let mut tot_pages:usize=0;
+    let mut i=0;
+    
 
     //TODO: Trova metodo funzionale eventualmente
     for line in reader.lines() {
@@ -204,39 +252,5 @@ fn main() {
             }
         }
     }
-
-    let mut output = OpenOptions::new().append(true).open("file.txt").expect("Unable to open file");
-
-    for path_element in vet
-    {
-        for file_element in &library
-        {
-            if file_element.name.eq(&path_element.clone())
-            {
-                find=1;
-            }
-        }
-        if find==0
-        { output.write_all((path_element.clone()+" 0 0 0\n").as_bytes()).expect("write failed"); }
-        else { find=0; }
-    }
-
-
-
-    // describe the main window
-    let main_window = WindowDesc::new(build_widget())
-        .title(WINDOW_TITLE)
-        .window_size((800.0, 1000.0));
-
-    // start the application
-    AppLauncher::with_window(main_window)
-        .launch(ApplicationState {
-            current_book: Book::empty_book(),
-            library
-        })
-        .expect("Failed to launch application");
-
-
-
-
+    return library;
 }
