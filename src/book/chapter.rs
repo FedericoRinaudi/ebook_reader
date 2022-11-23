@@ -9,7 +9,7 @@ use crate::book::page::Page;
 
 const MAX_SIZE: f64 = 35.0;
 
-#[derive(Default, Clone, Data, Lens)]
+#[derive(Default, Clone, Data, Lens, Debug)]
 pub struct Chapter {
     pages: Vector<Page>,
     pub xml: String

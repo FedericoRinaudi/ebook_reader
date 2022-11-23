@@ -224,6 +224,16 @@ impl Book {
         }
     }
 
+    pub fn update_page(&mut self){
+        let (chapter_xml, chapter_path) = self
+            .chapters_xml_and_path
+            .get((*self).current_chapter_number)
+            .unwrap()
+            .clone();
+        (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
+        (*self).current_page_number_in_chapter = self.current_page_number_in_chapter;
+    }
+
     pub fn go_to_prev_page_if_exist(&mut self) {
         if (*self).current_page_number_in_chapter == 0 {
             //SONO ALLA PRIMA PAGINA DEL CAPITOLO, TORNO ALL'UlTIMA PAGINA DEL PRECEDENTE

@@ -1,15 +1,11 @@
 mod book;
 
-use druid::widget::{Button, Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LensWrap, LineBreaking, List, RawLabel, TextBox, ViewSwitcher};
-use druid::{AppLauncher, ArcStr, Data, Lens, lens, LensExt, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid::widget::{Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List, RawLabel, TextBox, ViewSwitcher};
+use druid::{AppLauncher, Data, Lens, lens, LensExt, LocalizedString, Widget, WidgetExt, WindowDesc};
 use std::path::PathBuf;
-use druid::kurbo::Arc;
-use druid::text::RichText;
-use roxmltree::NodeType::Text;
 
 use crate::book::page_element::PageElement;
 use crate::book::Book;
-use crate::book::chapter::Chapter;
 
 
 #[derive(Default, Clone, Data, Lens)]
@@ -64,6 +60,7 @@ fn render_book() -> impl Widget<ApplicationState> {
             let switch = Button::new(tag).on_click(|_ctx, data: &mut ApplicationState, _env| {
                 //println!("{}", data.current_book.chapters_xml_and_path[data.current_book.current_chapter_number].0);
                 data.current_book.chapters_xml_and_path[data.current_book.current_chapter_number].0 = data.current_book.current_chapter.xml.clone();
+                data.current_book.update_page();
                 data.current_book.edit = !data.current_book.edit;
             });
             Box::new(switch)
@@ -86,7 +83,7 @@ fn render_book() -> impl Widget<ApplicationState> {
 
     let page_with_scroll =
         ViewSwitcher::new(
-            |data: &ApplicationState, _| data.current_book.clone(),
+            |data: &ApplicationState, _| data.current_book.edit,
             |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
                 let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
                 if !data.current_book.edit {
@@ -110,11 +107,18 @@ fn render_book() -> impl Widget<ApplicationState> {
                         }).lens(Book::current_page);
                     col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
                 }else{
-                    // let text = data.current_book.current_chapter.get_xml();
-                    let mut text = TextBox::new();
-                    let lens = lens!(ApplicationState, current_book).then(lens!(Book, current_chapter).then(lens!(Chapter, xml)));
-                    let boxed_text = Box::new(text.with_line_wrapping(true).lens(lens));
-                    col.add_child(boxed_text);
+
+
+                    let xml_lens  = lens!(ApplicationState, current_book)
+                        .then(lens!(Book, chapters_xml_and_path))
+                        .index(data.current_book.current_chapter_number)
+                        .then(lens!((String, String), 0));
+
+                    let mut text = TextBox::new()
+                        .with_line_wrapping(true)
+                        .lens(xml_lens);
+
+                    col.add_child(text);
                 }
                 Box::new(col.scroll().vertical())
             },
