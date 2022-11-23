@@ -224,7 +224,15 @@ impl Book {
         }
     }
 
-    pub fn update_page(&mut self){
+    pub fn save_n_update(&mut self){
+        /*
+        Save new xml to a new version of the archive
+
+        1) Clone the original epub
+        2) Modify the file at path chapters_xml_and_path[current_chapter_number].1
+        3) Well done
+         */
+
         let (chapter_xml, chapter_path) = self
             .chapters_xml_and_path
             .get((*self).current_chapter_number)
@@ -232,6 +240,10 @@ impl Book {
             .clone();
         (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
         (*self).current_page_number_in_chapter = self.current_page_number_in_chapter;
+        (*self).current_page = self
+            .current_chapter
+            .get_page((*self).current_page_number_in_chapter)
+            .unwrap();
     }
 
     pub fn go_to_prev_page_if_exist(&mut self) {
