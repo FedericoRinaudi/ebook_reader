@@ -58,9 +58,7 @@ fn render_book() -> impl Widget<ApplicationState> {
             let tag:&str;
             if data.current_book.edit {tag = "Read"} else {tag = "Edit"};
             let switch = Button::new(tag).on_click(|_ctx, data: &mut ApplicationState, _env| {
-                //println!("{}", data.current_book.chapters_xml_and_path[data.current_book.current_chapter_number].0);
-                //data.current_book.chapters_xml_and_path[data.current_book.current_chapter_number].0 = data.current_book.current_chapter.xml.clone();
-                data.current_book.save_n_update();
+                if data.current_book.edit {data.current_book.save_n_update()};
                 data.current_book.edit = !data.current_book.edit;
             });
             Box::new(switch)

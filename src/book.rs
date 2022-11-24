@@ -3,12 +3,14 @@ mod epub_text;
 pub mod page;
 pub(crate) mod page_element;
 
+use std::fs;
 use crate::book::chapter::Chapter;
 use crate::book::page::Page;
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::option::Option::{None, Some};
 use std::path::Path;
+use druid::platform_menus::win::file::new;
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct Book {
@@ -230,8 +232,13 @@ impl Book {
 
         1) Clone the original epub
         2) Modify the file at path chapters_xml_and_path[current_chapter_number].1
-        3) Well done
+        3) Well donec
          */
+        let newpath = self.path.clone().replace(".epub","-1.epub");
+        match fs::copy(&self.path, &newpath) {
+            Ok(_) => println!("File {} creato con successo!", newpath),
+            Err(e) => eprintln!("Errore nella creazione del file modificato: {}", e)
+        };
 
         let (chapter_xml, chapter_path) = self
             .chapters_xml_and_path
