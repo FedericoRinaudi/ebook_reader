@@ -11,8 +11,7 @@ const MAX_SIZE: f64 = 35.0;
 
 #[derive(Default, Clone, Data, Lens, Debug)]
 pub struct Chapter {
-    pages: Vector<Page>,
-    pub xml: String
+    pages: Vector<Page>
 }
 
 
@@ -22,13 +21,8 @@ impl Chapter {
         let doc = Document::parse_with_options(&chapter_xml, opt).unwrap();
         let body = doc.root_element().last_element_child().unwrap();
         Self {
-            pages: Self::xml_to_pages(body, chapter_path, ebook_path),
-            xml: chapter_xml
+            pages: Self::xml_to_pages(body, chapter_path, ebook_path)
         }
-    }
-
-    pub(crate) fn get_xml(&self) -> String {
-        self.xml.clone()
     }
 
     pub(crate) fn get_page(&self, index: usize) -> Option<Page> {

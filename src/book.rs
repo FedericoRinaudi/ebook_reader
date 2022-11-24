@@ -10,7 +10,6 @@ use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::option::Option::{None, Some};
 use std::path::Path;
-use druid::platform_menus::win::file::new;
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct Book {

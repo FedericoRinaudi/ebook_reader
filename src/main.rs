@@ -111,7 +111,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                         .index(data.current_book.current_chapter_number)
                         .then(lens!((String, String), 0));
 
-                    let mut text = TextBox::new()
+                    let text = TextBox::new()
                         .with_line_wrapping(true)
                         .lens(xml_lens);
 
