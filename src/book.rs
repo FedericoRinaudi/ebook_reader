@@ -2,8 +2,12 @@ pub mod chapter;
 mod epub_text;
 pub mod page;
 pub(crate) mod page_element;
+use walkdir::{WalkDir, DirEntry};
 
 use std::{fs, io};
+use std::env::current_dir;
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write};
 use crate::book::chapter::Chapter;
 use crate::book::page::Page;
 use druid::{im::Vector, Data, Lens};
@@ -11,6 +15,8 @@ use epub::doc::EpubDoc;
 use std::option::Option::{None, Some};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+use druid::platform_menus::mac::file::print;
+use zip::write::FileOptions;
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct Book {
@@ -94,26 +100,75 @@ impl Book {
     */
     pub fn save_n_update(&mut self){
         /*
-        Clone the original epub into a different file:
-        file.epub -> file-1.epub
+        Get the ZipArchive from the original file
          */
-        let newpath = self.path.clone().replace(".epub","-1.epub");
-        match fs::copy(&self.path, &newpath) {
-            Ok(_) => println!("File {} creato con successo!", newpath),
-            Err(e) => eprintln!("Errore nella creazione del file modificato: {}", e)
-        };
-        /*
-        Modify the file at path chapters_xml_and_path[current_chapter_number].1
-         */
-        let file = fs::File::open(&newpath).unwrap();
-        // file.set_permissions(fs::Permissions::from_mode(0o777)).expect("Error changing perms");
+        let file = fs::File::open(&self.path.clone()).unwrap();
+        file.set_permissions(fs::Permissions::from_mode(0o644)).expect("Error changing perms");
         let mut archive = zip::ZipArchive::new(file).unwrap();
-        match archive.extract(PathBuf::from("./tmp").into_os_string()){
-            Ok(_) => println!("Ok"),
+
+        /*
+        Unzip the file into a tmp dir to edit before zipping again
+         */
+        let mut dir = current_dir().unwrap().to_str().unwrap().to_string();
+        dir.push_str("/tmp/");
+        let path_dir = PathBuf::from(&dir).into_os_string();
+        // println!("{:?}", path_dir);
+        match archive.extract(path_dir){
+            Ok(_) => (),
             Err(e) => eprintln!("{}", e)
         };
 
+        /*
+        Modify the file at path chapters_xml_and_path[current_chapter_number].1
+         */
+        let mut target_path = dir.clone();
+        target_path.push_str(&self.chapters_xml_and_path[self.current_chapter_number].1);
+        // println!("{}", dir);
+        let mut target = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(target_path)
+            .unwrap();
+        target.write_all(&self.chapters_xml_and_path[self.current_chapter_number].0.as_bytes()).expect("Unable to write data");
 
+        /*
+        Change the old epub file.epub -> file-old.epub
+        Zip the file again with the original epub's name
+        Cleanup by deleting the tmp folder
+         */
+
+        let walkdir = WalkDir::new(dir.to_string());
+        let it = walkdir.into_iter();
+        let newpath = self.path.clone().replace(".epub","-old.epub");
+        fs::rename(&self.path, newpath).unwrap();
+        let writer = File::create(PathBuf::from(&self.path)).unwrap();
+
+        let mut zip = zip::ZipWriter::new(writer);
+        let options = FileOptions::default()
+            //.compression_method(method)
+            .unix_permissions(0o755);
+
+        let mut buffer = Vec::new();
+        for entry in it.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            let name = path.strip_prefix(Path::new(&dir)).unwrap();
+            if path.is_file() {
+                zip.start_file_from_path(name, options).unwrap();
+                let mut f = File::open(path).unwrap();
+                f.read_to_end(&mut buffer).unwrap();
+                zip.write_all(&*buffer).unwrap();
+                buffer.clear();
+            } else if name.as_os_str().len() != 0 {
+                zip.add_directory_from_path(name, options).unwrap();
+            }
+        }
+        zip.finish().unwrap();
+        fs::remove_dir_all(&dir).unwrap();
+
+        /*
+        Update the current model so that changes show without having to update the book
+         */
         let (chapter_xml, chapter_path) = self
             .chapters_xml_and_path
             .get((*self).current_chapter_number)

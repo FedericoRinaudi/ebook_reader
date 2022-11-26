@@ -20,7 +20,7 @@ fn build_widget() -> impl Widget<ApplicationState> {
             if data.current_book.is_empty() {
                 return Box::new(Button::new("libro").on_click(
                     |_ctx, data: &mut ApplicationState, _env| {
-                        data.current_book = Book::new(PathBuf::from("./libro.epub"), 0, 0).unwrap();
+                        data.current_book = Book::new(PathBuf::from("./alices.epub"), 0, 0).unwrap();
                     },
                 ));
             } else {
