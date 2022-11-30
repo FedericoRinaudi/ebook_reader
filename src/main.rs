@@ -4,10 +4,7 @@ use std::fmt::format;
 use std::fs;
 use std::fs::{ File, OpenOptions};
 use std::io::{BufReader, BufRead, Write};
-use druid::widget::{
-    Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List,
-    RawLabel, ViewSwitcher, Controller,
-};
+use druid::widget::{Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List, RawLabel, ViewSwitcher, Controller, ControllerHost, Click};
 use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc, EventCtx, Event, Env, MouseEvent, ImageBuf};
 use std::path::PathBuf;
 use druid::im::Vector;
@@ -65,7 +62,10 @@ fn build_widget<'a>() -> impl Widget<ApplicationState> {
                     */
                     println!("{}",e.image.clone());
                     let b=ImageBuf::from_file(e.image.clone()).unwrap();
-                    col.add_child(Image::new(b).fix_width(300.0).fix_height(200.0));
+                    let c=ControllerHost::new(Image::new(b).fix_width(300.0).fix_height(200.0),Click::new(move |_ctx, data: &mut ApplicationState, _env| {
+                        data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
+                    }));
+                    col.add_child(c);
                 }
                 Box::new(col.scroll().vertical())
             } else {
@@ -108,7 +108,9 @@ fn render_book() -> impl Widget<ApplicationState> {
                         data.current_book.get_path()+" "+
                         data.current_book.get_current_chapter_number().to_string().as_str() +" "+
                         data.current_book.get_current_page_number_in_chapter().to_string().as_str()+" "+
-                        data.current_book.get_current_page_number().to_string().as_str()+"\n").as_bytes()); }
+                        data.current_book.get_current_page_number().to_string().as_str()+" "+
+                        data.current_book.get_image(data.current_book.get_path()).to_string().as_str()+"\n").as_bytes());}
+
             }
             let _ = fs::remove_file("file.txt");
             let _ = fs::rename("tmp.txt","file.txt");

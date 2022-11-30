@@ -3,6 +3,8 @@ mod epub_text;
 pub mod page;
 pub(crate) mod page_element;
 
+use std::fs;
+use std::io::Write;
 use crate::book::chapter::Chapter;
 use crate::book::page::Page;
 use druid::{im::Vector, Data, Lens};
@@ -277,8 +279,29 @@ impl Book {
     pub fn get_current_page_number(&self) -> usize {
         return (*self).current_page_number;
     }
-    pub fn get_path(&self)->String{ return self.path.clone();}
-    pub fn get_current_page_number_in_chapter(&self)->usize{return  self.current_page_number_in_chapter;}
-    pub fn get_current_chapter_number(&self)->usize{return  self.current_chapter_number;}
+    pub fn get_path(&self) -> String { return self.path.clone(); }
+    pub fn get_current_page_number_in_chapter(&self) -> usize { return self.current_page_number_in_chapter; }
+    pub fn get_current_chapter_number(&self) -> usize { return self.current_chapter_number; }
+    pub(crate) fn get_image(&self, bookPath: String) -> String
+    {
+        let doc = EpubDoc::new(bookPath);
+        assert!(doc.is_ok());
+        let mut doc = doc.unwrap();
+        let name = doc.mdata("cover").unwrap();
+        let title = doc.mdata("title").unwrap().replace(" ", "_").split('/').into_iter().next().unwrap().to_string();
+
+        let cover_data = doc.get_cover().unwrap();
+
+        let mut path = String::from("./images/");
+        path.push_str(title.as_str());
+        path.push_str(".jpeg");
+
+        let f = fs::File::create(path.clone());
+        assert!(f.is_ok());
+        let mut f = f.unwrap();
+        let resp = f.write_all(&cover_data);
+
+        return path;
+    }
 }
 
