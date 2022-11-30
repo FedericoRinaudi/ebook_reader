@@ -1,3 +1,5 @@
 ./libri/alices.epub 8 5 53 ./images/Alice's_Adventures_in_Wonderland_.jpeg
 ./libri/libro.epub 6 22 30 ./images/Chiamami_col_tuo_nome_(Italian_Edition).jpeg
 ./libri/sample.epub 5 4 20 ./images/Around_the_World_in_28_Languages.jpeg
+./libri/saviano.epub 0 0 0 ./images/La_paranza_dei_bambini.jpeg
+./libri/angelo.epub 0 0 0 ./images/Il_Gioco_Dell'Angelo.jpeg

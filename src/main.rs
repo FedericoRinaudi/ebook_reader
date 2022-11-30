@@ -51,22 +51,28 @@ fn build_widget<'a>() -> impl Widget<ApplicationState> {
         |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>>{
             if data.current_book.is_empty() {
                 let mut col = Flex::column();
+                let mut row = Flex::row();
                 let mut lib = data.library.clone();
+                let row_flex = 1.0/((lib.len() as f64 /3.0) +1.0);
+                for (i, e) in lib.into_iter().enumerate() {
 
-                for e in lib.into_iter() {
                     //println!("{:?}", e);
 
                 /*    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
                         button_data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
                     });
                     */
-                    println!("{}",e.image.clone());
                     let b=ImageBuf::from_file(e.image.clone()).unwrap();
                     let c=ControllerHost::new(Image::new(b).fix_width(300.0).fix_height(200.0),Click::new(move |_ctx, data: &mut ApplicationState, _env| {
                         data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
                     }));
-                    col.add_child(c);
+                    row.add_flex_child(c, FlexParams::new(row_flex, CrossAxisAlignment::Start));
+                    if i != 0 && (i+1)%3 == 0{
+                        col.add_flex_child(row, FlexParams::new(0.3, CrossAxisAlignment::Center));
+                        row = Flex::row();
+                    }
                 }
+                col.add_child(row);
                 Box::new(col.scroll().vertical())
             } else {
                 return Box::new(render_book());
