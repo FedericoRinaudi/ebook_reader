@@ -2,9 +2,9 @@ pub mod chapter;
 mod epub_text;
 pub mod page;
 pub(crate) mod page_element;
-use walkdir::{WalkDir, DirEntry};
+use walkdir::WalkDir;
 
-use std::{fs, io};
+use std::fs;
 use std::env::current_dir;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
@@ -15,7 +15,6 @@ use epub::doc::EpubDoc;
 use std::option::Option::{None, Some};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use druid::platform_menus::mac::file::print;
 use zip::write::FileOptions;
 
 #[derive(Default, Clone, Data, Lens)]
@@ -25,8 +24,6 @@ pub struct Book {
     pub current_chapter_number: usize,
     current_page_number_in_chapter: usize,
     pub current_page_number: usize,
-    pub current_chapter: Chapter,
-    current_page_number: usize,
     pub current_chapter: Chapter,
     pub current_page: Page,
     // pub current_html: Page,
