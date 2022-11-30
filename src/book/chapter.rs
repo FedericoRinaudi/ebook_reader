@@ -9,9 +9,9 @@ use crate::book::page::Page;
 
 const MAX_SIZE: f64 = 35.0;
 
-#[derive(Default, Clone, Data, Lens)]
-pub(crate) struct Chapter {
-    pages: Vector<Page>,
+#[derive(Default, Clone, Data, Lens, Debug)]
+pub struct Chapter {
+    pages: Vector<Page>
 }
 
 
@@ -21,7 +21,7 @@ impl Chapter {
         let doc = Document::parse_with_options(&chapter_xml, opt).unwrap();
         let body = doc.root_element().last_element_child().unwrap();
         Self {
-            pages: Self::xml_to_pages(body, chapter_path, ebook_path),
+            pages: Self::xml_to_pages(body, chapter_path, ebook_path)
         }
     }
 
@@ -57,7 +57,7 @@ impl Chapter {
         chapter_path: &str,
         ebook_path: &str,
     ) {
-        /*  Def Macros */
+        /* Def Macros */
         macro_rules! recur_on_children {
             () => {
                 for child in n.children() {

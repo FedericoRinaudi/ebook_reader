@@ -2,7 +2,7 @@ use druid::piet::{PietTextLayoutBuilder, TextStorage as PietTextStorage};
 use druid::text::{EnvUpdateCtx, Link, RichText, TextStorage};
 use druid::{Data, Env, ImageBuf};
 
-#[derive(Clone, Data)]
+#[derive(Clone, Data, Debug)]
 pub enum PageElement {
     Text(RichText),
     Image(ImageBuf),
