@@ -1,15 +1,18 @@
 mod book;
 
+use std::fmt::format;
 use std::fs;
 use std::fs::{ File, OpenOptions};
 use std::io::{BufReader, BufRead, Write};
 use druid::widget::{
     Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List,
-    RawLabel, ViewSwitcher,
+    RawLabel, ViewSwitcher, Controller,
 };
-use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc, EventCtx, Event, Env, MouseEvent, ImageBuf};
 use std::path::PathBuf;
 use druid::im::Vector;
+use druid::piet::LineCap::Butt;
+use epub::doc::EpubDoc;
 use walkdir::WalkDir;
 
 
@@ -28,7 +31,19 @@ pub struct BookInfo {
     name:String,
     start_chapter:usize,
     start_page_in_chapter:usize,
-    tot_pages:usize
+    tot_pages:usize,
+    image:String
+}
+
+struct TakeFocus;
+
+impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
+    fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        if let Event::WindowConnected = event {
+            ctx.request_focus();
+        }
+        child.event(ctx, event, data, env)
+    }
 }
 
 
@@ -40,12 +55,17 @@ fn build_widget<'a>() -> impl Widget<ApplicationState> {
             if data.current_book.is_empty() {
                 let mut col = Flex::column();
                 let mut lib = data.library.clone();
+
                 for e in lib.into_iter() {
                     //println!("{:?}", e);
-                    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
+
+                /*    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
                         button_data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
                     });
-                    col.add_child(b);
+                    */
+                    println!("{}",e.image.clone());
+                    let b=ImageBuf::from_file(e.image.clone()).unwrap();
+                    col.add_child(Image::new(b).fix_width(300.0).fix_height(200.0));
                 }
                 Box::new(col.scroll().vertical())
             } else {
@@ -76,7 +96,7 @@ fn render_book() -> impl Widget<ApplicationState> {
     });
     let button_close_book =
         Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            let mut output = OpenOptions::new().append(true).create(true).open("tmp.txt").expect("Unable to open file");
+            let mut output = OpenOptions::new().append(true).create(true).open("./tmp.txt").expect("Unable to open file");
             let  input=BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
             for line in input.lines() {
                if !(line.as_ref().unwrap().clone().split_whitespace().next().unwrap().to_string()==data.current_book.get_path())
@@ -93,7 +113,7 @@ fn render_book() -> impl Widget<ApplicationState> {
             let _ = fs::remove_file("file.txt");
             let _ = fs::rename("tmp.txt","file.txt");
 
-            data.library=readFromFile();
+            data.library= read_from_file();
             data.current_book = Book::empty_book();
 
         });
@@ -160,17 +180,16 @@ fn main() {
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
     let mut vet:Vec<String>=Vec::new();//contiene i libri letti in WalkDir
     let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
-   
-   
+
     let mut find=0;
 
-    for entry in WalkDir::new("./libri/")
+    for entry in WalkDir::new("./libri/").into_iter().skip(1)
     {
         vet.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
 
     }
 
-    library=readFromFile();
+    library= read_from_file();
 
    
 
@@ -186,10 +205,13 @@ fn main() {
             }
         }
         if find==0
-        { output.write_all((path_element.clone()+" 0 0 0\n").as_bytes()).expect("write failed"); }
+        {
+            let image=get_image(path_element.clone());
+            output.write_all((path_element.clone()+" 0 0 0 "+image.as_str()+ "\n").as_bytes()).expect("write failed");
+        }
         else { find=0; }
     }
-    library=readFromFile();
+    library= read_from_file();
 
 
 
@@ -211,7 +233,7 @@ fn main() {
 
 }
 
-fn readFromFile()->Vector<BookInfo>
+fn read_from_file() ->Vector<BookInfo>
 {
     let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
     let reader = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
@@ -220,37 +242,46 @@ fn readFromFile()->Vector<BookInfo>
     let mut start_page_in_chapter:usize=0;
     let mut tot_pages:usize=0;
     let mut i=0;
-    
 
-    //TODO: Trova metodo funzionale eventualmente
-    for line in reader.lines() {
-        for word in line.unwrap().split_whitespace() {
-            if i==0
-            {
-                name=word.to_string();
-                i+=1;
-            }
-            else if i==1
-            {
-                start_chapter= usize::from_str_radix(word,10).unwrap();
-                i+=1;
-            }
-            else if i==2{
-                i+=1;
-                start_page_in_chapter=usize::from_str_radix(word,10).unwrap();
+   
+    for line in reader.lines()
+    {
+        let mut word=line.as_ref().unwrap().split_whitespace().into_iter();
+            library.push_back(BookInfo{
+                //name:word.next().unwrap().to_string().clone(),
+                name:word.next().unwrap().to_string().clone(),
+                start_chapter:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
+                start_page_in_chapter:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
+                tot_pages:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
+                image:word.next().unwrap().to_string().clone()
 
-            }
-            else {
-                i=0;
-                tot_pages=usize::from_str_radix(word,10).unwrap();
-                library.push_back(BookInfo{
-                    name:name.clone(),
-                    start_chapter:start_chapter.clone(),
-                    start_page_in_chapter:start_page_in_chapter.clone(),
-                    tot_pages:tot_pages.clone()
-                })
-            }
-        }
+            })
+        
+           
     }
     return library;
+}
+
+
+fn get_image(bookPath:String)->String
+{
+    let doc = EpubDoc::new(bookPath);
+    assert!(doc.is_ok());
+    let mut doc = doc.unwrap();
+    let name=doc.mdata("cover").unwrap();
+    let title=doc.mdata("title").unwrap().replace(" "  ,"_") .split('/').into_iter().next().unwrap().to_string();
+
+    let cover_data = doc.get_cover().unwrap();
+
+    let mut path=String::from("./images/");
+    path.push_str(title.as_str());
+    path.push_str(".jpeg");
+
+    let f = fs::File::create(path.clone());
+    assert!(f.is_ok());
+    let mut f = f.unwrap();
+    let resp = f.write_all(&cover_data);
+
+    return path;
+
 }
