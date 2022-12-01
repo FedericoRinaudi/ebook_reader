@@ -9,9 +9,9 @@ use crate::book::page::Page;
 
 const MAX_SIZE: f64 = 35.0;
 
-#[derive(Default, Clone, Data, Lens)]
-pub(crate) struct Chapter {
-    pages: Vector<Page>,
+#[derive(Default, Clone, Data, Lens, Debug)]
+pub struct Chapter {
+    pages: Vector<Page>
 }
 
 
@@ -21,7 +21,7 @@ impl Chapter {
         let doc = Document::parse_with_options(&chapter_xml, opt).unwrap();
         let body = doc.root_element().last_element_child().unwrap();
         Self {
-            pages: Self::xml_to_pages(body, chapter_path, ebook_path),
+            pages: Self::xml_to_pages(body, chapter_path, ebook_path)
         }
     }
 
@@ -57,7 +57,7 @@ impl Chapter {
         chapter_path: &str,
         ebook_path: &str,
     ) {
-        /*  Def Macros */
+        /* Def Macros */
         macro_rules! recur_on_children {
             () => {
                 for child in n.children() {
@@ -177,10 +177,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -189,10 +190,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 3.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -201,10 +203,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 6.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -213,10 +216,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 9.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -225,10 +229,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 12.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -237,10 +242,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 15.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
