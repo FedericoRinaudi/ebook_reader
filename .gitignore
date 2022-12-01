@@ -2,3 +2,5 @@
 /alices.epub
 /.idea
 /target/
+/libri/
+*.txt
