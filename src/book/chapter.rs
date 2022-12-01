@@ -177,10 +177,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -189,10 +190,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 3.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -201,10 +203,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 6.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -213,10 +216,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 9.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -225,10 +229,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 12.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }
@@ -237,10 +242,11 @@ impl Chapter {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
-                    AttributeCase::Style,
+                    AttributeCase::FontSize,
                     Attribute::FontSize(druid::KeyOrValue::Concrete(MAX_SIZE - 15.00)),
                 );
                 recur_on_children!();
+                current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!();
             }

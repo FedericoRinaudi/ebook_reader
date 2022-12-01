@@ -3,6 +3,7 @@ use druid::text::Attribute;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum AttributeCase {
+    FontSize,
     Style,
     Weight, //TODO: aggiungo e aggiorno i casi man mano che mi servono
 }
