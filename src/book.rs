@@ -55,7 +55,8 @@ impl Book {
         let mut chapters_xml_and_path = Vector::new();
         while {
             //TODO: gestisco diversamente l'unwrap... qua in effetti spesso va in errore
-            let chapter_xml = epub_doc.get_current_str().unwrap();
+            //La libreria che fa il parsing fallisce quando incontra &nbsp; quindi lo sostiusco a priori con uno spazio
+            let chapter_xml = epub_doc.get_current_str().unwrap().replace("&nbsp;", " ");
             //TODO: faccio una funzione
             let chapter_path = epub_doc.get_current_path().unwrap();
             chapters_xml_and_path.push_back((
