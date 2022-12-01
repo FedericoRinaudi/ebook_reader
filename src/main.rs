@@ -221,28 +221,13 @@ fn main() {
     }
 
     library= read_from_file();
+    remove_from_library(vet.clone());
+    create_library(library,vet.clone());
 
-   
+    library=read_from_file();
 
-    let mut output = OpenOptions::new().append(true).open("file.txt").expect("Unable to open file");
 
-    for path_element in vet
-    {
-        for file_element in &library
-        {
-            if file_element.name.eq(&path_element.clone())
-            {
-                find=1;
-            }
-        }
-        if find==0
-        {
-            let image=get_image(path_element.clone());
-            output.write_all((path_element.clone()+" 0 0 0 "+image.as_str()+ "\n").as_bytes()).expect("write failed");
-        }
-        else { find=0; }
-    }
-    library= read_from_file();
+    
 
 
 
@@ -264,6 +249,54 @@ fn main() {
 
 }
 
+fn remove_from_library(vet: Vec<String>)  {
+    let mut find=0;
+    let mut output = OpenOptions::new().append(true).create(true).open("./tmp.txt").expect("Unable to open file");
+    let  input=BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
+    for line in input.lines()
+    {
+        let mut l= line.as_ref().unwrap().clone().split_whitespace().next().unwrap().to_string();
+        for book in &vet
+        {
+            if l.clone()==*book
+            {
+                find=1;
+                break;
+
+            }
+        }
+        if find==1
+        {
+            output.write_all((line.unwrap().clone()+"\n").as_bytes());
+        }
+        find=0;
+    }
+    let _ = fs::remove_file("file.txt");
+    let _ = fs::rename("tmp.txt","file.txt");
+
+}
+fn create_library(lib:Vector<BookInfo>,vect:Vec<String>)
+{   
+    let mut output = OpenOptions::new().append(true).open("file.txt").expect("Unable to open file");
+    let mut find=0;
+
+    for path_element in vect
+    {
+        for file_element in &lib
+        {
+            if file_element.name.eq(&path_element.clone())
+            {
+                find=1;
+            }
+        }
+        if find==0
+        {
+            let image=get_image(path_element.clone());
+            output.write_all((path_element.clone()+" 0 0 0 "+image.as_str()+ "\n").as_bytes()).expect("write failed");
+        }
+        else { find=0; }
+    }
+}
 fn read_from_file() ->Vector<BookInfo>
 {
     let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
@@ -316,3 +349,4 @@ fn get_image(bookPath:String)->String
     return path;
 
 }
+
