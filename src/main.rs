@@ -50,7 +50,7 @@ fn build_widget<'a>() -> impl Widget<ApplicationState> {
             if data.current_book.is_empty() {
                 let mut col = Flex::column();
                 let mut row = Flex::row();
-                let mut lib = data.library.clone();
+                let lib = data.library.clone();
                 let row_flex = 1.0/((lib.len() as f64 /3.0) +1.0);
                 for (i, e) in lib.into_iter().enumerate() {
 
@@ -210,17 +210,13 @@ fn render_book() -> impl Widget<ApplicationState> {
 fn main() {
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
     let mut vet:Vec<String>=Vec::new();//contiene i libri letti in WalkDir
-    let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
-
-    let mut find=0;
-
     for entry in WalkDir::new("./libri/").into_iter().skip(1)
     {
         vet.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
 
     }
 
-    library= read_from_file();
+    let mut library:Vector<BookInfo> = read_from_file(); //contiene tutti i libri letti dal file
     remove_from_library(vet.clone());
     create_library(library,vet.clone());
 
@@ -255,7 +251,7 @@ fn remove_from_library(vet: Vec<String>)  {
     let  input=BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
     for line in input.lines()
     {
-        let mut l= line.as_ref().unwrap().clone().split_whitespace().next().unwrap().to_string();
+        let l= line.as_ref().unwrap().clone().split_whitespace().next().unwrap().to_string();
         for book in &vet
         {
             if l.clone()==*book
@@ -267,7 +263,7 @@ fn remove_from_library(vet: Vec<String>)  {
         }
         if find==1
         {
-            output.write_all((line.unwrap().clone()+"\n").as_bytes());
+            let _ =  output.write_all((line.unwrap().clone()+"\n").as_bytes());
         }
         find=0;
     }
@@ -301,13 +297,6 @@ fn read_from_file() ->Vector<BookInfo>
 {
     let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
     let reader = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
-    let mut name:String=String::new();
-    let mut start_chapter:usize=0;
-    let mut start_page_in_chapter:usize=0;
-    let mut tot_pages:usize=0;
-    let mut i=0;
-
-   
     for line in reader.lines()
     {
         let mut word=line.as_ref().unwrap().split_whitespace().into_iter();
@@ -318,7 +307,6 @@ fn read_from_file() ->Vector<BookInfo>
                 start_page_in_chapter:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
                 tot_pages:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
                 image:word.next().unwrap().to_string().clone()
-
             })
         
            
@@ -327,12 +315,12 @@ fn read_from_file() ->Vector<BookInfo>
 }
 
 
-fn get_image(bookPath:String)->String
+fn get_image(book_path:String)->String
 {
-    let doc = EpubDoc::new(bookPath);
+    let doc = EpubDoc::new(book_path);
     assert!(doc.is_ok());
     let mut doc = doc.unwrap();
-    let name=doc.mdata("cover").unwrap();
+    //let name=doc.mdata("cover").unwrap();
     let title=doc.mdata("title").unwrap().replace(" "  ,"_") .split('/').into_iter().next().unwrap().to_string();
 
     let cover_data = doc.get_cover().unwrap();
@@ -344,7 +332,7 @@ fn get_image(bookPath:String)->String
     let f = fs::File::create(path.clone());
     assert!(f.is_ok());
     let mut f = f.unwrap();
-    let resp = f.write_all(&cover_data);
+    let _ = f.write_all(&cover_data);
 
     return path;
 

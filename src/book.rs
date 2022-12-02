@@ -79,7 +79,6 @@ impl Book {
             Some(page) => page,
             None => return Err(()),
         };
-        println!("{:?}", &(chapters_xml_and_path[0]));
         Result::Ok(
             //TODO: gestisco diversamente gli unwrap (se per esempio avessi il primo capitolo vuoto si spaccherebbe tutto, è corretto?)
             Self {
@@ -307,12 +306,11 @@ impl Book {
     pub fn get_path(&self) -> String { return self.path.clone(); }
     pub fn get_current_page_number_in_chapter(&self) -> usize { return self.current_page_number_in_chapter; }
     pub fn get_current_chapter_number(&self) -> usize { return self.current_chapter_number; }
-    pub(crate) fn get_image(&self, bookPath: String) -> String
+    pub(crate) fn get_image(&self, book_path: String) -> String
     {
-        let doc = EpubDoc::new(bookPath);
+        let doc = EpubDoc::new(book_path);
         assert!(doc.is_ok());
         let mut doc = doc.unwrap();
-        let name = doc.mdata("cover").unwrap();
         let title = doc.mdata("title").unwrap().replace(" ", "_").split('/').into_iter().next().unwrap().to_string();
 
         let cover_data = doc.get_cover().unwrap();
@@ -324,7 +322,7 @@ impl Book {
         let f = fs::File::create(path.clone());
         assert!(f.is_ok());
         let mut f = f.unwrap();
-        let resp = f.write_all(&cover_data);
+        let _ = f.write_all(&cover_data);
 
         return path;
     }
