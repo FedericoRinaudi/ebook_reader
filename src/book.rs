@@ -4,34 +4,53 @@ pub mod page;
 pub(crate) mod page_element;
 use walkdir::WalkDir;
 
-use std::fs;
-use std::env::current_dir;
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
 use crate::book::chapter::Chapter;
 use crate::book::page::Page;
+use crate::book::page_element::PageElement;
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
+use std::env::current_dir;
+use std::fs;
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write};
 use std::option::Option::{None, Some};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use zip::write::FileOptions;
 
 #[derive(Default, Clone, Data, Lens)]
+pub struct Navigation {
+    ch: usize,   // N° Capitolo corrente
+    line: usize, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
+}
+impl Navigation {
+    pub fn new(ch: usize, line: Option<usize>) -> Self {
+        Navigation {
+            ch,
+            line: line.unwrap_or(0),
+        }
+    }
+
+    pub fn get_ch(&self) -> usize {
+        self.ch
+    }
+    pub fn set_ch(&mut self, n: usize) {
+        (*self).ch = n
+    }
+    //pub fn get_nav(&self) -> Navigation { return self.nav.clone(); }
+}
+
+#[derive(Default, Clone, Data, Lens)]
 pub struct Book {
-    pub chapters_xml_and_path: Vector<(String, String)>, //TODO: faccio una struct anzi che tuple
-    pub path: String,
-    pub current_chapter_number: usize,
-    current_page_number_in_chapter: usize,
-    pub current_page_number: usize,
-    pub current_chapter: Chapter,
-    pub current_page: Page,
-    // pub current_html: Page,
-    pub edit: bool //Make enum eventually
+    // -------------------- > pub chapters_xml_and_path: Vector<(String, String)>,
+    // Nella Book:new dobbiamo inizializzare i vari chapters
+    nav: Navigation,
+    path: String, // Nel file system
+    pub chapters: Vector<Chapter>,
+    // pub edit: bool TODO: Da mettere in AppState
 }
 
 impl Book {
-
     pub fn empty_book() -> Self {
         Self::default()
     }
@@ -42,61 +61,79 @@ impl Book {
 
     pub fn new<P: AsRef<Path>>(
         path: P,
-        initial_chapter_number: usize,
-        initial_page_number_in_chapter: usize,
-        current_page_number: usize
-        //   initial_page_number:usize,
+        init_chapter: usize,
+        init_page: Option<usize>,
     ) -> Result<Self, ()> {
+        // Apriamo come EpubDoc il file passato
         let book_path = path.as_ref().to_path_buf();
         let mut epub_doc = match EpubDoc::new(path) {
             Ok(epub) => epub,
             Err(_) => return Result::Err(()),
         };
-        let mut chapters_xml_and_path = Vector::new();
+
+        let mut ch_vec = Vector::new();
         while {
-            //TODO: gestisco diversamente l'unwrap... qua in effetti spesso va in errore
             //La libreria che fa il parsing fallisce quando incontra &nbsp; quindi lo sostiusco a priori con uno spazio
-            let chapter_xml = epub_doc.get_current_str().unwrap().replace("&nbsp;", " ");
-            //TODO: faccio una funzione
-            let chapter_path = epub_doc.get_current_path().unwrap();
-            chapters_xml_and_path.push_back((
-                chapter_xml,
-                chapter_path.into_os_string().into_string().unwrap(),
-            ));
+            let ch_xml = epub_doc.get_current_str().unwrap(); //TODO: match for errors
+            let ch_path = epub_doc
+                .get_current_path()
+                .unwrap()
+                .into_os_string()
+                .into_string()
+                .unwrap();
+
+            //Creiamo un nuovo capitolo
+            let ch = Chapter::new(ch_path, ch_xml);
+
+            ch_vec.push_back(ch);
             epub_doc.go_next().is_ok()
         } {}
 
-        let initial_chapter = match chapters_xml_and_path.get(initial_chapter_number) {
-            Some((chapter_xml, chapter_path)) => Chapter::new(
-                &chapter_path,
-                &book_path.clone().into_os_string().into_string().unwrap(),
-                chapter_xml.clone(),
-            ),
-            None => return Err(()),
-        };
+        let nav_new = Navigation::new(init_chapter, init_page);
 
-        let initial_page = match initial_chapter.get_page(initial_page_number_in_chapter) {
-            Some(page) => page,
-            None => return Err(()),
-        };
-        Result::Ok(
-            //TODO: gestisco diversamente gli unwrap (se per esempio avessi il primo capitolo vuoto si spaccherebbe tutto, è corretto?)
-            Self {
-                chapters_xml_and_path,
-                path: book_path.into_os_string().into_string().unwrap(),
-                current_chapter_number: initial_chapter_number,
-                current_page_number_in_chapter: initial_page_number_in_chapter,
-                current_page_number,
-                current_chapter: initial_chapter,
-                current_page: initial_page,
-                edit: false
-            },
+        Result::Ok(Self {
+            path: book_path.into_os_string().into_string().unwrap(),
+            nav: Navigation,
+            chapters: ch_vec,
+        })
+    }
+
+    pub fn get_path(&self) -> String {
+        self.path.clone()
+    }
+
+    pub fn get_nav(&self) -> Navigation {
+        self.nav.clone()
+    }
+
+    pub fn format_current_chapter(&self) -> Vector<PageElement> {
+        (*self).chapters[self.nav.get_ch()].format(&(*self.path))
+    }
+
+    pub fn go_on(&mut self, n: usize) {
+        self.nav.set_ch(
+            if (self.nav.get_ch() + n) >= self.chapters.len() {
+                self.chapters.len() - 1
+            } else {
+                self.nav.get_ch() + n
+            }
+        )
+    }
+
+    pub fn go_back(&mut self, n: usize) {
+        self.nav.set_ch(
+            if self.nav.get_ch() > n {
+                self.nav.get_ch - n
+            } else {
+                0
+            }
         )
     }
 
     /*
     Save new xml to a new version of the archive
     */
+    /*
     pub fn save_n_update(&mut self){
         /*
         Get the ZipArchive from the original file
@@ -180,6 +217,8 @@ impl Book {
             .get_page((*self).current_page_number_in_chapter)
             .unwrap();
     }
+    */
+    /*
 
     pub fn go_to_next_page_if_exist(&mut self) {
         if (*self).current_page_number_in_chapter + 1 >= self.current_chapter.get_number_of_pages()
@@ -303,9 +342,10 @@ impl Book {
     pub fn get_current_page_number(&self) -> usize {
         return (*self).current_page_number;
     }
-    pub fn get_path(&self) -> String { return self.path.clone(); }
-    pub fn get_current_page_number_in_chapter(&self) -> usize { return self.current_page_number_in_chapter; }
-    pub fn get_current_chapter_number(&self) -> usize { return self.current_chapter_number; }
+    */
+
+    /*
+
     pub(crate) fn get_image(&self, book_path: String) -> String
     {
         let doc = EpubDoc::new(book_path);
@@ -326,5 +366,5 @@ impl Book {
 
         return path;
     }
+    */
 }
-

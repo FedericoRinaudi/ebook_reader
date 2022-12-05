@@ -10,6 +10,13 @@ const MAX_PAGE_LINES: usize = 38;
 
 #[derive(Default, Clone, Data, Lens, Debug)]
 pub struct Page {
+    page_xml: String, // Xml della pagina da usare come stato
+    num_lines: usize,
+    page_number: Option<usize>,
+}
+
+/*#[derive(Default, Clone, Data, Lens, Debug)]
+pub struct Page {
     page: Vector<PageElement>,
     num_lines: usize,
 }
@@ -70,4 +77,4 @@ impl ListIter<PageElement> for Page {
     fn data_len(&self) -> usize {
         self.page.len()
     }
-}
+}*/

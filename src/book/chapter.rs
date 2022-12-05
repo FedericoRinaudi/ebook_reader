@@ -1,95 +1,70 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
-use druid::text::Attribute;
-use druid::{im::Vector, Data, FontStyle, FontWeight, Lens};
+use druid::text::{Attribute, RichText};
+use druid::{im::Vector, ArcStr, Data, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
-use std::path::PathBuf;
 use std::io::Read;
+use std::path::PathBuf;
 
 use crate::book::page::Page;
+use crate::book::page_element::PageElement;
 
 const MAX_SIZE: f64 = 35.0;
 
 #[derive(Default, Clone, Data, Lens, Debug)]
 pub struct Chapter {
-    pages: Vector<Page>
+    path: String,
+    xml: String,
 }
 
-
 impl Chapter {
-    pub fn new(chapter_path: &str, ebook_path: &str, chapter_xml: String) -> Self {
+    pub fn new(path: String, mut xml: String) -> Self {
+        xml = xml.replace("&nbsp;", " ");
+        Chapter { path, xml }
+    }
+
+    pub fn format(&self, ebook_path: &str) -> Vector<PageElement> {
         let opt = ParsingOptions { allow_dtd: true };
         let doc = Document::parse_with_options(&chapter_xml, opt).unwrap();
-        let body = doc.root_element().last_element_child().unwrap();
-        Self {
-            pages: Self::xml_to_pages(body, chapter_path, ebook_path)
-        }
+        let node = doc.root_element().last_element_child().unwrap();
+        let mut elements: Vector<PageElement> = Vector::new();
+        Self::xml_to_elements(node, &self.path, ebook_path, &mut elements, EpubText::new());
+        elements
     }
 
-    pub(crate) fn get_page(&self, index: usize) -> Option<Page> {
-        self.pages.get(index).map(|page| page.clone())
-    }
-
-    pub(crate) fn get_number_of_pages(&self) -> usize {
-        self.pages.len()
-    }
-
-    fn xml_to_pages(body: Node, chapter_path: &str, ebook_path: &str) -> Vector<Page> {
-        let mut pages: Vector<Page> = Vector::new();
-        let mut current_text = EpubText::new();
-        let mut current_page = Page::new();
-        Self::xml_to_state(
-            body,
-            &mut current_text,
-            &mut pages,
-            &mut current_page,
-            chapter_path,
-            ebook_path,
-        );
-        pages.push_back(current_page);
-        pages
-    }
-
-    fn xml_to_state(
-        n: Node,
-        current_text: &mut EpubText,
-        pages: &mut Vector<Page>,
-        current_page: &mut Page,
+    fn xml_to_elements(
+        node: Node,
         chapter_path: &str,
         ebook_path: &str,
+        elements: &mut Vector<PageElement>,
+        mut current_text: EpubText,
     ) {
         /* Def Macros */
         macro_rules! recur_on_children {
             () => {
-                for child in n.children() {
-                    Self::xml_to_state(
+                for child in node.children() {
+                    Self::xml_to_elements(
                         child,
-                        current_text,
-                        pages,
-                        current_page,
                         chapter_path,
                         ebook_path,
+                        elements,
+                        ebook_path,
+                        current_text,
                     );
                 }
             };
-        }
+        };
+
         macro_rules! new_line {
             () => {
-                match current_page.add_lines(current_text) {
-                    Ok(_) => {}
-                    Err(_) => {
-                        pages.push_back(current_page.clone());
-                        *current_page = Page::new();
-                        current_page.add_lines(current_text).unwrap();
-                    }
-                }
+                elements.push_back(PageElement::from_text(&current_text));
                 current_text.reset();
             };
         }
 
         /*  Actual Transformation */
 
-        if n.is_text() {
-            let text = n.text().unwrap();
+        if node.is_text() {
+            let text = node.text().unwrap();
             let content: Vec<_> = text.split_ascii_whitespace().collect();
             if text.starts_with(char::is_whitespace) {
                 current_text.push_str(" ");
@@ -99,12 +74,13 @@ impl Chapter {
                 current_text.push_str(" ");
             }
         }
-        //TODO: gestisco gli id
-        /*
+
+        /* TODO: gestisco gli id
         if let Some(id) = n.attribute("id") {
             c.frag.push((id.to_string(), c.len()));
         }*/
-        match n.tag_name().name() {
+        //TODo: gestione new_line
+        match node.tag_name().name() {
             "br" => {
                 new_line!();
             }
@@ -115,6 +91,7 @@ impl Chapter {
             }
             "img" => {
                 new_line!();
+                //TODO: sposto l'acquisizione dell'immagine in una funzione
                 let ebook_path_buf = PathBuf::from(ebook_path);
                 let chapter_path_buf = PathBuf::from(chapter_path);
                 let image_path = PathBuf::from(n.attribute("src").unwrap());
@@ -138,9 +115,10 @@ impl Chapter {
                 };
 
                 let mut contents: Vec<u8> = vec![];
-                //TODO: rimuovo l'unwrap, altrimenti se non trovo la foto si spacca tutto
+                //TODO: match, Err() => Default photo
                 file.read_to_end(&mut contents).unwrap();
-                current_page.add_image(&contents);
+
+                elements.push_back(PageElement::from_image(&contents));
                 new_line!();
             }
             "a" => {
@@ -172,6 +150,8 @@ impl Chapter {
                 recur_on_children!();
                 current_text.rm_attr(AttributeCase::Weight);
             }
+
+            /* TODO: Determinare se sia il caso di gestire diversamente i vari hx */
             "h1" => {
                 new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
@@ -251,7 +231,7 @@ impl Chapter {
                 new_line!();
             }
             "blockquote" | "div" | "p" | "tr" => {
-                // TODO compress newlines
+                // TODO: compress newlines
                 new_line!();
                 recur_on_children!();
                 new_line!();
@@ -277,6 +257,7 @@ impl Chapter {
     }
 }
 
+// TODO: sposto in un file utilitiess
 fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
         p1.pop();
@@ -295,7 +276,7 @@ fn convert_path_separators(href: String) -> String {
     let mut path = String::from(href);
     if cfg!(windows) {
         path = path.replace("\\", "/");
-        return path
+        return path;
     }
     path
 }

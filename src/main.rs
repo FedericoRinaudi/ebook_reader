@@ -1,33 +1,36 @@
 mod book;
 
-use std::fs;
-use std::fs::{ File, OpenOptions};
-use std::io::{BufReader, BufRead, Write};
-use druid::widget::{Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List, RawLabel, ViewSwitcher, Controller, ControllerHost, Click, TextBox};
-use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc, EventCtx, Event, Env, ImageBuf, lens, LensExt};
-use std::path::PathBuf;
 use druid::im::Vector;
+use druid::widget::{
+    Button, Click, Controller, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams,
+    Image, Label, LineBreaking, List, RawLabel, TextBox, ViewSwitcher,
+};
+use druid::{
+    lens, AppLauncher, Data, Env, Event, EventCtx, ImageBuf, Lens, LensExt, LocalizedString,
+    Widget, WidgetExt, WindowDesc,
+};
 use epub::doc::EpubDoc;
+use std::fs;
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, Write};
+use std::path::PathBuf;
 use walkdir::WalkDir;
-
 
 use crate::book::page_element::PageElement;
 use crate::book::Book;
 
-
-
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub current_book: Book,
-    library: Vector<BookInfo>
+    library: Vector<BookInfo>,
 }
 #[derive(Default, Clone, Data, Lens, Debug)]
 pub struct BookInfo {
-    name:String,
-    start_chapter:usize,
-    start_page_in_chapter:usize,
-    tot_pages:usize,
-    image:String
+    name: String,
+    start_chapter: usize,
+    start_page_in_chapter: usize,
+    tot_pages: usize,
+    image: String,
 }
 
 struct TakeFocus;
@@ -41,31 +44,38 @@ impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
     }
 }
 
-
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 fn build_widget<'a>() -> impl Widget<ApplicationState> {
     let a: ViewSwitcher<ApplicationState, bool> = ViewSwitcher::new(
         |data: &ApplicationState, _| data.current_book.is_empty(),
-        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>>{
+        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
             if data.current_book.is_empty() {
                 let mut col = Flex::column();
                 let mut row = Flex::row();
                 let lib = data.library.clone();
-                let row_flex = 1.0/((lib.len() as f64 /3.0) +1.0);
+                let row_flex = 1.0 / ((lib.len() as f64 / 3.0) + 1.0);
                 for (i, e) in lib.into_iter().enumerate() {
-
                     //println!("{:?}", e);
 
-                /*    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
+                    /*    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
                         button_data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
                     });
                     */
-                    let b=ImageBuf::from_file(e.image.clone()).unwrap();
-                    let c=ControllerHost::new(Image::new(b).fix_width(300.0).fix_height(200.0),Click::new(move |_ctx, data: &mut ApplicationState, _env| {
-                        data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
-                    }));
+                    let b = ImageBuf::from_file(e.image.clone()).unwrap();
+                    let c = ControllerHost::new(
+                        Image::new(b).fix_width(300.0).fix_height(200.0),
+                        Click::new(move |_ctx, data: &mut ApplicationState, _env| {
+                            data.current_book = Book::new(
+                                PathBuf::from(e.name.clone()),
+                                e.start_chapter,
+                                e.start_page_in_chapter,
+                                e.tot_pages,
+                            )
+                            .unwrap();
+                        }),
+                    );
                     row.add_flex_child(c, FlexParams::new(row_flex, CrossAxisAlignment::Start));
-                    if i != 0 && (i+1)%3 == 0{
+                    if i != 0 && (i + 1) % 3 == 0 {
                         col.add_flex_child(row, FlexParams::new(0.3, CrossAxisAlignment::Center));
                         row = Flex::row();
                     }
@@ -73,13 +83,12 @@ fn build_widget<'a>() -> impl Widget<ApplicationState> {
                 col.add_child(row);
                 Box::new(col.scroll().vertical())
             } else {
-                  return Box::new(render_book())
+                return Box::new(render_book());
             }
         },
     );
     a
 }
-
 
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
 fn render_book() -> impl Widget<ApplicationState> {
@@ -100,41 +109,83 @@ fn render_book() -> impl Widget<ApplicationState> {
     });
     let button_close_book =
         Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            let mut output = OpenOptions::new().append(true).create(true).open("./tmp.txt").expect("Unable to open file");
-            let  input=BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
+            let mut output = OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open("./tmp.txt")
+                .expect("Unable to open file");
+            let input = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
             for line in input.lines() {
-               if !(line.as_ref().unwrap().clone().split_whitespace().next().unwrap().to_string()==data.current_book.get_path())
-               {
-                   output.write_all((line.unwrap().clone()+"\n").as_bytes()).expect("TODO: panic message");
-               }
-                else {
-                    let _ = output.write_all((
-                        data.current_book.get_path()+" "+
-                        data.current_book.get_current_chapter_number().to_string().as_str() +" "+
-                        data.current_book.get_current_page_number_in_chapter().to_string().as_str()+" "+
-                        data.current_book.get_current_page_number().to_string().as_str()+" "+
-                        data.current_book.get_image(data.current_book.get_path()).to_string().as_str()+"\n").as_bytes());}
-
+                if !(line
+                    .as_ref()
+                    .unwrap()
+                    .clone()
+                    .split_whitespace()
+                    .next()
+                    .unwrap()
+                    .to_string()
+                    == data.current_book.get_path())
+                {
+                    output
+                        .write_all((line.unwrap().clone() + "\n").as_bytes())
+                        .expect("TODO: panic message");
+                } else {
+                    let _ = output.write_all(
+                        (data.current_book.get_path()
+                            + " "
+                            + data
+                                .current_book
+                                .get_current_chapter_number()
+                                .to_string()
+                                .as_str()
+                            + " "
+                            + data
+                                .current_book
+                                .get_current_page_number_in_chapter()
+                                .to_string()
+                                .as_str()
+                            + " "
+                            + data
+                                .current_book
+                                .get_current_page_number()
+                                .to_string()
+                                .as_str()
+                            + " "
+                            + data
+                                .current_book
+                                .get_image(data.current_book.get_path())
+                                .to_string()
+                                .as_str()
+                            + "\n")
+                            .as_bytes(),
+                    );
+                }
             }
             let _ = fs::remove_file("file.txt");
-            let _ = fs::rename("tmp.txt","file.txt");
+            let _ = fs::rename("tmp.txt", "file.txt");
 
-            data.library= read_from_file();
+            data.library = read_from_file();
             data.current_book = Book::empty_book();
-
         });
 
     let switch_mode = ViewSwitcher::new(
         |data: &ApplicationState, _| data.current_book.clone(),
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            let tag:&str;
-            if data.current_book.edit {tag = "Read"} else {tag = "Edit"};
+            let tag: &str;
+            if data.current_book.edit {
+                tag = "Read"
+            } else {
+                tag = "Edit"
+            };
             let switch = Button::new(tag).on_click(|_ctx, data: &mut ApplicationState, _env| {
-                if data.current_book.edit {data.current_book.save_n_update()};
+                if data.current_book.edit {
+                    data.current_book.save_n_update()
+                };
                 data.current_book.edit = !data.current_book.edit;
             });
             Box::new(switch)
-        });
+        },
+    );
 
     let lbl_num_pag = Label::new(|data: &ApplicationState, _env: &_| {
         format!("{}", data.current_book.get_current_page_number())
@@ -151,48 +202,43 @@ fn render_book() -> impl Widget<ApplicationState> {
     row.add_child(button_close_book);
     //  col.add_child(row.padding(30.0));
 
-    let page_with_scroll =
-        ViewSwitcher::new(
-            |data: &ApplicationState, _| data.current_book.edit,
-            |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-                let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
-                if !data.current_book.edit {
-                    let page =
-                        List::new(|| {
-                            ViewSwitcher::new(
-                                |data: &PageElement, _| data.clone(),
-                                |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                                    match data {
-                                        PageElement::Text(_) => {
-                                            let mut label = RawLabel::new();
-                                            label.set_line_break_mode(LineBreaking::WordWrap);
-                                            Box::new(label)
-                                        }
-                                        PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
-                                            Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
-                                        )),
-                                    }
-                                },
-                            )
-                        }).lens(Book::current_page);
-                    col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
-                }else{
+    let page_with_scroll = ViewSwitcher::new(
+        |data: &ApplicationState, _| data.current_book.edit,
+        |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
+            let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
+            if !data.current_book.edit {
+                let page = List::new(|| {
+                    ViewSwitcher::new(
+                        |data: &PageElement, _| data.clone(),
+                        |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                            match data {
+                                PageElement::Text(_) => {
+                                    let mut label = RawLabel::new();
+                                    label.set_line_break_mode(LineBreaking::WordWrap);
+                                    Box::new(label)
+                                }
+                                PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
+                                    Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
+                                )),
+                            }
+                        },
+                    )
+                })
+                .lens(Book::current_page);
+                col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
+            } else {
+                let xml_lens = lens!(ApplicationState, current_book)
+                    .then(lens!(Book, chapters_xml_and_path))
+                    .index(data.current_book.current_chapter_number)
+                    .then(lens!((String, String), 0));
 
-                    let xml_lens  = lens!(ApplicationState, current_book)
-                        .then(lens!(Book, chapters_xml_and_path))
-                        .index(data.current_book.current_chapter_number)
-                        .then(lens!((String, String), 0));
+                let text = TextBox::new().with_line_wrapping(true).lens(xml_lens);
 
-                    let text = TextBox::new()
-                        .with_line_wrapping(true)
-                        .lens(xml_lens);
-
-                    col.add_child(text);
-                }
-                Box::new(col.scroll().vertical())
-            },
-        );
-
+                col.add_child(text);
+            }
+            Box::new(col.scroll().vertical())
+        },
+    );
 
     wrapper.add_child(Flex::row().fix_height(8.0));
     wrapper.add_flex_child(row, FlexParams::new(0.07, CrossAxisAlignment::Center));
@@ -209,23 +255,16 @@ fn render_book() -> impl Widget<ApplicationState> {
 
 fn main() {
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
-    let mut vet:Vec<String>=Vec::new();//contiene i libri letti in WalkDir
-    for entry in WalkDir::new("./libri/").into_iter().skip(1)
-    {
+    let mut vet: Vec<String> = Vec::new(); //contiene i libri letti in WalkDir
+    for entry in WalkDir::new("./libri/").into_iter().skip(1) {
         vet.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
-
     }
 
-    let mut library:Vector<BookInfo> = read_from_file(); //contiene tutti i libri letti dal file
+    let mut library: Vector<BookInfo> = read_from_file(); //contiene tutti i libri letti dal file
     remove_from_library(vet.clone());
-    create_library(library,vet.clone());
+    create_library(library, vet.clone());
 
-    library=read_from_file();
-
-
-    
-
-
+    library = read_from_file();
 
     // describe the main window
     let main_window = WindowDesc::new(build_widget())
@@ -236,96 +275,100 @@ fn main() {
     AppLauncher::with_window(main_window)
         .launch(ApplicationState {
             current_book: Book::empty_book(),
-            library:library
+            library: library,
         })
         .expect("Failed to launch application");
-
-
-
-
 }
 
-fn remove_from_library(vet: Vec<String>)  {
-    let mut find=0;
-    let mut output = OpenOptions::new().append(true).create(true).open("./tmp.txt").expect("Unable to open file");
-    let  input=BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
-    for line in input.lines()
-    {
-        let l= line.as_ref().unwrap().clone().split_whitespace().next().unwrap().to_string();
-        for book in &vet
-        {
-            if l.clone()==*book
-            {
-                find=1;
+fn remove_from_library(vet: Vec<String>) {
+    let mut find = 0;
+    let mut output = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("./tmp.txt")
+        .expect("Unable to open file");
+    let input = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
+    for line in input.lines() {
+        let l = line
+            .as_ref()
+            .unwrap()
+            .clone()
+            .split_whitespace()
+            .next()
+            .unwrap()
+            .to_string();
+        for book in &vet {
+            if l.clone() == *book {
+                find = 1;
                 break;
-
             }
         }
-        if find==1
-        {
-            let _ =  output.write_all((line.unwrap().clone()+"\n").as_bytes());
+        if find == 1 {
+            let _ = output.write_all((line.unwrap().clone() + "\n").as_bytes());
         }
-        find=0;
+        find = 0;
     }
     let _ = fs::remove_file("file.txt");
-    let _ = fs::rename("tmp.txt","file.txt");
-
+    let _ = fs::rename("tmp.txt", "file.txt");
 }
-fn create_library(lib:Vector<BookInfo>,vect:Vec<String>)
-{   
-    let mut output = OpenOptions::new().append(true).open("file.txt").expect("Unable to open file");
-    let mut find=0;
+fn create_library(lib: Vector<BookInfo>, vect: Vec<String>) {
+    let mut output = OpenOptions::new()
+        .append(true)
+        .open("file.txt")
+        .expect("Unable to open file");
+    let mut find = 0;
 
-    for path_element in vect
-    {
-        for file_element in &lib
-        {
-            if file_element.name.eq(&path_element.clone())
-            {
-                find=1;
+    for path_element in vect {
+        for file_element in &lib {
+            if file_element.name.eq(&path_element.clone()) {
+                find = 1;
             }
         }
-        if find==0
-        {
-            let image=get_image(path_element.clone());
-            output.write_all((path_element.clone()+" 0 0 0 "+image.as_str()+ "\n").as_bytes()).expect("write failed");
+        if find == 0 {
+            let image = get_image(path_element.clone());
+            output
+                .write_all((path_element.clone() + " 0 0 0 " + image.as_str() + "\n").as_bytes())
+                .expect("write failed");
+        } else {
+            find = 0;
         }
-        else { find=0; }
     }
 }
-fn read_from_file() ->Vector<BookInfo>
-{
-    let mut library:Vector<BookInfo>=Vector::new();//contiene tutti i libri letti dal file
+fn read_from_file() -> Vector<BookInfo> {
+    let mut library: Vector<BookInfo> = Vector::new(); //contiene tutti i libri letti dal file
     let reader = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
-    for line in reader.lines()
-    {
-        let mut word=line.as_ref().unwrap().split_whitespace().into_iter();
-            library.push_back(BookInfo{
-                //name:word.next().unwrap().to_string().clone(),
-                name:word.next().unwrap().to_string().clone(),
-                start_chapter:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
-                start_page_in_chapter:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
-                tot_pages:usize::from_str_radix(word.next().unwrap(),10).unwrap(),
-                image:word.next().unwrap().to_string().clone()
-            })
-        
-           
+    for line in reader.lines() {
+        let mut word = line.as_ref().unwrap().split_whitespace().into_iter();
+        library.push_back(BookInfo {
+            //name:word.next().unwrap().to_string().clone(),
+            name: word.next().unwrap().to_string().clone(),
+            start_chapter: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
+            start_page_in_chapter: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
+            tot_pages: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
+            image: word.next().unwrap().to_string().clone(),
+        })
     }
     return library;
 }
 
-
-fn get_image(book_path:String)->String
-{
+fn get_image(book_path: String) -> String {
     let doc = EpubDoc::new(book_path);
     assert!(doc.is_ok());
     let mut doc = doc.unwrap();
     //let name=doc.mdata("cover").unwrap();
-    let title=doc.mdata("title").unwrap().replace(" "  ,"_") .split('/').into_iter().next().unwrap().to_string();
+    let title = doc
+        .mdata("title")
+        .unwrap()
+        .replace(" ", "_")
+        .split('/')
+        .into_iter()
+        .next()
+        .unwrap()
+        .to_string();
 
     let cover_data = doc.get_cover().unwrap();
 
-    let mut path=String::from("./images/");
+    let mut path = String::from("./images/");
     path.push_str(title.as_str());
     path.push_str(".jpeg");
 
@@ -335,6 +378,4 @@ fn get_image(book_path:String)->String
     let _ = f.write_all(&cover_data);
 
     return path;
-
 }
-
