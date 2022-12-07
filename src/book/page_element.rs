@@ -32,8 +32,13 @@ impl PageElement {
     /* Crea un PageElement a partire da un'immagine */
     pub fn from_image(img_data: &[u8]) -> Self {
         match ImageBuf::from_data(img_data) {
-            Ok(im) => PageElement::Image(im),
-            Err(_) => PageElement::Text(RichText::new(ArcStr::from("[Error rendering image]"))),
+            Ok(im) => {
+                // println!("Immagine caricata con successo!");
+                PageElement::Image(im)},
+            Err(_) => {
+                // println!("Errore, interrotto");
+                PageElement::Text(RichText::new(ArcStr::from("[Error rendering image]")))
+            },
         }
     }
 }

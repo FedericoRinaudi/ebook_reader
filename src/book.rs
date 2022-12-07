@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 use crate::book::chapter::Chapter;
 use crate::book::page::Page;
 use crate::book::page_element::PageElement;
-use druid::{im::Vector, Data, Lens};
+use druid::{im::Vector, Data, Lens, ImageBuf, FontStyle, FontWeight};
 use epub::doc::EpubDoc;
 use std::env::current_dir;
 use std::fs;
@@ -16,7 +16,10 @@ use std::io::{Read, Write};
 use std::option::Option::{None, Some};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+use druid::im::HashMap;
+use druid::text::Attribute;
 use zip::write::FileOptions;
+use crate::book::epub_text::AttributeCase;
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct Navigation {
@@ -47,7 +50,6 @@ pub struct Book {
     nav: Navigation,
     path: String, // Nel file system
     pub chapters: Vector<Chapter>,
-    // pub edit: bool TODO: Da mettere in AppState
 }
 
 impl Book {
@@ -56,7 +58,7 @@ impl Book {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.chapters_xml_and_path.len() == 0
+        self.chapters.len() == 0
     }
 
     pub fn new<P: AsRef<Path>>(
@@ -65,7 +67,7 @@ impl Book {
         init_page: Option<usize>,
     ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
-        let book_path = path.as_ref().to_path_buf();
+        let book_path = path.as_ref().to_path_buf().into_os_string().into_string().unwrap();
         let mut epub_doc = match EpubDoc::new(path) {
             Ok(epub) => epub,
             Err(_) => return Result::Err(()),
@@ -83,7 +85,7 @@ impl Book {
                 .unwrap();
 
             //Creiamo un nuovo capitolo
-            let ch = Chapter::new(ch_path, ch_xml);
+            let ch = Chapter::new(ch_path, ch_xml, &book_path);
 
             ch_vec.push_back(ch);
             epub_doc.go_next().is_ok()
@@ -92,9 +94,9 @@ impl Book {
         let nav_new = Navigation::new(init_chapter, init_page);
 
         Result::Ok(Self {
-            path: book_path.into_os_string().into_string().unwrap(),
-            nav: Navigation,
-            chapters: ch_vec,
+            path: book_path,
+            nav: nav_new,
+            chapters: ch_vec
         })
     }
 
@@ -123,12 +125,14 @@ impl Book {
     pub fn go_back(&mut self, n: usize) {
         self.nav.set_ch(
             if self.nav.get_ch() > n {
-                self.nav.get_ch - n
+                self.nav.get_ch() - n
             } else {
                 0
             }
         )
     }
+
+}
 
     /*
     Save new xml to a new version of the archive
@@ -367,4 +371,3 @@ impl Book {
         return path;
     }
     */
-}

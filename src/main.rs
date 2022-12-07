@@ -1,10 +1,6 @@
 mod book;
-
 use druid::im::Vector;
-use druid::widget::{
-    Button, Click, Controller, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams,
-    Image, Label, LineBreaking, List, RawLabel, TextBox, ViewSwitcher,
-};
+use druid::widget::{Button, Click, Controller, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List, Padding, RawLabel, TextBox, ViewSwitcher};
 use druid::{
     lens, AppLauncher, Data, Env, Event, EventCtx, ImageBuf, Lens, LensExt, LocalizedString,
     Widget, WidgetExt, WindowDesc,
@@ -19,11 +15,15 @@ use walkdir::WalkDir;
 use crate::book::page_element::PageElement;
 use crate::book::Book;
 
+
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub current_book: Book,
-    library: Vector<BookInfo>,
+    pub edit: bool // Serve a switchare da view mode a edit mode
+    // library: Vector<BookInfo>,
 }
+
+/*
 #[derive(Default, Clone, Data, Lens, Debug)]
 pub struct BookInfo {
     name: String,
@@ -32,7 +32,9 @@ pub struct BookInfo {
     tot_pages: usize,
     image: String,
 }
+*/
 
+/*
 struct TakeFocus;
 
 impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
@@ -43,71 +45,78 @@ impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
         child.event(ctx, event, data, env)
     }
 }
+*/
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
-fn build_widget<'a>() -> impl Widget<ApplicationState> {
+fn build_widget() -> impl Widget<ApplicationState> {
     let a: ViewSwitcher<ApplicationState, bool> = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.current_book.is_empty(),
-        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+        |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
+        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>>
+            {
             if data.current_book.is_empty() {
-                let mut col = Flex::column();
-                let mut row = Flex::row();
-                let lib = data.library.clone();
-                let row_flex = 1.0 / ((lib.len() as f64 / 3.0) + 1.0);
-                for (i, e) in lib.into_iter().enumerate() {
-                    //println!("{:?}", e);
-
-                    /*    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
-                        button_data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
-                    });
-                    */
-                    let b = ImageBuf::from_file(e.image.clone()).unwrap();
-                    let c = ControllerHost::new(
-                        Image::new(b).fix_width(300.0).fix_height(200.0),
-                        Click::new(move |_ctx, data: &mut ApplicationState, _env| {
-                            data.current_book = Book::new(
-                                PathBuf::from(e.name.clone()),
-                                e.start_chapter,
-                                e.start_page_in_chapter,
-                                e.tot_pages,
-                            )
-                            .unwrap();
-                        }),
-                    );
-                    row.add_flex_child(c, FlexParams::new(row_flex, CrossAxisAlignment::Start));
-                    if i != 0 && (i + 1) % 3 == 0 {
-                        col.add_flex_child(row, FlexParams::new(0.3, CrossAxisAlignment::Center));
-                        row = Flex::row();
-                    }
-                }
-                col.add_child(row);
-                Box::new(col.scroll().vertical())
+                /* Renderizziamo la libreria di libri disponibili */
+                //Box::new(render_library())
+                Box::new(render_book()) //SOLO PER NON USARE RENDER LIBRARY FINCHE NON E' SISTEMATA
             } else {
-                return Box::new(render_book());
+                /* Renderizziamo il libro scelto */
+                Box::new(render_book())
             }
         },
     );
     a
 }
 
+/*
+fn render_library() -> impl Widget<ApplicationState>{
+    let mut col = Flex::column();
+    let mut row = Flex::row();
+    let lib = data.library.clone();
+    let row_flex = 1.0 / ((lib.len() as f64 / 3.0) + 1.0);
+    for (i, e) in lib.into_iter().enumerate() {
+        //println!("{:?}", e);
+
+        /*    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
+            button_data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
+        });
+        */
+        let b = ImageBuf::from_file(e.image.clone()).unwrap();
+        let c = ControllerHost::new(
+            Image::new(b).fix_width(300.0).fix_height(200.0),
+            Click::new(move |_ctx, data: &mut ApplicationState, _env| {
+                data.current_book = Book::new(
+                    PathBuf::from(e.name.clone()),
+                    e.start_chapter,
+                    e.start_page_in_chapter,
+                    e.tot_pages,
+                )
+                    .unwrap();
+            }),
+        );
+        row.add_flex_child(c, FlexParams::new(row_flex, CrossAxisAlignment::Start));
+        if i != 0 && (i + 1) % 3 == 0 {
+            col.add_flex_child(row, FlexParams::new(0.3, CrossAxisAlignment::Center));
+            row = Flex::row();
+        }
+    }
+    col.add_child(row);
+    col.scroll().vertical()
+}
+*/
+
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
 fn render_book() -> impl Widget<ApplicationState> {
     let mut wrapper = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
-    let mut row_due = Flex::row();
-    let button_next = Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book.go_to_next_page_if_exist();
+    let mut buttons: Flex<ApplicationState> = Flex::row();
+
+    let btn_next = Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
+        data.current_book.go_on(1);
     });
-    let button_fast_forward =
-        Button::new(">>").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            data.current_book.go_fast_forward_if_exist();
-        });
-    let button_prev = Button::new("<").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book.go_to_prev_page_if_exist();
+
+    let btn_prev = Button::new("<").on_click(|_ctx, data: &mut ApplicationState, _env| {
+        data.current_book.go_back(1);
     });
-    let button_fast_back = Button::new("<<").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book.go_fast_back_if_exist();
-    });
-    let button_close_book =
+
+    /*let button_close_book =
         Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let mut output = OpenOptions::new()
                 .append(true)
@@ -166,67 +175,46 @@ fn render_book() -> impl Widget<ApplicationState> {
 
             data.library = read_from_file();
             data.current_book = Book::empty_book();
-        });
+        });*/
 
+    /* Switcha la modalità dell'app */
     let switch_mode = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.current_book.clone(),
+        |data: &ApplicationState, _| data.edit,
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
             let tag: &str;
-            if data.current_book.edit {
+            if data.edit {
                 tag = "Read"
             } else {
                 tag = "Edit"
             };
-            let switch = Button::new(tag).on_click(|_ctx, data: &mut ApplicationState, _env| {
-                if data.current_book.edit {
-                    data.current_book.save_n_update()
+            let switch = Button::new(tag)
+                .on_click(|_ctx, data: &mut ApplicationState, _env| {
+                if data.edit {
+                    // data.current_book.save_n_update()
+                    println!("Save and update!");
                 };
-                data.current_book.edit = !data.current_book.edit;
+                data.edit = !data.edit;
             });
             Box::new(switch)
         },
     );
 
-    let lbl_num_pag = Label::new(|data: &ApplicationState, _env: &_| {
-        format!("{}", data.current_book.get_current_page_number())
-    });
+    buttons.add_child(btn_prev);
+    buttons.add_child(btn_next);
+    buttons.add_child(switch_mode);
 
-    let mut row: Flex<ApplicationState> = Flex::row();
-    row.add_child(button_fast_back);
-    row.add_child(button_prev);
-    row.add_child(button_next);
-    row.add_child(button_fast_forward);
-    row.add_child(switch_mode);
-    row_due.add_child(lbl_num_pag);
+    // row.add_child(button_close_book);
+    // col.add_child(row.padding(30.0));
 
-    row.add_child(button_close_book);
-    //  col.add_child(row.padding(30.0));
-
-    let page_with_scroll = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.current_book.edit,
+    let scrollable_text = ViewSwitcher::new(
+        |data: &ApplicationState, _| data.edit,
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
-            if !data.current_book.edit {
-                let page = List::new(|| {
-                    ViewSwitcher::new(
-                        |data: &PageElement, _| data.clone(),
-                        |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                            match data {
-                                PageElement::Text(_) => {
-                                    let mut label = RawLabel::new();
-                                    label.set_line_break_mode(LineBreaking::WordWrap);
-                                    Box::new(label)
-                                }
-                                PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
-                                    Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
-                                )),
-                            }
-                        },
-                    )
-                })
-                .lens(Book::current_page);
-                col.add_child(page.padding(30.0).lens(ApplicationState::current_book));
+            let mut viewport = if !data.edit {
+                /* VIEW MODE */
+                render_view_mode().padding(30.0)
             } else {
+                /*
+                let mut viewport = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
                 let xml_lens = lens!(ApplicationState, current_book)
                     .then(lens!(Book, chapters_xml_and_path))
                     .index(data.current_book.current_chapter_number)
@@ -234,27 +222,55 @@ fn render_book() -> impl Widget<ApplicationState> {
 
                 let text = TextBox::new().with_line_wrapping(true).lens(xml_lens);
 
-                col.add_child(text);
-            }
-            Box::new(col.scroll().vertical())
+                viewport.add_child(text);
+                */
+                //Temporaneo
+                render_view_mode().padding(30.0)
+            };
+            Box::new(viewport.scroll().vertical())
         },
     );
 
     wrapper.add_child(Flex::row().fix_height(8.0));
-    wrapper.add_flex_child(row, FlexParams::new(0.07, CrossAxisAlignment::Center));
+    wrapper.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
     wrapper.add_child(Flex::row().fix_height(7.0));
+
     wrapper.add_flex_child(
-        page_with_scroll.fix_width(700.0).fix_height(1000.0),
+        scrollable_text.fix_width(700.0).fix_height(1000.0),
         FlexParams::new(0.92, CrossAxisAlignment::Baseline),
     );
     wrapper.add_child(Flex::row().fix_height(7.0));
-    wrapper.add_flex_child(row_due, FlexParams::new(0.01, CrossAxisAlignment::Center));
 
     wrapper
 }
 
+fn render_view_mode() -> Flex<ApplicationState> {
+    let mut viewport = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
+    let lens = lens!(ApplicationState, current_book);
+    let chapter = List::new(|| {
+        ViewSwitcher::new(
+            |data: &PageElement, _| data.clone(),
+            |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                match data {
+                    PageElement::Text(_) => {
+                        let mut label = RawLabel::new();
+                        label.set_line_break_mode(LineBreaking::WordWrap);
+                        Box::new(label)
+                    }
+                    PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
+                        Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
+                    )),
+                }
+            },
+        )
+    }).lens(lens.map(|book| book.format_current_chapter(), |_ , _|()));
+    viewport.add_child(chapter);
+    viewport
+}
+
 fn main() {
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
+    /*
     let mut vet: Vec<String> = Vec::new(); //contiene i libri letti in WalkDir
     for entry in WalkDir::new("./libri/").into_iter().skip(1) {
         vet.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
@@ -265,7 +281,7 @@ fn main() {
     create_library(library, vet.clone());
 
     library = read_from_file();
-
+    */
     // describe the main window
     let main_window = WindowDesc::new(build_widget())
         .title(WINDOW_TITLE)
@@ -274,12 +290,14 @@ fn main() {
     // start the application
     AppLauncher::with_window(main_window)
         .launch(ApplicationState {
-            current_book: Book::empty_book(),
-            library: library,
+            current_book: Book::new("./libri/saviano.epub", 0, Option::None).unwrap(),
+            //library: library,
+            edit: false
         })
         .expect("Failed to launch application");
 }
 
+/*
 fn remove_from_library(vet: Vec<String>) {
     let mut find = 0;
     let mut output = OpenOptions::new()
@@ -379,3 +397,4 @@ fn get_image(book_path: String) -> String {
 
     return path;
 }
+*/
