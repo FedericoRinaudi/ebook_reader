@@ -7,6 +7,7 @@ use druid::{ArcStr, Data, Env, ImageBuf};
 pub enum PageElement {
     Text(RichText),
     Image(ImageBuf),
+    Error(RichText)
 }
 impl PageElement {
     /* Crea un PageElement a partire da un EpubText */
@@ -50,6 +51,7 @@ impl PietTextStorage for PageElement {
         match self {
             PageElement::Text(t) => t.as_str(),
             PageElement::Image(_) => "[IMG]",
+            PageElement::Error(e) => e.as_str()
         }
     }
 }
@@ -59,6 +61,7 @@ impl TextStorage for PageElement {
         match self {
             PageElement::Text(t) => t.add_attributes(builder, env),
             PageElement::Image(_) => RichText::new("".into()).add_attributes(builder, env),
+            PageElement::Error(e) => e.add_attributes(builder, env)
         }
     }
 
@@ -66,6 +69,7 @@ impl TextStorage for PageElement {
         match self {
             PageElement::Text(t) => t.env_update(ctx),
             PageElement::Image(_) => true,
+            PageElement::Error(e) => e.env_update(ctx)
         }
     }
 
@@ -73,6 +77,7 @@ impl TextStorage for PageElement {
         match self {
             PageElement::Text(t) => t.links(),
             PageElement::Image(_) => Default::default(),
+            PageElement::Error(e) => e.links()
         }
     }
 }

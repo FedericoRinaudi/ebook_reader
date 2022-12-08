@@ -1,11 +1,9 @@
 pub mod chapter;
 mod epub_text;
-pub mod page;
 pub(crate) mod page_element;
 use walkdir::WalkDir;
 
 use crate::book::chapter::Chapter;
-use crate::book::page::Page;
 use crate::book::page_element::PageElement;
 use druid::{im::Vector, Data, Lens, ImageBuf, FontStyle, FontWeight};
 use epub::doc::EpubDoc;
@@ -109,7 +107,7 @@ impl Book {
     }
 
     pub fn format_current_chapter(&self) -> Vector<PageElement> {
-        (*self).chapters[self.nav.get_ch()].format(&(*self.path))
+        (*self).chapters[self.nav.get_ch()].format()
     }
 
     pub fn go_on(&mut self, n: usize) {
@@ -132,18 +130,17 @@ impl Book {
         )
     }
 
-}
 
     /*
     Save new xml to a new version of the archive
     */
-    /*
-    pub fn save_n_update(&mut self){
+
+    pub fn save(&self) {
         /*
         Get the ZipArchive from the original file
          */
         let file = fs::File::open(&self.path.clone()).unwrap();
-        file.set_permissions(fs::Permissions::from_mode(0o644)).expect("Error changing perms");
+        //file.set_permissions(fs::Permissions::from_mode(0o644)).expect("Error changing perms");
         let mut archive = zip::ZipArchive::new(file).unwrap();
 
         /*
@@ -153,16 +150,19 @@ impl Book {
         dir.push_str("/tmp/");
         let path_dir = PathBuf::from(&dir).into_os_string();
         // println!("{:?}", path_dir);
-        match archive.extract(path_dir){
+
+        //TODO: Different thread? Possibly
+
+        match archive.extract(path_dir) {
             Ok(_) => (),
             Err(e) => eprintln!("{}", e)
-        };
+        }; //TODO: Propaga errore a utente
 
         /*
         Modify the file at path chapters_xml_and_path[current_chapter_number].1
          */
-        let mut target_path = dir.clone();
-        target_path.push_str(&self.chapters_xml_and_path[self.current_chapter_number].1);
+        let mut target_path = dir.clone(); // current_dir/tmp
+        target_path.push_str(&self.chapters[self.get_nav().get_ch()].get_path()); // current_dir/temp/pathdelcapitolodamodificare
         // println!("{}", dir);
         let mut target = OpenOptions::new()
             .read(true)
@@ -170,7 +170,7 @@ impl Book {
             .create(true)
             .open(target_path)
             .unwrap();
-        target.write_all(&self.chapters_xml_and_path[self.current_chapter_number].0.as_bytes()).expect("Unable to write data");
+        target.write_all(&self.chapters[self.get_nav().get_ch()].xml.clone().as_bytes()).expect("Unable to write data");
 
         /*
         Change the old epub file.epub -> file-old.epub
@@ -180,14 +180,14 @@ impl Book {
 
         let walkdir = WalkDir::new(dir.to_string());
         let it = walkdir.into_iter();
-        let newpath = self.path.clone().replace(".epub","-old.epub");
-        fs::rename(&self.path, newpath).unwrap();
-        let writer = File::create(PathBuf::from(&self.path)).unwrap();
+        let newpath = self.path.clone().replace(".epub", "-new.epub");
+        // fs::rename(&self.path, newpath).unwrap(); OLD WAY
+        let writer = File::create(PathBuf::from(newpath)).unwrap();
 
         let mut zip = zip::ZipWriter::new(writer);
         let options = FileOptions::default()
             //.compression_method(method)
-            .unix_permissions(0o755);
+            .unix_permissions(0o755); //TODO:WIndows Compatibility
 
         let mut buffer = Vec::new();
         for entry in it.filter_map(|e| e.ok()) {
@@ -204,152 +204,11 @@ impl Book {
             }
         }
         zip.finish().unwrap();
-        fs::remove_dir_all(&dir).unwrap();
-
-        /*
-        Update the current model so that changes show without having to update the book
-         */
-        let (chapter_xml, chapter_path) = self
-            .chapters_xml_and_path
-            .get((*self).current_chapter_number)
-            .unwrap()
-            .clone();
-        (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
-        (*self).current_page_number_in_chapter = self.current_page_number_in_chapter;
-        (*self).current_page = self
-            .current_chapter
-            .get_page((*self).current_page_number_in_chapter)
-            .unwrap();
+        fs::remove_dir_all(&dir).unwrap(); // Cancella tmp dir
     }
-    */
-    /*
-
-    pub fn go_to_next_page_if_exist(&mut self) {
-        if (*self).current_page_number_in_chapter + 1 >= self.current_chapter.get_number_of_pages()
-        {
-            //SONO ALL'ULTIMA PAGINA DEL CAPITOLO
-            if (*self)
-                .chapters_xml_and_path
-                .get((*self).current_chapter_number + 1)
-                .is_some()
-            {
-                //NON SONO ALL'ULTIMO CAPITOLO?
-                (*self).current_chapter_number += 1;
-                (*self).current_page_number_in_chapter = 0;
-                (*self).current_page_number += 1;
-                let (chapter_xml, chapter_path) = self
-                    .chapters_xml_and_path
-                    .get((*self).current_chapter_number)
-                    .unwrap()
-                    .clone();
-                (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
-            } else {
-                return;
-            };
-        } else {
-            (*self).current_page_number_in_chapter += 1;
-            (*self).current_page_number = (*self).current_page_number + 1;
-        }
-        (*self).current_page = self
-            .current_chapter
-            .get_page((*self).current_page_number_in_chapter)
-            .unwrap();
-    }
-    pub fn go_fast_forward_if_exist(&mut self) {
-        for _ in 0..10 {
-            if (*self).current_page_number_in_chapter + 1
-                >= self.current_chapter.get_number_of_pages()
-            {
-                //SONO ALL'ULTIMA PAGINA DEL CAPITOLO
-                if (*self)
-                    .chapters_xml_and_path
-                    .get((*self).current_chapter_number + 1)
-                    .is_some()
-                {
-                    //NON SONO ALL'ULTIMO CAPITOLO?
-                    (*self).current_chapter_number += 1;
-                    (*self).current_page_number_in_chapter = 0;
-                    (*self).current_page_number += 1;
-                    let (chapter_xml, chapter_path) = self
-                        .chapters_xml_and_path
-                        .get((*self).current_chapter_number)
-                        .unwrap()
-                        .clone();
-                    (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
-                } else {
-                    return;
-                };
-            } else {
-                (*self).current_page_number_in_chapter += 1;
-                (*self).current_page_number = (*self).current_page_number + 1;
-            }
-            (*self).current_page = self
-                .current_chapter
-                .get_page((*self).current_page_number_in_chapter)
-                .unwrap();
-        }
-    }
-
-    pub fn go_to_prev_page_if_exist(&mut self) {
-        if (*self).current_page_number_in_chapter == 0 {
-            //SONO ALLA PRIMA PAGINA DEL CAPITOLO, TORNO ALL'UlTIMA PAGINA DEL PRECEDENTE
-            if (*self).current_chapter_number > 0 {
-                (*self).current_chapter_number -= 1;
-                println!("{}", self.current_chapter_number);
-                let (chapter_xml, chapter_path) = self
-                    .chapters_xml_and_path
-                    .get((*self).current_chapter_number)
-                    .expect("Errore")
-                    .clone();
-                println!("Sono arrivato al chap {} pag {}", self.current_chapter_number, self.current_page_number);
-                (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
-                (*self).current_page_number_in_chapter = self.current_chapter.get_number_of_pages();
-            } else {
-                return;
-            }
-        }
-        (*self).current_page_number_in_chapter = (*self).current_page_number_in_chapter - 1;
-        (*self).current_page_number = (*self).current_page_number - 1;
-        (*self).current_page = self
-            .current_chapter
-            .get_page((*self).current_page_number_in_chapter)
-            .unwrap();
-    }
-
-    pub fn go_fast_back_if_exist(&mut self) {
-        for _ in 0..10 {
-            if (*self).current_page_number_in_chapter == 0 {
-                //SONO ALLA PRIMA PAGINA DEL CAPITOLO, TORNO ALL'UlTIMA PAGINA DEL PRECEDENTE
-                if (*self).current_chapter_number > 0 {
-                    (*self).current_chapter_number -= 1;
-                    let (chapter_xml, chapter_path) = self
-                        .chapters_xml_and_path
-                        .get((*self).current_chapter_number)
-                        .unwrap()
-                        .clone();
-                    (*self).current_chapter = Chapter::new(&chapter_path, &self.path, chapter_xml);
-                    (*self).current_page_number_in_chapter =
-                        self.current_chapter.get_number_of_pages();
-                } else {
-                    return;
-                }
-            }
-            (*self).current_page_number_in_chapter = (*self).current_page_number_in_chapter - 1;
-            (*self).current_page_number = (*self).current_page_number - 1;
-            (*self).current_page = self
-                .current_chapter
-                .get_page((*self).current_page_number_in_chapter)
-                .unwrap();
-        }
-    }
-
-    pub fn get_current_page_number(&self) -> usize {
-        return (*self).current_page_number;
-    }
-    */
+}
 
     /*
-
     pub(crate) fn get_image(&self, book_path: String) -> String
     {
         let doc = EpubDoc::new(book_path);

@@ -7,15 +7,15 @@ use std::io::Read;
 use std::path::PathBuf;
 use druid::im::HashMap;
 
-use crate::book::page::Page;
 use crate::book::page_element::PageElement;
+use crate::utilities::{get_image_buf, unify_paths, convert_path_separators};
 
 const MAX_SIZE: f64 = 35.0;
 
 #[derive(Default, Clone, Data, Lens, Debug)]
 pub struct Chapter {
     path: String,
-    xml: String,
+    pub xml: String,
     imgs: HashMap<PathBuf, ImageBuf>
 }
 
@@ -30,16 +30,21 @@ impl Chapter {
         Chapter { path, xml, imgs }
     }
 
-    pub fn format(&self, ebook_path: &str) -> Vector<PageElement> {
+    pub fn format(&self) -> Vector<PageElement> {
         let opt = ParsingOptions { allow_dtd: true };
-        let doc = Document::parse_with_options(&self.xml, opt).unwrap();
+        let doc = match Document::parse_with_options(&self.xml, opt){
+            Result::Ok(doc) => doc,
+            Err(e) => {
+                let mut v  = Vector::new();
+                v.push_back(PageElement::Error(RichText::new(e.to_string().into())));
+                return v
+            }
+        };
         let node = doc.root_element().last_element_child().unwrap();
         let mut elements: Vector<PageElement> = Vector::new();
         let mut cur_text = EpubText::new();
         Self::xml_to_elements(
             node,
-            &self.path,
-            ebook_path,
             &mut elements,
             &mut cur_text,
             &(*self).imgs
@@ -55,7 +60,6 @@ impl Chapter {
     ) {
 
         if node.tag_name().name() == "img" {
-                //TODO: sposto l'acquisizione dell'immagine in una funzione
                 let ebook_path_buf = PathBuf::from(ebook_path);
                 let chapter_path_buf = PathBuf::from(chapter_path);
                 let image_path = PathBuf::from(node.attribute("src").unwrap());
@@ -74,8 +78,6 @@ impl Chapter {
 
     fn xml_to_elements(
         node: Node,
-        chapter_path: &str,
-        ebook_path: &str,
         elements: &mut Vector<PageElement>,
         current_text: &mut EpubText,
         images_cache: &HashMap<PathBuf, ImageBuf>
@@ -86,8 +88,6 @@ impl Chapter {
                 for child in node.children() {
                     Self::xml_to_elements(
                         child,
-                        chapter_path,
-                        ebook_path,
                         elements,
                         current_text,
                         images_cache
@@ -271,52 +271,8 @@ impl Chapter {
             _ => recur_on_children!(),
         }
     }
-}
 
-// TODO: sposto in un file utilitiess
-fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
-    if !p1.is_dir() {
-        p1.pop();
-    }
-    for el in p2.into_iter() {
-        if el == ".." {
-            p1.pop();
-        } else {
-            p1.push(el);
-        }
-    }
-    p1
-}
-
-fn convert_path_separators(href: String) -> String {
-    let mut path = String::from(href);
-    if cfg!(windows) {
-        path = path.replace("\\", "/");
-        return path;
-    }
-    path
-}
-
-fn get_image_buf(book_path: &PathBuf, chapter_path: &PathBuf, image_path:PathBuf) -> Option<ImageBuf> {
-    let zipfile = std::fs::File::open(book_path.clone()).unwrap();
-    let mut archive = zip::ZipArchive::new(zipfile).unwrap();
-    let complete_img_path = unify_paths(chapter_path.clone(), image_path.clone())
-        .into_os_string()
-        .into_string()
-        .unwrap();
-    let better_path = convert_path_separators(complete_img_path);
-    let mut file = match archive.by_name(&better_path) {
-        Ok(file) => file,
-        Err(e) => {
-            eprintln!("Error in opening archive at {}", e);
-            return None;
-        }
-    };
-    let mut contents: Vec<u8> = vec![];
-    //TODO: match, Err() => Default photo
-    file.read_to_end(&mut contents).unwrap(); //
-    match ImageBuf::from_data(&contents) {
-        Ok(im) => Some(im),
-        Err(_) => None //TODO: default image
+    pub fn get_path(&self) -> String {
+        (&self).path.clone()
     }
 }

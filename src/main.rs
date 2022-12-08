@@ -1,27 +1,25 @@
 mod book;
+mod view;
+mod app;
+mod controllers;
+mod utilities;
+
 use druid::im::Vector;
-use druid::widget::{Button, Click, Controller, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List, Padding, RawLabel, TextBox, ViewSwitcher};
-use druid::{
-    lens, AppLauncher, Data, Env, Event, EventCtx, ImageBuf, Lens, LensExt, LocalizedString,
-    Widget, WidgetExt, WindowDesc,
-};
 use epub::doc::EpubDoc;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
+use druid::Event::WindowSize;
+use druid::{AppLauncher, LocalizedString, WindowDesc};
 use walkdir::WalkDir;
 
+use crate::app::ApplicationState;
 use crate::book::page_element::PageElement;
 use crate::book::Book;
+use crate::book::chapter::Chapter;
+use crate::view::build_main_view;
 
-
-#[derive(Default, Clone, Data, Lens)]
-pub struct ApplicationState {
-    pub current_book: Book,
-    pub edit: bool // Serve a switchare da view mode a edit mode
-    // library: Vector<BookInfo>,
-}
 
 /*
 #[derive(Default, Clone, Data, Lens, Debug)]
@@ -46,25 +44,6 @@ impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
     }
 }
 */
-
-//SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
-fn build_widget() -> impl Widget<ApplicationState> {
-    let a: ViewSwitcher<ApplicationState, bool> = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
-        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>>
-            {
-            if data.current_book.is_empty() {
-                /* Renderizziamo la libreria di libri disponibili */
-                //Box::new(render_library())
-                Box::new(render_book()) //SOLO PER NON USARE RENDER LIBRARY FINCHE NON E' SISTEMATA
-            } else {
-                /* Renderizziamo il libro scelto */
-                Box::new(render_book())
-            }
-        },
-    );
-    a
-}
 
 /*
 fn render_library() -> impl Widget<ApplicationState>{
@@ -103,170 +82,6 @@ fn render_library() -> impl Widget<ApplicationState>{
 }
 */
 
-//FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
-fn render_book() -> impl Widget<ApplicationState> {
-    let mut wrapper = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
-    let mut buttons: Flex<ApplicationState> = Flex::row();
-
-    let btn_next = Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book.go_on(1);
-    });
-
-    let btn_prev = Button::new("<").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book.go_back(1);
-    });
-
-    /*let button_close_book =
-        Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            let mut output = OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open("./tmp.txt")
-                .expect("Unable to open file");
-            let input = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
-            for line in input.lines() {
-                if !(line
-                    .as_ref()
-                    .unwrap()
-                    .clone()
-                    .split_whitespace()
-                    .next()
-                    .unwrap()
-                    .to_string()
-                    == data.current_book.get_path())
-                {
-                    output
-                        .write_all((line.unwrap().clone() + "\n").as_bytes())
-                        .expect("TODO: panic message");
-                } else {
-                    let _ = output.write_all(
-                        (data.current_book.get_path()
-                            + " "
-                            + data
-                                .current_book
-                                .get_current_chapter_number()
-                                .to_string()
-                                .as_str()
-                            + " "
-                            + data
-                                .current_book
-                                .get_current_page_number_in_chapter()
-                                .to_string()
-                                .as_str()
-                            + " "
-                            + data
-                                .current_book
-                                .get_current_page_number()
-                                .to_string()
-                                .as_str()
-                            + " "
-                            + data
-                                .current_book
-                                .get_image(data.current_book.get_path())
-                                .to_string()
-                                .as_str()
-                            + "\n")
-                            .as_bytes(),
-                    );
-                }
-            }
-            let _ = fs::remove_file("file.txt");
-            let _ = fs::rename("tmp.txt", "file.txt");
-
-            data.library = read_from_file();
-            data.current_book = Book::empty_book();
-        });*/
-
-    /* Switcha la modalità dell'app */
-    let switch_mode = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.edit,
-        |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            let tag: &str;
-            if data.edit {
-                tag = "Read"
-            } else {
-                tag = "Edit"
-            };
-            let switch = Button::new(tag)
-                .on_click(|_ctx, data: &mut ApplicationState, _env| {
-                if data.edit {
-                    // data.current_book.save_n_update()
-                    println!("Save and update!");
-                };
-                data.edit = !data.edit;
-            });
-            Box::new(switch)
-        },
-    );
-
-    buttons.add_child(btn_prev);
-    buttons.add_child(btn_next);
-    buttons.add_child(switch_mode);
-
-    // row.add_child(button_close_book);
-    // col.add_child(row.padding(30.0));
-
-    let scrollable_text = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.edit,
-        |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            let mut viewport = if !data.edit {
-                /* VIEW MODE */
-                render_view_mode().padding(30.0)
-            } else {
-                /*
-                let mut viewport = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
-                let xml_lens = lens!(ApplicationState, current_book)
-                    .then(lens!(Book, chapters_xml_and_path))
-                    .index(data.current_book.current_chapter_number)
-                    .then(lens!((String, String), 0));
-
-                let text = TextBox::new().with_line_wrapping(true).lens(xml_lens);
-
-                viewport.add_child(text);
-                */
-                //Temporaneo
-                render_view_mode().padding(30.0)
-            };
-            Box::new(viewport.scroll().vertical())
-        },
-    );
-
-    wrapper.add_child(Flex::row().fix_height(8.0));
-    wrapper.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
-    wrapper.add_child(Flex::row().fix_height(7.0));
-
-    wrapper.add_flex_child(
-        scrollable_text.fix_width(700.0).fix_height(1000.0),
-        FlexParams::new(0.92, CrossAxisAlignment::Baseline),
-    );
-    wrapper.add_child(Flex::row().fix_height(7.0));
-
-    wrapper
-}
-
-fn render_view_mode() -> Flex<ApplicationState> {
-    let mut viewport = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
-    let lens = lens!(ApplicationState, current_book);
-    let chapter = List::new(|| {
-        ViewSwitcher::new(
-            |data: &PageElement, _| data.clone(),
-            |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                match data {
-                    PageElement::Text(_) => {
-                        let mut label = RawLabel::new();
-                        label.set_line_break_mode(LineBreaking::WordWrap);
-                        Box::new(label)
-                    }
-                    PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
-                        Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
-                    )),
-                }
-            },
-        )
-    }).lens(lens.map(|book| book.format_current_chapter(), |_ , _|()));
-    viewport.add_child(chapter);
-    viewport
-}
 
 fn main() {
     const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
@@ -282,18 +97,25 @@ fn main() {
 
     library = read_from_file();
     */
+
+    let mut app = ApplicationState {
+        current_book: Book::new("./libri/saviano.epub", 0, Option::None).unwrap(),
+        //library: library,
+        edit: false,
+        window_size: (800.0, 1000.0),
+        current_view: Vector::new()
+    };
+
+    app.update_view();
+
     // describe the main window
-    let main_window = WindowDesc::new(build_widget())
+    let main_window = WindowDesc::new(build_main_view())
         .title(WINDOW_TITLE)
-        .window_size((800.0, 1000.0));
+        .window_size(app.window_size);
 
     // start the application
     AppLauncher::with_window(main_window)
-        .launch(ApplicationState {
-            current_book: Book::new("./libri/saviano.epub", 0, Option::None).unwrap(),
-            //library: library,
-            edit: false
-        })
+        .launch(app)
         .expect("Failed to launch application");
 }
 
