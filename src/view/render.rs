@@ -3,6 +3,8 @@ use druid::widget::{Button, ControllerHost, CrossAxisAlignment, FillStrat, Flex,
 use crate::{ApplicationState, PageElement};
 use crate::controllers::Update;
 use crate::book::{Book, chapter::Chapter};
+use crate::view::view::View;
+use crate::view::buttons::Buttons;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -25,17 +27,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
 fn render_book() -> impl Widget<ApplicationState> {
     let mut wrapper = Flex::column(); //.cross_axis_alignment(CrossAxisAlignment::Start);
-    let mut buttons: Flex<ApplicationState> = Flex::row();
 
-    let btn_next = Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book.go_on(1);
-        data.update_view()
-    });
-
-    let btn_prev = Button::new("<").on_click(|_ctx, data: &mut ApplicationState, _env| {
-        data.current_book.go_back(1);
-        data.update_view()
-    });
 
     /*let button_close_book =
         Button::new("close book").on_click(|_ctx, data: &mut ApplicationState, _env| {
@@ -99,37 +91,32 @@ fn render_book() -> impl Widget<ApplicationState> {
         });*/
 
     /* Switcha la modalità dell'app */
-    let switch_mode = ViewSwitcher::new(
+    let buttons = ViewSwitcher::new(
         |data: &ApplicationState, _| data.edit,
-        |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-
-            let tag: &str;
+        move |_, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
             if data.edit {
-                tag = "Read"
-            } else {
-                tag = "Edit"
-            };
+                Box::new(ViewSwitcher::new(
+                    |data: &ApplicationState, _| data.xml_backup == data.current_book.chapters[data.current_book.get_nav().get_ch()].xml,
+                    |cond, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
+                        let mut row: Flex<ApplicationState> = Flex::row();
+                        if *cond {
+                            row.add_child(Buttons::bnt_view());
+                        } else {
+                            row.add_child(Buttons::btn_confirm());
+                            row.add_child(Buttons::bnt_discard());
+                        }
+                        Box::new(row)
+                    }))
+                    } else {
+                let mut row: Flex<ApplicationState> = Flex::row();
+                row.add_child(Buttons::btn_prev());
+                row.add_child(Buttons::btn_edit());
+                row.add_child(Buttons::btn_next());
+                Box::new(row)
+            }
 
-            let switch = Button::new(tag)
-                .on_click(|ctx, data: &mut ApplicationState, _env| {
-                    if data.edit {
-                        data.current_book.save();
-                        ctx.window().set_size(data.window_size);
-                        ctx.window().set_title("VIEW MODE");
-                    }else{
-                        data.window_size = <(f64, f64)>::from(ctx.window().get_size());
-                        ctx.window().set_size((1600.0,1000.0));
-                        ctx.window().set_title("EDIT MODE");
-                    }
-                    data.edit = !data.edit;
-                });
-            Box::new(switch)
         },
     );
-
-    buttons.add_child(btn_prev);
-    buttons.add_child(btn_next);
-    buttons.add_child(switch_mode);
 
     // row.add_child(button_close_book);
     // col.add_child(row.padding(30.0));
@@ -156,6 +143,7 @@ fn render_book() -> impl Widget<ApplicationState> {
 
     wrapper
 }
+
 
 fn render_edit_mode() -> Flex<ApplicationState> {
     let mut viewport = Flex::row();
@@ -199,13 +187,13 @@ fn render_view_mode() -> Flex<ApplicationState> {
     let lens = lens!(ApplicationState, current_book)
         .map(|book| book.format_current_chapter(), |_ , _|());
         */
-    let lens = lens!(ApplicationState, current_view);
+    let lens = lens!(ApplicationState, view)
+        .then(lens!(View, current_view));
 
     let chapter = List::new(|| {
         ViewSwitcher::new(
             |data: &PageElement, _| data.clone(),
             |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                println!("273: render_view_mode");
                 match data {
                     PageElement::Text(_) => {
                         let mut label = RawLabel::new();

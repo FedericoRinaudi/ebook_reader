@@ -1,6 +1,7 @@
 pub mod chapter;
 mod epub_text;
 pub(crate) mod page_element;
+
 use walkdir::WalkDir;
 
 use crate::book::chapter::Chapter;
@@ -15,6 +16,7 @@ use std::option::Option::{None, Some};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use druid::im::HashMap;
+use druid::im::HashSet;
 use druid::text::Attribute;
 use zip::write::FileOptions;
 use crate::book::epub_text::AttributeCase;
@@ -130,12 +132,16 @@ impl Book {
         )
     }
 
+    pub fn update_xml(&mut self, xml: String){
+        (*self).chapters[self.nav.get_ch()].xml = xml;
+    }
+
 
     /*
     Save new xml to a new version of the archive
     */
 
-    pub fn save(&self) {
+    pub fn save(&self, set:HashSet<usize>) {
         /*
         Get the ZipArchive from the original file
          */
@@ -161,17 +167,18 @@ impl Book {
         /*
         Modify the file at path chapters_xml_and_path[current_chapter_number].1
          */
-        let mut target_path = dir.clone(); // current_dir/tmp
-        target_path.push_str(&self.chapters[self.get_nav().get_ch()].get_path()); // current_dir/temp/pathdelcapitolodamodificare
-        // println!("{}", dir);
-        let mut target = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(target_path)
-            .unwrap();
-        target.write_all(&self.chapters[self.get_nav().get_ch()].xml.clone().as_bytes()).expect("Unable to write data");
-
+        for ch_n in set {
+            let mut target_path = dir.clone(); // current_dir/tmp
+            target_path.push_str(&self.chapters[ch_n].get_path()); // current_dir/temp/pathdelcapitolodamodificare
+            // println!("{}", dir);
+            let mut target = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .open(target_path)
+                .unwrap();
+            target.write_all(&self.chapters[ch_n].xml.clone().as_bytes()).expect("Unable to write data");
+        }
         /*
         Change the old epub file.epub -> file-old.epub
         Zip the file again with the original epub's name

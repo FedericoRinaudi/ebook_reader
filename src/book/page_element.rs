@@ -42,6 +42,10 @@ impl PageElement {
             },
         }
     }
+
+    pub fn is_err(&self) -> bool {
+        matches!(*self, PageElement::Error(_))
+    }
 }
 
 //TODO gestisco l'enum con le lens

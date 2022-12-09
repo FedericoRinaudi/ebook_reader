@@ -1,8 +1,8 @@
 mod book;
-mod view;
 mod app;
 mod controllers;
 mod utilities;
+mod view;
 
 use druid::im::Vector;
 use epub::doc::EpubDoc;
@@ -13,12 +13,13 @@ use std::path::PathBuf;
 use druid::Event::WindowSize;
 use druid::{AppLauncher, LocalizedString, WindowDesc};
 use walkdir::WalkDir;
+use view::view::{WINDOW_TITLE, View};
 
 use crate::app::ApplicationState;
 use crate::book::page_element::PageElement;
 use crate::book::Book;
 use crate::book::chapter::Chapter;
-use crate::view::build_main_view;
+use crate::view::render::build_main_view;
 
 
 /*
@@ -84,7 +85,7 @@ fn render_library() -> impl Widget<ApplicationState>{
 
 
 fn main() {
-    const WINDOW_TITLE: LocalizedString<ApplicationState> = LocalizedString::new("ebook reader");
+
     /*
     let mut vet: Vec<String> = Vec::new(); //contiene i libri letti in WalkDir
     for entry in WalkDir::new("./libri/").into_iter().skip(1) {
@@ -98,20 +99,13 @@ fn main() {
     library = read_from_file();
     */
 
-    let mut app = ApplicationState {
-        current_book: Book::new("./libri/saviano.epub", 0, Option::None).unwrap(),
-        //library: library,
-        edit: false,
-        window_size: (800.0, 1000.0),
-        current_view: Vector::new()
-    };
-
-    app.update_view();
+    let book = Book::new("./libri/saviano.epub", 0, Option::None).unwrap();
+    let mut app = ApplicationState::new(book);
 
     // describe the main window
     let main_window = WindowDesc::new(build_main_view())
         .title(WINDOW_TITLE)
-        .window_size(app.window_size);
+        .window_size(app.view.get_window_size_home());
 
     // start the application
     AppLauncher::with_window(main_window)
