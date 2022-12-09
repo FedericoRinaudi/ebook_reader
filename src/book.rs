@@ -141,11 +141,16 @@ impl Book {
     Save new xml to a new version of the archive
     */
 
-    pub fn save(&self, set:HashSet<usize>) {
+    pub fn save(&self, modified:bool, set:HashSet<usize>) {
         /*
         Get the ZipArchive from the original file
          */
-        let file = fs::File::open(&self.path.clone()).unwrap();
+        let file_path = if modified {
+            (&self).path.clone().replace(".epub", "-new.epub")
+        }else {
+            (&self).path.clone()
+        };
+        let file = fs::File::open(file_path).unwrap();
         //file.set_permissions(fs::Permissions::from_mode(0o644)).expect("Error changing perms");
         let mut archive = zip::ZipArchive::new(file).unwrap();
 
@@ -155,6 +160,7 @@ impl Book {
         let mut dir = current_dir().unwrap().to_str().unwrap().to_string();
         dir.push_str("/tmp/");
         let path_dir = PathBuf::from(&dir).into_os_string();
+
         // println!("{:?}", path_dir);
 
         //TODO: Different thread? Possibly

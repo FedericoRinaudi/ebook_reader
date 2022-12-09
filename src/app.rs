@@ -8,7 +8,7 @@ pub struct ApplicationState {
     pub current_book: Book,
     pub edit: bool, // Serve a switchare da view mode a edit mode
     pub xml_backup: String, // xml backup useful to discard changes done in edit mode
-    pub modified: HashSet<usize>,
+    pub modified: (bool, HashSet<usize>), //find better solution
     pub view: View
     // library: Vector<BookInfo>,
 }
@@ -19,7 +19,7 @@ impl ApplicationState {
             current_book,
             edit: false,
             xml_backup: "".to_string(),
-            modified: HashSet::new(),
+            modified: (false, HashSet::new()),
             view: View::new()
         };
         app.update_view();

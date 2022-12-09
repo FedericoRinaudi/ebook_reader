@@ -19,7 +19,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                 /* Renderizziamo il libro scelto */
                 Box::new(render_book())
             }
-        }
+        },
     );
     main_nav
 }
@@ -101,20 +101,21 @@ fn render_book() -> impl Widget<ApplicationState> {
                         let mut row: Flex<ApplicationState> = Flex::row();
                         if *cond {
                             row.add_child(Buttons::bnt_view());
+                            row.add_child(Buttons::btn_save());
                         } else {
                             row.add_child(Buttons::btn_confirm());
                             row.add_child(Buttons::bnt_discard());
                         }
                         Box::new(row)
                     }))
-                    } else {
+            } else {
                 let mut row: Flex<ApplicationState> = Flex::row();
                 row.add_child(Buttons::btn_prev());
                 row.add_child(Buttons::btn_edit());
+                row.add_child(Buttons::btn_save());
                 row.add_child(Buttons::btn_next());
                 Box::new(row)
             }
-
         },
     );
 
@@ -166,9 +167,9 @@ fn render_edit_mode() -> Flex<ApplicationState> {
 
             /* Permette di modificare in xml l'appstate*/
             let host = ControllerHost::new(
-                editable_xml,Update::new(|_, data: &mut ApplicationState, _|{
+                editable_xml, Update::new(|_, data: &mut ApplicationState, _| {
                     data.update_view()
-                })
+                }),
             );
 
             let mut xml = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);

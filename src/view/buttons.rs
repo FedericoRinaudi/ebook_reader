@@ -25,7 +25,7 @@ impl Buttons {
                 /* EDIT MODE -> EDIT MODE, CONFIRM CHANGES */
                 // data.current_book.save();
                 data.xml_backup = data.current_book.chapters[data.current_book.get_nav().get_ch()].xml.clone();
-                data.modified.insert(data.current_book.get_nav().get_ch()); /* Inserisco se non è già presente il capitolo corrente in quelli modificati */
+                data.modified.1.insert(data.current_book.get_nav().get_ch()); /* Inserisco se non è già presente il capitolo corrente in quelli modificati */
             }).disabled_if(|data: &ApplicationState, _| data.view.current_view.len()==0 || data.view.current_view[0].is_err())
     }
 
@@ -67,9 +67,10 @@ impl Buttons {
         Button::new("Save on File")
             .on_click(|ctx, data: &mut ApplicationState, _env| {
                 /* SAVE CHANGES ON NEW FILE */
-                data.current_book.save(data.modified.clone());
-                // data.modified.clear(); TODO: Apri nuovo file scritto ogni volta che si va a salvare
-            }).disabled_if(|data: &ApplicationState, _| data.view.current_view.len()==0 || data.view.current_view[0].is_err())
+                data.current_book.save(data.modified.0, data.modified.1.clone());
+                data.modified.0 = true;
+                data.modified.1.clear();
+            }).disabled_if(|data: &ApplicationState, _| data.modified.1.is_empty())
     }
 
 }
