@@ -40,7 +40,6 @@ impl Navigation {
     pub fn set_ch(&mut self, n: usize) {
         (*self).ch = n
     }
-    //pub fn get_nav(&self) -> Navigation { return self.nav.clone(); }
 }
 
 #[derive(Default, Clone, Data, Lens)]

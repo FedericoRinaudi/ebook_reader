@@ -1,5 +1,6 @@
-use druid::{lens, LensExt, Widget, WidgetExt};
-use druid::widget::{Button, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, TextBox, ViewSwitcher};
+use std::path::PathBuf;
+use druid::{ImageBuf, lens, LensExt, Widget, WidgetExt};
+use druid::widget::{Button, Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, TextBox, ViewSwitcher};
 use crate::{ApplicationState, PageElement};
 use crate::controllers::Update;
 use crate::book::{Book, chapter::Chapter};
@@ -13,8 +14,8 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
         |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>>{
             if data.current_book.is_empty() {
                 /* Renderizziamo la libreria di libri disponibili */
-                //Box::new(render_library())
-                Box::new(render_book()) //SOLO PER NON USARE RENDER LIBRARY FINCHE NON E' SISTEMATA
+                Box::new(render_library(data))
+                //Box::new(render_book())
             } else {
                 /* Renderizziamo il libro scelto */
                 Box::new(render_book())
@@ -215,4 +216,41 @@ fn render_view_mode() -> Flex<ApplicationState> {
     }).lens(lens);
     viewport.add_child(chapter);
     viewport
+}
+
+fn render_library<'a>(data: &'a ApplicationState) -> impl Widget<ApplicationState>{
+    let mut col = Flex::column();
+    let mut row = Flex::row();
+    //let lib = data.library.clone();
+    let row_flex = 1.0 / ((data.get_library().len() as f64 / 3.0) + 1.0);
+    for (index, book_info) in data.get_library().iter().enumerate() {
+
+        /*  FORSE INUTILE
+            let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
+            button_data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
+        });
+        */
+
+        let clickable_image = ControllerHost::new(
+            Image::new(ImageBuf::from_file(book_info.cover_path.clone())
+                .unwrap())//TODO: unwrap_or(default image)
+                .fix_width(300.0)
+                .fix_height(200.0),
+            Click::new(move |_ctx, data: &mut ApplicationState, _env| {
+                data.current_book = Book::new(
+                    PathBuf::from(book_info.name.clone()),
+                    book_info.start_chapter,
+                    None
+                ).unwrap();
+                data.update_view();
+            }),
+        );
+        row.add_flex_child(clickable_image, FlexParams::new(row_flex, CrossAxisAlignment::Start));
+        if index != 0 && (index + 1) % 3 == 0 {
+            col.add_flex_child(row, FlexParams::new(0.3, CrossAxisAlignment::Center));
+            row = Flex::row();
+        }
+    }
+    col.add_child(row);
+    col.scroll().vertical()
 }

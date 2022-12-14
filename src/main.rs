@@ -3,7 +3,9 @@ mod app;
 mod controllers;
 mod utilities;
 mod view;
+mod bookcase;
 
+use std::collections::VecDeque;
 use druid::im::Vector;
 use epub::doc::EpubDoc;
 use std::fs;
@@ -21,19 +23,7 @@ use crate::book::Book;
 use crate::book::chapter::Chapter;
 use crate::view::render::build_main_view;
 
-
-/*
-#[derive(Default, Clone, Data, Lens, Debug)]
-pub struct BookInfo {
-    name: String,
-    start_chapter: usize,
-    start_page_in_chapter: usize,
-    tot_pages: usize,
-    image: String,
-}
-*/
-
-/*
+/* FORSE INUTILE
 struct TakeFocus;
 
 impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
@@ -43,64 +33,15 @@ impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
         }
         child.event(ctx, event, data, env)
     }
-}
-*/
-
-/*
-fn render_library() -> impl Widget<ApplicationState>{
-    let mut col = Flex::column();
-    let mut row = Flex::row();
-    let lib = data.library.clone();
-    let row_flex = 1.0 / ((lib.len() as f64 / 3.0) + 1.0);
-    for (i, e) in lib.into_iter().enumerate() {
-        //println!("{:?}", e);
-
-        /*    let b = Button::new(e.name.clone()).on_click(move |_ctx, button_data: &mut ApplicationState, _env| {
-            button_data.current_book = Book::new(PathBuf::from(e.name.clone()), e.start_chapter, e.start_page_in_chapter, e.tot_pages).unwrap();
-        });
-        */
-        let b = ImageBuf::from_file(e.image.clone()).unwrap();
-        let c = ControllerHost::new(
-            Image::new(b).fix_width(300.0).fix_height(200.0),
-            Click::new(move |_ctx, data: &mut ApplicationState, _env| {
-                data.current_book = Book::new(
-                    PathBuf::from(e.name.clone()),
-                    e.start_chapter,
-                    e.start_page_in_chapter,
-                    e.tot_pages,
-                )
-                    .unwrap();
-            }),
-        );
-        row.add_flex_child(c, FlexParams::new(row_flex, CrossAxisAlignment::Start));
-        if i != 0 && (i + 1) % 3 == 0 {
-            col.add_flex_child(row, FlexParams::new(0.3, CrossAxisAlignment::Center));
-            row = Flex::row();
-        }
-    }
-    col.add_child(row);
-    col.scroll().vertical()
-}
-*/
+}*/
 
 
 fn main() {
 
-    /*
-    let mut vet: Vec<String> = Vec::new(); //contiene i libri letti in WalkDir
-    for entry in WalkDir::new("./libri/").into_iter().skip(1) {
-        vet.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
-    }
+    //TODO:Usa struttura diversa, hashmap?!
 
-    let mut library: Vector<BookInfo> = read_from_file(); //contiene tutti i libri letti dal file
-    remove_from_library(vet.clone());
-    create_library(library, vet.clone());
-
-    library = read_from_file();
-    */
-
-    let book = Book::new("./libri/saviano.epub", 0, Option::None).unwrap();
-    let mut app = ApplicationState::new(book);
+    //let book = Book::new("./libri/saviano.epub", 0, Option::None).unwrap();
+    let mut app = ApplicationState::new();
 
     // describe the main window
     let main_window = WindowDesc::new(build_main_view())
@@ -115,6 +56,7 @@ fn main() {
 
 /*
 fn remove_from_library(vet: Vec<String>) {
+        //TODO: Refactor function
     let mut find = 0;
     let mut output = OpenOptions::new()
         .append(true)
@@ -145,6 +87,7 @@ fn remove_from_library(vet: Vec<String>) {
     let _ = fs::remove_file("file.txt");
     let _ = fs::rename("tmp.txt", "file.txt");
 }
+
 fn create_library(lib: Vector<BookInfo>, vect: Vec<String>) {
     let mut output = OpenOptions::new()
         .append(true)
@@ -172,45 +115,21 @@ fn read_from_file() -> Vector<BookInfo> {
     let mut library: Vector<BookInfo> = Vector::new(); //contiene tutti i libri letti dal file
     let reader = BufReader::new(File::open("file.txt").expect("Cannot open file.txt"));
     for line in reader.lines() {
-        let mut word = line.as_ref().unwrap().split_whitespace().into_iter();
+        //TODO: Possibly use a Vec<String> to handle line reading
+        let mut word = line.as_ref().unwrap().split_whitespace().into_iter(); //TODO:Separator becomes | from whitespace
+        //TODO: E' presente nall hashmap? se si creo e pusho bookinfo e rimuovo dalla map
         library.push_back(BookInfo {
             //name:word.next().unwrap().to_string().clone(),
             name: word.next().unwrap().to_string().clone(),
             start_chapter: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
-            start_page_in_chapter: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
-            tot_pages: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
+            //start_page_in_chapter: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
+            //tot_pages: usize::from_str_radix(word.next().unwrap(), 10).unwrap(),
             image: word.next().unwrap().to_string().clone(),
         })
     }
-    return library;
-}
-
-fn get_image(book_path: String) -> String {
-    let doc = EpubDoc::new(book_path);
-    assert!(doc.is_ok());
-    let mut doc = doc.unwrap();
-    //let name=doc.mdata("cover").unwrap();
-    let title = doc
-        .mdata("title")
-        .unwrap()
-        .replace(" ", "_")
-        .split('/')
-        .into_iter()
-        .next()
-        .unwrap()
-        .to_string();
-
-    let cover_data = doc.get_cover().unwrap();
-
-    let mut path = String::from("./images/");
-    path.push_str(title.as_str());
-    path.push_str(".jpeg");
-
-    let f = fs::File::create(path.clone());
-    assert!(f.is_ok());
-    let mut f = f.unwrap();
-    let _ = f.write_all(&cover_data);
-
-    return path;
+    //TODO: A fine iter devo pushare gli elementi che ho ancora in folder book
+    //TODO: Scriviamo tutto book info per risolvere conflitti
+    library
 }
 */
+
