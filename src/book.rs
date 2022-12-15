@@ -5,8 +5,12 @@ pub(crate) mod page_element;
 use walkdir::WalkDir;
 
 use crate::book::chapter::Chapter;
+use crate::book::epub_text::AttributeCase;
 use crate::book::page_element::PageElement;
-use druid::{im::Vector, Data, Lens, ImageBuf, FontStyle, FontWeight};
+use druid::im::HashMap;
+use druid::im::HashSet;
+use druid::text::Attribute;
+use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens};
 use epub::doc::EpubDoc;
 use std::env::current_dir;
 use std::fs;
@@ -15,11 +19,7 @@ use std::io::{Read, Write};
 use std::option::Option::{None, Some};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use druid::im::HashMap;
-use druid::im::HashSet;
-use druid::text::Attribute;
 use zip::write::FileOptions;
-use crate::book::epub_text::AttributeCase;
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct Navigation {
@@ -66,7 +66,12 @@ impl Book {
         init_page: Option<usize>,
     ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
-        let book_path = path.as_ref().to_path_buf().into_os_string().into_string().unwrap();
+        let book_path = path
+            .as_ref()
+            .to_path_buf()
+            .into_os_string()
+            .into_string()
+            .unwrap();
         let mut epub_doc = match EpubDoc::new(path) {
             Ok(epub) => epub,
             Err(_) => return Result::Err(()),
@@ -95,7 +100,7 @@ impl Book {
         Result::Ok(Self {
             path: book_path,
             nav: nav_new,
-            chapters: ch_vec
+            chapters: ch_vec,
         })
     }
 
@@ -112,41 +117,37 @@ impl Book {
     }
 
     pub fn go_on(&mut self, n: usize) {
-        self.nav.set_ch(
-            if (self.nav.get_ch() + n) >= self.chapters.len() {
+        self.nav
+            .set_ch(if (self.nav.get_ch() + n) >= self.chapters.len() {
                 self.chapters.len() - 1
             } else {
                 self.nav.get_ch() + n
-            }
-        )
+            })
     }
 
     pub fn go_back(&mut self, n: usize) {
-        self.nav.set_ch(
-            if self.nav.get_ch() > n {
-                self.nav.get_ch() - n
-            } else {
-                0
-            }
-        )
+        self.nav.set_ch(if self.nav.get_ch() > n {
+            self.nav.get_ch() - n
+        } else {
+            0
+        })
     }
 
-    pub fn update_xml(&mut self, xml: String){
+    pub fn update_xml(&mut self, xml: String) {
         (*self).chapters[self.nav.get_ch()].xml = xml;
     }
-
 
     /*
     Save new xml to a new version of the archive
     */
 
-    pub fn save(&self, modified:bool, set:HashSet<usize>) {
+    pub fn save(&self, modified: bool, set: HashSet<usize>) {
         /*
         Get the ZipArchive from the original file
          */
         let file_path = if modified {
             (&self).path.clone().replace(".epub", "-new.epub")
-        }else {
+        } else {
             (&self).path.clone()
         };
         let file = fs::File::open(file_path).unwrap();
@@ -166,7 +167,7 @@ impl Book {
 
         match archive.extract(path_dir) {
             Ok(_) => (),
-            Err(e) => eprintln!("{}", e)
+            Err(e) => eprintln!("{}", e),
         }; //TODO: Propaga errore a utente
 
         /*
@@ -175,14 +176,16 @@ impl Book {
         for ch_n in set {
             let mut target_path = dir.clone(); // current_dir/tmp
             target_path.push_str(&self.chapters[ch_n].get_path()); // current_dir/temp/pathdelcapitolodamodificare
-            // println!("{}", dir);
+                                                                   // println!("{}", dir);
             let mut target = OpenOptions::new()
                 .read(true)
                 .write(true)
                 .create(true)
                 .open(target_path)
                 .unwrap();
-            target.write_all(&self.chapters[ch_n].xml.clone().as_bytes()).expect("Unable to write data");
+            target
+                .write_all(&self.chapters[ch_n].xml.clone().as_bytes())
+                .expect("Unable to write data");
         }
         /*
         Change the old epub file.epub -> file-old.epub
@@ -220,25 +223,25 @@ impl Book {
     }
 }
 
-    /*
-    pub(crate) fn get_image(&self, book_path: String) -> String
-    {
-        let doc = EpubDoc::new(book_path);
-        assert!(doc.is_ok());
-        let mut doc = doc.unwrap();
-        let title = doc.mdata("title").unwrap().replace(" ", "_").split('/').into_iter().next().unwrap().to_string();
+/*
+pub(crate) fn get_image(&self, book_path: String) -> String
+{
+    let doc = EpubDoc::new(book_path);
+    assert!(doc.is_ok());
+    let mut doc = doc.unwrap();
+    let title = doc.mdata("title").unwrap().replace(" ", "_").split('/').into_iter().next().unwrap().to_string();
 
-        let cover_data = doc.get_cover().unwrap();
+    let cover_data = doc.get_cover().unwrap();
 
-        let mut path = String::from("./images/");
-        path.push_str(title.as_str());
-        path.push_str(".jpeg");
+    let mut path = String::from("./images/");
+    path.push_str(title.as_str());
+    path.push_str(".jpeg");
 
-        let f = fs::File::create(path.clone());
-        assert!(f.is_ok());
-        let mut f = f.unwrap();
-        let _ = f.write_all(&cover_data);
+    let f = fs::File::create(path.clone());
+    assert!(f.is_ok());
+    let mut f = f.unwrap();
+    let _ = f.write_all(&cover_data);
 
-        return path;
-    }
-    */
+    return path;
+}
+*/

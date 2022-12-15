@@ -1,14 +1,14 @@
-use std::error::Error;
 use crate::book::epub_text::{AttributeCase, EpubText};
+use druid::im::HashMap;
 use druid::text::{Attribute, RichText};
 use druid::{im::Vector, ArcStr, Data, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
+use std::error::Error;
 use std::io::Read;
 use std::path::PathBuf;
-use druid::im::HashMap;
 
 use crate::book::page_element::PageElement;
-use crate::utilities::{get_image_buf, unify_paths, convert_path_separators};
+use crate::utilities::{convert_path_separators, get_image_buf, unify_paths};
 
 const MAX_SIZE: f64 = 35.0;
 
@@ -16,7 +16,7 @@ const MAX_SIZE: f64 = 35.0;
 pub struct Chapter {
     path: String,
     pub xml: String,
-    imgs: HashMap<PathBuf, ImageBuf>
+    imgs: HashMap<PathBuf, ImageBuf>,
 }
 
 impl Chapter {
@@ -32,23 +32,18 @@ impl Chapter {
 
     pub fn format(&self) -> Vector<PageElement> {
         let opt = ParsingOptions { allow_dtd: true };
-        let doc = match Document::parse_with_options(&self.xml, opt){
+        let doc = match Document::parse_with_options(&self.xml, opt) {
             Result::Ok(doc) => doc,
             Err(e) => {
-                let mut v  = Vector::new();
+                let mut v = Vector::new();
                 v.push_back(PageElement::Error(RichText::new(e.to_string().into())));
-                return v
+                return v;
             }
         };
         let node = doc.root_element().last_element_child().unwrap();
         let mut elements: Vector<PageElement> = Vector::new();
         let mut cur_text = EpubText::new();
-        Self::xml_to_elements(
-            node,
-            &mut elements,
-            &mut cur_text,
-            &(*self).imgs
-        );
+        Self::xml_to_elements(node, &mut elements, &mut cur_text, &(*self).imgs);
         elements
     }
 
@@ -56,23 +51,17 @@ impl Chapter {
         node: Node,
         chapter_path: &str,
         ebook_path: &str,
-        imgs: &mut HashMap<PathBuf, ImageBuf>
+        imgs: &mut HashMap<PathBuf, ImageBuf>,
     ) {
-
         if node.tag_name().name() == "img" {
-                let ebook_path_buf = PathBuf::from(ebook_path);
-                let chapter_path_buf = PathBuf::from(chapter_path);
-                let image_path = PathBuf::from(node.attribute("src").unwrap());
-                imgs.entry(image_path.clone()).or_insert(get_image_buf(&ebook_path_buf, &chapter_path_buf, image_path).unwrap());
-
+            let ebook_path_buf = PathBuf::from(ebook_path);
+            let chapter_path_buf = PathBuf::from(chapter_path);
+            let image_path = PathBuf::from(node.attribute("src").unwrap());
+            imgs.entry(image_path.clone())
+                .or_insert(get_image_buf(&ebook_path_buf, &chapter_path_buf, image_path).unwrap());
         }
         for child in node.children() {
-            Self::fetch_ch_imgs(
-                child,
-                chapter_path,
-                ebook_path,
-                imgs
-            );
+            Self::fetch_ch_imgs(child, chapter_path, ebook_path, imgs);
         }
     }
 
@@ -80,18 +69,13 @@ impl Chapter {
         node: Node,
         elements: &mut Vector<PageElement>,
         current_text: &mut EpubText,
-        images_cache: &HashMap<PathBuf, ImageBuf>
+        images_cache: &HashMap<PathBuf, ImageBuf>,
     ) {
         /* Def Macros */
         macro_rules! recur_on_children {
             () => {
                 for child in node.children() {
-                    Self::xml_to_elements(
-                        child,
-                        elements,
-                        current_text,
-                        images_cache
-                    );
+                    Self::xml_to_elements(child, elements, current_text, images_cache);
                 }
             };
         };
@@ -134,7 +118,9 @@ impl Chapter {
             "img" => {
                 new_line!();
                 let image_path = PathBuf::from(node.attribute("src").unwrap());
-                elements.push_back(PageElement::Image(images_cache.get(&image_path).unwrap().clone()));
+                elements.push_back(PageElement::Image(
+                    images_cache.get(&image_path).unwrap().clone(),
+                ));
                 new_line!();
             }
             "a" => {

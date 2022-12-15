@@ -1,6 +1,6 @@
+use druid::ImageBuf;
 use std::io::Read;
 use std::path::PathBuf;
-use druid::ImageBuf;
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
@@ -25,7 +25,11 @@ pub fn convert_path_separators(href: String) -> String {
     path
 }
 
-pub fn get_image_buf(book_path: &PathBuf, chapter_path: &PathBuf, image_path:PathBuf) -> Option<ImageBuf> {
+pub fn get_image_buf(
+    book_path: &PathBuf,
+    chapter_path: &PathBuf,
+    image_path: PathBuf,
+) -> Option<ImageBuf> {
     let zipfile = std::fs::File::open(book_path.clone()).unwrap();
     let mut archive = zip::ZipArchive::new(zipfile).unwrap();
     let complete_img_path = unify_paths(chapter_path.clone(), image_path.clone())
@@ -45,6 +49,6 @@ pub fn get_image_buf(book_path: &PathBuf, chapter_path: &PathBuf, image_path:Pat
     file.read_to_end(&mut contents).unwrap(); //
     match ImageBuf::from_data(&contents) {
         Ok(im) => Some(im),
-        Err(_) => None //TODO: default image
+        Err(_) => None, //TODO: default image
     }
 }

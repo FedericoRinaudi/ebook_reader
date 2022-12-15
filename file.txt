@@ -1,2 +1,0 @@
-./libri/saviano.epub 0 0 ./images/La_paranza_dei_bambini.jpeg
-./libri/angelo.epub 0 0 ./images/Il_Gioco_Dell'Angelo.jpeg

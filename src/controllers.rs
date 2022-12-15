@@ -1,5 +1,5 @@
-use druid::{Data, Env, Event, EventCtx, Widget};
 use druid::widget::Controller;
+use druid::{Data, Env, Event, EventCtx, Widget};
 
 pub struct Update<T> {
     /// A closure that will be invoked when the child widget is clicked.
@@ -18,7 +18,7 @@ impl<T: Data> Update<T> {
 impl<T: Data, W: Widget<T>> Controller<T, W> for Update<T> {
     fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         match event {
-            Event::KeyUp(key_event) => {
+            Event::KeyUp(_event) => {
                 (self.action)(ctx, data, env);
             }
             _ => {}

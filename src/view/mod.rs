@@ -1,3 +1,3 @@
-pub(crate) mod view;
-pub(crate) mod render;
 mod buttons;
+pub(crate) mod render;
+pub(crate) mod view;

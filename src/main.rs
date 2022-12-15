@@ -1,26 +1,26 @@
-mod book;
 mod app;
+mod book;
+mod bookcase;
 mod controllers;
 mod utilities;
 mod view;
-mod bookcase;
 
-use std::collections::VecDeque;
 use druid::im::Vector;
+use druid::Event::WindowSize;
+use druid::{AppLauncher, LocalizedString, WindowDesc};
 use epub::doc::EpubDoc;
+use std::collections::VecDeque;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use druid::Event::WindowSize;
-use druid::{AppLauncher, LocalizedString, WindowDesc};
+use view::view::{View, WINDOW_TITLE};
 use walkdir::WalkDir;
-use view::view::{WINDOW_TITLE, View};
 
 use crate::app::ApplicationState;
+use crate::book::chapter::Chapter;
 use crate::book::page_element::PageElement;
 use crate::book::Book;
-use crate::book::chapter::Chapter;
 use crate::view::render::build_main_view;
 
 /* FORSE INUTILE
@@ -35,9 +35,7 @@ impl<T, W: Widget<T>> Controller<T, W> for TakeFocus {
     }
 }*/
 
-
 fn main() {
-
     //TODO:Usa struttura diversa, hashmap?!
 
     //let book = Book::new("./libri/saviano.epub", 0, Option::None).unwrap();
@@ -132,4 +130,3 @@ fn read_from_file() -> Vector<BookInfo> {
     library
 }
 */
-

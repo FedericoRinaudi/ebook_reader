@@ -1,14 +1,13 @@
+use druid::{im::Vector, Data, Lens};
+use epub::doc::EpubDoc;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use epub::doc::EpubDoc;
 use walkdir::WalkDir;
-use druid::{im::Vector, Data, Lens};
 
 const FILE_NAME: &str = "meta.txt";
-
 
 #[derive(Default, Clone, Data, Lens, Debug)]
 pub struct BookInfo {
@@ -21,29 +20,30 @@ pub struct BookInfo {
 }
 
 impl BookInfo {
-    fn new(path: String, start_chapter: usize, cover_path: String) -> Self{
+    fn new(path: String, start_chapter: usize, cover_path: String) -> Self {
         let name = PathBuf::from(path.clone())
-            .file_stem().unwrap()
-            .to_str().unwrap()
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
             .to_string();
 
-        Self{
+        Self {
             name,
             path,
             start_chapter,
-            cover_path
+            cover_path,
         }
     }
 }
 
 #[derive(Default, Clone, Data, Lens)] //TODO: Cleanup
 pub struct BookCase {
-    pub(crate) library: Vector<BookInfo>
+    pub(crate) library: Vector<BookInfo>,
 }
 
 impl BookCase {
-
-    pub fn new()->Self{
+    pub fn new() -> Self {
         /*
         Constructor:
          1. Read books in folder into folder_books : Vec<String>
@@ -53,7 +53,7 @@ impl BookCase {
         */
 
         let mut instance = BookCase {
-            library : Vector::new()
+            library: Vector::new(),
         };
 
         let mut folder_books: Vec<String> = Vec::new(); //contiene i libri letti in WalkDir
@@ -68,65 +68,91 @@ impl BookCase {
         instance
     }
 
-    fn fetch_saved() -> HashMap<String, BookInfo>{
+    fn fetch_saved() -> HashMap<String, BookInfo> {
         let mut library: HashMap<String, BookInfo> = HashMap::new();
-        let reader = BufReader::new(
-            File::open("file.txt")
-                .expect("Cannot open file.txt")
-        );
-        for line in reader.lines() {
+        match File::open(FILE_NAME) {
+            Ok(file) => {
+                let reader = BufReader::new(file);
+                for line in reader.lines() {
+                    let mut words: Vec<String> = line
+                        .as_ref()
+                        .unwrap()
+                        .split('|')
+                        .map(|s| s.to_string())
+                        .collect();
 
-            let mut words:Vec<String> = line.as_ref().unwrap().split('|').map(|s| s.to_string()).collect();
-            // TODO: Check "words" validity
-            // Example of valid words: path ch_num ch_offset img_path
-
-            library.entry(words[0].clone()) /* In caso di duplicati */
-                .or_insert(BookInfo::new(
-                    words.remove(0),
-                    usize::from_str_radix(&(words.remove(1)), 10).unwrap(),
-                    words.remove(3))
-                );
+                    if words.len() >= 3 { // TODO: Check "words" validity
+                        // Example of valid words: path ch_num ch_offset img_path
+                        library
+                            .entry(words[0].clone()) /* In caso di duplicati */
+                            .or_insert(BookInfo::new(
+                                words.remove(0),
+                                usize::from_str_radix(&(words.remove(0)), 10).unwrap(),
+                                words.remove(1),
+                            ));
+                    }
+                }
+                library
+            },
+            Err(_) => {
+                eprintln!("No meta file found");
+                return library
+            }
         }
-        library
     }
 
-
-    fn populate(&mut self, folder_books: &Vec<String>, saved_books: &mut HashMap<String, BookInfo> ) -> bool {
+    fn populate(
+        &mut self,
+        folder_books: &Vec<String>,
+        saved_books: &mut HashMap<String, BookInfo>,
+    ) -> bool {
         let mut file_need_update = false;
         for book_path in folder_books {
-            self.library.push_back(match saved_books.get(book_path){
+            self.library.push_back(match saved_books.get(book_path) {
                 Some(book_info) => {
+                    let info = book_info.clone();
                     saved_books.remove(book_path);
-                    book_info.clone()
-                },
+                    info
+                }
                 None => {
                     file_need_update = true;
                     BookInfo::new(book_path.clone(), 0, Self::get_image(book_path))
                 }
             })
         }
-        if ! saved_books.is_empty(){
+        if !saved_books.is_empty() {
             file_need_update = true
         }
         file_need_update
     }
 
-    pub fn update(&self){
+    pub fn update(&self) {
         /* Write file containing our BookInfos */
-        let mut output = OpenOptions::new()
+        let mut output = match OpenOptions::new()
             .write(true)
             .open(FILE_NAME)
-            .expect("Unable to open file");
+        {
+            Ok(out) => out,
+            Err(_) => OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(FILE_NAME)
+                .unwrap()
+        };
 
-        for infos in self.library{
+        for infos in self.library.iter() {
             output
                 .write_all(
-                    (
-                        infos.path + "|" +
-                        &(infos.start_chapter.to_string()) + "|" +
-                        "offset" + "|" +
-                        &(infos.cover_path.to_string()) + "\n"
-                ).as_bytes())
+                    (infos.path.clone()
+                        + "|"
+                        + &(infos.start_chapter.to_string())
+                        + "|"
+                        + "offset"
+                        + "|"
+                        + &(infos.cover_path.to_string())
+                        + "\n")
+                        .as_bytes(),
+                )
                 .expect("write failed");
         }
     }
@@ -134,10 +160,7 @@ impl BookCase {
     fn get_image(book_path: &str) -> String {
         //TODO: gestisco il caso di errore nell'apertura del libro
         let mut doc = EpubDoc::new(book_path.to_string()).unwrap();
-        let title = doc
-            .mdata("title")
-            .unwrap()
-            .replace("|", "_");
+        let title = doc.mdata("title").unwrap().replace("|", "_");
 
         println!("{}", title);
         /*.split('/')
@@ -147,9 +170,9 @@ impl BookCase {
         .to_string();*/
 
         //TODO: gestisco un eventuale fallimento della get cover
-        let cover_data = match doc.get_cover(){
+        let cover_data = match doc.get_cover() {
             Ok(data) => data,
-            Err(_) => return String::from("./images/default.jpeg")
+            Err(_) => return String::from("./images/default.jpeg"),
         };
         //TODO: se l'immagine non fosse jpeg rompo tutto
         //TODO: gestisco caso in cui fallisca
@@ -160,5 +183,4 @@ impl BookCase {
             .expect("Couldn't create a cover image");
         path
     }
-
 }
