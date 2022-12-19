@@ -1,7 +1,6 @@
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
-use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -34,6 +33,10 @@ impl BookInfo {
             start_chapter,
             cover_path,
         }
+    }
+
+    pub fn get_path(&self)->PathBuf {
+        PathBuf::from(&self.path)
     }
 }
 

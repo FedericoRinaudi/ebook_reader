@@ -1,6 +1,6 @@
 use crate::ApplicationState;
 use druid::widget::{Button, Click, ControllerHost, DisabledIf};
-use druid::{Widget, WidgetExt};
+use druid::WidgetExt;
 
 pub struct Buttons {}
 
@@ -24,7 +24,7 @@ impl Buttons {
         ControllerHost<Button<ApplicationState>, Click<ApplicationState>>,
     > {
         Button::new("Confirm")
-            .on_click(|ctx, data: &mut ApplicationState, _env| {
+            .on_click(|_ctx, data: &mut ApplicationState, _env| {
                 /* EDIT MODE -> EDIT MODE, CONFIRM CHANGES */
                 // data.current_book.save();
                 data.xml_backup = data.current_book.chapters[data.current_book.get_nav().get_ch()].xml.clone();
@@ -58,7 +58,7 @@ impl Buttons {
     }
 
     pub fn bnt_discard() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("Discard").on_click(|ctx, data: &mut ApplicationState, _env| {
+        Button::new("Discard").on_click(|_ctx, data: &mut ApplicationState, _env| {
             /* EDIT MODE -> EDIT MODE, Discard Changes */
             data.current_book.update_xml(data.xml_backup.clone());
             data.update_view();
@@ -71,7 +71,7 @@ impl Buttons {
         ControllerHost<Button<ApplicationState>, Click<ApplicationState>>,
     > {
         Button::new("Save on File")
-            .on_click(|ctx, data: &mut ApplicationState, _env| {
+            .on_click(|_ctx, data: &mut ApplicationState, _env| {
                 /* SAVE CHANGES ON NEW FILE */
                 data.current_book
                     .save(data.modified.0, data.modified.1.clone());
@@ -79,5 +79,12 @@ impl Buttons {
                 data.modified.1.clear();
             })
             .disabled_if(|data: &ApplicationState, _| data.modified.1.is_empty())
+    }
+
+    pub fn btn_close_book() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+        Button::new("Home")
+            .on_click(|_ctx, data: &mut ApplicationState, _env| {
+                data.close_current_book()
+        })
     }
 }

@@ -31,7 +31,7 @@ impl PageElement {
     }
 
     /* Crea un PageElement a partire da un'immagine */
-    pub fn from_image(img_data: &[u8]) -> Self {
+    pub fn _from_image(img_data: &[u8]) -> Self {
         match ImageBuf::from_data(img_data) {
             Ok(im) => {
                 // println!("Immagine caricata con successo!");

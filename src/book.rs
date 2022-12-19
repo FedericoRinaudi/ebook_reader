@@ -5,32 +5,27 @@ pub(crate) mod page_element;
 use walkdir::WalkDir;
 
 use crate::book::chapter::Chapter;
-use crate::book::epub_text::AttributeCase;
 use crate::book::page_element::PageElement;
-use druid::im::HashMap;
 use druid::im::HashSet;
-use druid::text::Attribute;
-use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens};
+use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::env::current_dir;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
-use std::option::Option::{None, Some};
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use zip::write::FileOptions;
 
-#[derive(Default, Clone, Data, Lens)]
+#[derive(Default, Debug, Clone, Data, Lens)]
 pub struct Navigation {
     ch: usize,   // N° Capitolo corrente
-    line: usize, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
+    line: f64, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
 }
 impl Navigation {
-    pub fn new(ch: usize, line: Option<usize>) -> Self {
+    pub fn new(ch: usize, line: Option<f64>) -> Self {
         Navigation {
             ch,
-            line: line.unwrap_or(0),
+            line: line.unwrap_or(0.0),
         }
     }
 
@@ -40,9 +35,15 @@ impl Navigation {
     pub fn set_ch(&mut self, n: usize) {
         (*self).ch = n
     }
+    pub fn _get_line(&self) -> f64 {
+        self.line
+    }
+    pub fn _set_line(&mut self, n: f64) {
+        (*self).line = n
+    }
 }
 
-#[derive(Default, Clone, Data, Lens)]
+#[derive(Default, Debug, Clone, Data, Lens)]
 pub struct Book {
     // -------------------- > pub chapters_xml_and_path: Vector<(String, String)>,
     // Nella Book:new dobbiamo inizializzare i vari chapters
@@ -63,7 +64,7 @@ impl Book {
     pub fn new<P: AsRef<Path>>(
         path: P,
         init_chapter: usize,
-        init_page: Option<usize>,
+        init_page: Option<f64>,
     ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
@@ -111,6 +112,9 @@ impl Book {
     pub fn get_nav(&self) -> Navigation {
         self.nav.clone()
     }
+
+    pub fn _get_ch(&self) -> usize {self.nav.get_ch()}
+    //pub fn _get_line(&self) -> f64 {self.nav.get_line()}
 
     pub fn format_current_chapter(&self) -> Vector<PageElement> {
         (*self).chapters[self.nav.get_ch()].format()

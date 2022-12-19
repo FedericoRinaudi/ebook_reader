@@ -1,5 +1,5 @@
 use crate::bookcase::{BookCase, BookInfo};
-use crate::{Book, PageElement};
+use crate::Book;
 use druid::{im::HashSet, im::Vector, Data, Lens};
 
 use crate::view::view::View;
@@ -12,17 +12,19 @@ pub struct ApplicationState {
     pub modified: (bool, HashSet<usize>), //find better solution
     pub view: View,
     pub bookcase: BookCase,
+    pub is_loading: bool
 }
 
 impl ApplicationState {
     pub fn new() -> ApplicationState {
-        let mut app = ApplicationState {
+        let app = ApplicationState {
             current_book: Book::empty_book(),
             edit: false,
             xml_backup: "".to_string(),
             modified: (false, HashSet::new()),
             view: View::new(),
             bookcase: BookCase::new(),
+            is_loading: false
         };
         //app.update_view();
         app
@@ -36,4 +38,16 @@ impl ApplicationState {
     pub fn get_library(&self) -> &Vector<BookInfo> {
         &(*self).bookcase.library
     }
+
+    pub fn close_current_book(&mut self){
+        for book_info in self.bookcase.library.iter_mut(){
+            if book_info.get_path().to_str().unwrap() == self.current_book.get_path() {
+                book_info.start_chapter = self.current_book.get_nav().get_ch();
+                break;
+            }
+        }
+        self.bookcase.update();
+        self.current_book = Book::empty_book();
+    }
+
 }

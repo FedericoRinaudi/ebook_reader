@@ -1,14 +1,12 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
 use druid::text::{Attribute, RichText};
-use druid::{im::Vector, ArcStr, Data, FontStyle, FontWeight, ImageBuf, Lens};
+use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
-use std::error::Error;
-use std::io::Read;
 use std::path::PathBuf;
 
 use crate::book::page_element::PageElement;
-use crate::utilities::{convert_path_separators, get_image_buf, unify_paths};
+use crate::utilities::get_image_buf;
 
 const MAX_SIZE: f64 = 35.0;
 
@@ -78,7 +76,7 @@ impl Chapter {
                     Self::xml_to_elements(child, elements, current_text, images_cache);
                 }
             };
-        };
+        }
 
         macro_rules! new_line {
             () => {

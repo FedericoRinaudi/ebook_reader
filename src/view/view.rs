@@ -48,7 +48,7 @@ impl View {
         (*self).window_size_edit = size
     }
 
-    pub fn set_window_size_home(&mut self, size: (f64, f64)) {
+    pub fn _set_window_size_home(&mut self, size: (f64, f64)) {
         (*self).window_size_home = size
     }
 }
