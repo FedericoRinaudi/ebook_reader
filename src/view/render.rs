@@ -1,10 +1,11 @@
 use crate::book::{chapter::Chapter, Book};
-use crate::controllers::Update;
+use crate::controllers::{Update, Wheel};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
 use druid::widget::{Axis, Button, Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher};
 use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2};
+use druid::keyboard_types::Key::Control;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -125,7 +126,10 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
             /* Permette di modificare in xml l'appstate*/
             let host = ControllerHost::new(
                 editable_xml,
-                Update::new(|_, data: &mut ApplicationState, _| data.update_view()),
+                Update::new(|_, data: &mut ApplicationState, _| {
+
+                    data.update_view()
+                }),
             );
 
             let mut xml = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
@@ -172,9 +176,15 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                 }).lens(lens);
             viewport.add_child(chapter);
             let mut view = viewport.padding(30.0).scroll().vertical();
-            let res = view.scroll_to_on_axis(Axis::Vertical, 5.0);
-            println!("{} {}", view.offset(), res);
-            Box::new(view)
+            //let res = view.scroll_to_on_axis(Axis::Vertical, 5.0);
+            //println!("{} {}", view.offset(), res);
+            let monitor = ControllerHost::new(
+                view,
+                Wheel::new(|_, data: &mut ApplicationState, _| {
+                    println!("Fun");
+                }),
+            );
+            Box::new(monitor)
         })
 }
 
