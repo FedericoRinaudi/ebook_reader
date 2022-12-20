@@ -3,35 +3,34 @@ use crate::controllers::Update;
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
-use druid::widget::{Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher};
-use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt};
+use druid::widget::{Axis, Button, Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher};
+use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2};
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
-
     let main_nav: ViewSwitcher<ApplicationState, bool> =
         ViewSwitcher::new(
-            |data: &ApplicationState, _| data.is_loading, /* Condizione della useEffect (?) */
-        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-            if !data.is_loading {
-                Box::new(ViewSwitcher::new(
-                    |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
-                    |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-                        if data.current_book.is_empty() {
-                            /* Renderizziamo la libreria di libri disponibili */
-                            Box::new(render_library())
-                            //Box::new(render_book())
-                        } else {
-                            /* Renderizziamo il libro scelto */
-                            Box::new(render_book())
-                        }
-                    },
-                ))
-            } else {
-                Box::new(Spinner::new())
-            }
-        },
-    );
+            |data: &ApplicationState, _| data.is_loading, /* Ad ora non funziona... lo fixo */
+            |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                if !data.is_loading {
+                    Box::new(ViewSwitcher::new(
+                        |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
+                        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                            if data.current_book.is_empty() {
+                                /* Renderizziamo la libreria di libri disponibili */
+                                Box::new(render_library())
+                                //Box::new(render_book())
+                            } else {
+                                /* Renderizziamo il libro scelto */
+                                Box::new(render_book())
+                            }
+                        },
+                    ))
+                } else {
+                    Box::new(Spinner::new())
+                }
+            },
+        );
 
     main_nav
 }
@@ -141,38 +140,42 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
 }
 
 fn render_view_mode() -> impl Widget<ApplicationState> {
-    let mut viewport = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
+    ViewSwitcher::new(
+        |data: &ApplicationState, _| data.view.current_view.clone(),
+        move |_, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
+            let mut viewport = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
 
-    let lens = lens!(ApplicationState, view).then(lens!(View, current_view));
+            let lens = lens!(ApplicationState, view).then(lens!(View, current_view));
 
-    let chapter =
-        List::new(|| {
-            ViewSwitcher::new(
-                |data: &PageElement, _| data.clone(),
-                |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                    match data {
-                        PageElement::Text(_) => {
-                            let mut label = RawLabel::new();
-                            label.set_line_break_mode(LineBreaking::WordWrap);
-                            Box::new(label)
-                        }
-                        PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
-                            Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
-                        )),
-                        PageElement::Error(_e) => {
-                            let mut label = RawLabel::new();
-                            label.set_line_break_mode(LineBreaking::WordWrap);
-                            Box::new(label)
-                        }
-                    }
-                },
-            )
-        }).lens(lens);
-    viewport.add_child(chapter);
-    let scroll = viewport.padding(30.0).scroll().vertical();
-    println!("{}", scroll.offset());
-    //scroll.scroll_to_on_axis(Axis::Vertical, 0.0);
-    scroll
+            let chapter =
+                List::new(|| {
+                    ViewSwitcher::new(
+                        |data: &PageElement, _| data.clone(),
+                        |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                            match data {
+                                PageElement::Text(_) => {
+                                    let mut label = RawLabel::new();
+                                    label.set_line_break_mode(LineBreaking::WordWrap);
+                                    Box::new(label)
+                                }
+                                PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
+                                    Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
+                                )),
+                                PageElement::Error(_e) => {
+                                    let mut label = RawLabel::new();
+                                    label.set_line_break_mode(LineBreaking::WordWrap);
+                                    Box::new(label)
+                                }
+                            }
+                        },
+                    )
+                }).lens(lens);
+            viewport.add_child(chapter);
+            let mut view = viewport.padding(30.0).scroll().vertical();
+            let res = view.scroll_to_on_axis(Axis::Vertical, 5.0);
+            println!("{} {}", view.offset(), res);
+            Box::new(view)
+        })
 }
 
 fn render_library() -> impl Widget<ApplicationState> {
@@ -181,7 +184,7 @@ fn render_library() -> impl Widget<ApplicationState> {
         |_app, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>>
             { // TODO:Load IMAGES IN THREAD
                 let mut col = Flex::column();
-                 for book_info in data.get_library().clone() {
+                for book_info in data.get_library().clone() {
                     let clickable_image = ControllerHost::new(
                         Image::new(ImageBuf::from_file(book_info.cover_path.clone())
                             .unwrap()) //TODO: unwrap_or(default image)
@@ -191,7 +194,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                             data.current_book = Book::new(
                                 book_info.get_path(),
                                 book_info.start_chapter,
-                                None
+                                None,
                             ).unwrap();
                             data.update_view();
                         }),
@@ -199,6 +202,6 @@ fn render_library() -> impl Widget<ApplicationState> {
                     col.add_child(clickable_image);
                 }
                 Box::new(col.scroll().vertical())
-            }
+            },
     )
 }
