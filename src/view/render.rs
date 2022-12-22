@@ -1,10 +1,11 @@
 use crate::book::{chapter::Chapter, Book};
-use crate::controllers::{Update, Wheel};
+use crate::controllers::{Update, ViewWrapper, DisplayWrapper};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
-use druid::widget::{Axis, Button, Click, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher};
-use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2};
+use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox};
+use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector};
+use druid::Cursor::Custom;
 use druid::keyboard_types::Key::Control;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
@@ -12,7 +13,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
     let main_nav: ViewSwitcher<ApplicationState, bool> =
         ViewSwitcher::new(
             |data: &ApplicationState, _| data.is_loading, /* Ad ora non funziona... lo fixo */
-            |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+            |_load, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
                 if !data.is_loading {
                     Box::new(ViewSwitcher::new(
                         |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
@@ -38,14 +39,15 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
 
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
 fn render_book() -> impl Widget<ApplicationState> {
-    let mut wrapper = Flex::column(); //.cross_axis_alignment(CrossAxisAlignment::Start);
 
     /* Switcha la modalità dell'app */
-    let buttons = ViewSwitcher::new(
+    ViewSwitcher::new(
         |data: &ApplicationState, _| data.edit,
         move |_, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
             if data.edit {
-                Box::new(ViewSwitcher::new(
+                let mut window = Flex::column();
+                let screen = render_edit_mode();
+                let buttons = ViewSwitcher::new(
                     |data: &ApplicationState, _| {
                         data.xml_backup == data.current_book.chapters[data.current_book.get_nav().get_ch()].xml
                     },
@@ -60,43 +62,38 @@ fn render_book() -> impl Widget<ApplicationState> {
                         }
                         Box::new(row)
                     },
+                );
+                window.add_child(Flex::row().fix_height(7.0));
+                window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
+                window.add_child(Flex::row().fix_height(7.0));
+                window.add_flex_child(screen, 0.9);
+                window.add_child(Flex::row().fix_height(1.0));
+                Box::new(window)
+            } else {
+                let mut window = Flex::column();
+                let mut buttons: Flex<ApplicationState> = Flex::row();
+                buttons.add_child(Buttons::btn_prev());
+                buttons.add_child(Buttons::btn_edit());
+                buttons.add_child(Buttons::btn_save());
+                buttons.add_child(Buttons::btn_close_book());
+                buttons.add_child(Buttons::btn_next());
+                let screen = ControllerHost::new(
+                    Scroll::new(render_view_mode()).vertical(),
+                    ViewWrapper::new(|_, data: &mut ApplicationState, _| { }),
+                );
+                window.add_child(Flex::row().fix_height(7.0));
+                window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
+                window.add_child(Flex::row().fix_height(7.0));
+                window.add_flex_child(screen, 0.9);
+                window.add_child(Flex::row().fix_height(1.0));
+                Box::new(ControllerHost::new(
+                    window,
+                    DisplayWrapper::new(|_, data: &mut ApplicationState, _| { }),
                 ))
-            } else {
-                let mut row: Flex<ApplicationState> = Flex::row();
-                row.add_child(Buttons::btn_prev());
-                row.add_child(Buttons::btn_edit());
-                row.add_child(Buttons::btn_save());
-                row.add_child(Buttons::btn_close_book());
-                row.add_child(Buttons::btn_next());
-                Box::new(row)
             }
         },
-    );
+    )
 
-    // row.add_child(button_close_book);
-    // col.add_child(row.padding(30.0));
-
-    let scrollable_text = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.edit,
-        |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            if !data.edit {
-                /* VIEW MODE */
-                Box::new(render_view_mode())
-            } else {
-                /* EDIT MODE */
-                Box::new(render_edit_mode())
-            }
-        },
-    );
-
-    wrapper.add_child(Flex::row().fix_height(7.0));
-    wrapper.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
-    wrapper.add_child(Flex::row().fix_height(7.0));
-
-    wrapper.add_flex_child(scrollable_text.fix_height(1000.0), 0.9);
-    wrapper.add_child(Flex::row().fix_height(1.0));
-
-    wrapper
 }
 
 fn render_edit_mode() -> impl Widget<ApplicationState> {
@@ -108,11 +105,9 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
                 .clone()
         },
         |_vec, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            Box::new(render_view_mode())
+            Box::new(render_view_mode().scroll().vertical())
         },
-    )
-        .scroll()
-        .vertical();
+    );
     let edit = ViewSwitcher::new(
         |data: &ApplicationState, _| data.current_book.get_nav().get_ch(),
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
@@ -132,8 +127,7 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
                 }),
             );
 
-            let mut xml = Flex::column().cross_axis_alignment(CrossAxisAlignment::Baseline);
-            xml.add_child(host);
+            let xml = Scroll::new(host).vertical();
             Box::new(xml)
         },
     );
@@ -175,16 +169,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     )
                 }).lens(lens);
             viewport.add_child(chapter);
-            let mut view = viewport.padding(30.0).scroll().vertical();
-            //let res = view.scroll_to_on_axis(Axis::Vertical, 5.0);
-            //println!("{} {}", view.offset(), res);
-            let monitor = ControllerHost::new(
-                view,
-                Wheel::new(|_, data: &mut ApplicationState, _| {
-                    println!("Fun");
-                }),
-            );
-            Box::new(monitor)
+            Box::new(viewport.padding(30.0))
         })
 }
 
@@ -200,11 +185,11 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .unwrap()) //TODO: unwrap_or(default image)
                             .fix_width(300.0)
                             .fix_height(200.0),
-                        Click::new(move |_ctx, data: &mut ApplicationState, _env| {
+                        Click::new(move |ctx, data: &mut ApplicationState, _env| {
                             data.current_book = Book::new(
                                 book_info.get_path(),
                                 book_info.start_chapter,
-                                None,
+                                book_info.start_line,
                             ).unwrap();
                             data.update_view();
                         }),

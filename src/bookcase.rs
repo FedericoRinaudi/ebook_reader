@@ -13,13 +13,12 @@ pub struct BookInfo {
     pub name: String,
     path: String,
     pub start_chapter: usize,
-    //start_page_in_chapter: usize,
-    //tot_pages: usize,
+    pub start_line: f64,
     pub cover_path: String,
 }
 
 impl BookInfo {
-    fn new(path: String, start_chapter: usize, cover_path: String) -> Self {
+    fn new(path: String, start_chapter: usize, start_line:f64, cover_path: String) -> Self {
         let name = PathBuf::from(path.clone())
             .file_stem()
             .unwrap()
@@ -31,6 +30,7 @@ impl BookInfo {
             name,
             path,
             start_chapter,
+            start_line,
             cover_path,
         }
     }
@@ -84,14 +84,16 @@ impl BookCase {
                         .map(|s| s.to_string())
                         .collect();
 
-                    if words.len() >= 3 { // TODO: Check "words" validity
+                    if words.len() >= 4 { // TODO: Check "words" validity
                         // Example of valid words: path ch_num ch_offset img_path
                         library
                             .entry(words[0].clone()) /* In caso di duplicati */
                             .or_insert(BookInfo::new(
                                 words.remove(0),
                                 usize::from_str_radix(&(words.remove(0)), 10).unwrap(),
-                                words.remove(1),
+                                words.remove(0).parse().unwrap(),
+                                //f64::from_str_radix(&(words.remove(0)), 10).unwrap(),
+                                words.remove(0),
                             ));
                     }
                 }
@@ -119,7 +121,7 @@ impl BookCase {
                 }
                 None => {
                     file_need_update = true;
-                    BookInfo::new(book_path.clone(), 0, Self::get_image(book_path))
+                    BookInfo::new(book_path.clone(), 0, 0.0, Self::get_image(book_path))
                 }
             })
         }
@@ -150,7 +152,7 @@ impl BookCase {
                         + "|"
                         + &(infos.start_chapter.to_string())
                         + "|"
-                        + "offset"
+                        + &(infos.start_line.to_string())
                         + "|"
                         + &(infos.cover_path.to_string())
                         + "\n")

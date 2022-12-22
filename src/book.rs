@@ -22,10 +22,10 @@ pub struct Navigation {
     line: f64, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
 }
 impl Navigation {
-    pub fn new(ch: usize, line: Option<f64>) -> Self {
+    pub fn new(ch: usize, line: f64) -> Self {
         Navigation {
             ch,
-            line: line.unwrap_or(0.0),
+            line: line,
         }
     }
 
@@ -35,10 +35,10 @@ impl Navigation {
     pub fn set_ch(&mut self, n: usize) {
         (*self).ch = n
     }
-    pub fn _get_line(&self) -> f64 {
+    pub fn get_line(&self) -> f64 {
         self.line
     }
-    pub fn _set_line(&mut self, n: f64) {
+    pub fn set_line(&mut self, n: f64) {
         (*self).line = n
     }
 }
@@ -64,7 +64,7 @@ impl Book {
     pub fn new<P: AsRef<Path>>(
         path: P,
         init_chapter: usize,
-        init_page: Option<f64>,
+        init_page: f64,
     ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
@@ -97,7 +97,7 @@ impl Book {
         } {}
 
         let nav_new = Navigation::new(init_chapter, init_page);
-
+        println!("NAV: {:?}", nav_new.clone());
         Result::Ok(Self {
             path: book_path,
             nav: nav_new,
@@ -113,6 +113,10 @@ impl Book {
         self.nav.clone()
     }
 
+    pub fn get_mut_nav(&mut self) -> &mut Navigation {
+        &mut (*self).nav
+    }
+
     pub fn _get_ch(&self) -> usize {self.nav.get_ch()}
     //pub fn _get_line(&self) -> f64 {self.nav.get_line()}
 
@@ -121,8 +125,8 @@ impl Book {
     }
 
     pub fn go_on(&mut self, n: usize) {
-        self.nav
-            .set_ch(if (self.nav.get_ch() + n) >= self.chapters.len() {
+        self.get_mut_nav().set_line(0.0);
+        self.nav.set_ch(if (self.nav.get_ch() + n) >= self.chapters.len() {
                 self.chapters.len() - 1
             } else {
                 self.nav.get_ch() + n
@@ -130,6 +134,7 @@ impl Book {
     }
 
     pub fn go_back(&mut self, n: usize) {
+        self.get_mut_nav().set_line(0.0);
         self.nav.set_ch(if self.nav.get_ch() > n {
             self.nav.get_ch() - n
         } else {

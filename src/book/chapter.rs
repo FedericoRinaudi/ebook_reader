@@ -134,7 +134,7 @@ impl Chapter {
                 //TODO: gestisco il tag prima di ricorrere
                 recur_on_children!();
             }
-            "em" => {
+            "em" | "i" => {
                 //TODO: aggiungo le righe commentate se penso sia il caso di gestire il caso in cui sia presente il tag 'em' nonstante il font fosse già italic
                 //let prev_style = current_rich_text.attributes.get(AttributeCase::Style).map(|el|{(*el).clone()});
                 current_text.add_attr(AttributeCase::Style, Attribute::Style(FontStyle::Italic));

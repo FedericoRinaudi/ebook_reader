@@ -1,8 +1,12 @@
 use crate::bookcase::{BookCase, BookInfo};
 use crate::Book;
-use druid::{im::HashSet, im::Vector, Data, Lens};
+use druid::{im::HashSet, im::Vector, Data, Lens, Selector};
 
 use crate::view::view::View;
+pub const TRIGGER_A: Selector<()> = Selector::new("monitor.update_status");
+pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
+pub const TRIGGER_OFF: Selector<()> = Selector::new("wrapper.focus_off");
+pub const TRIGGER_SYN: Selector<()> = Selector::new("wrapper.focus_syn");
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
@@ -43,6 +47,7 @@ impl ApplicationState {
         for book_info in self.bookcase.library.iter_mut(){
             if book_info.get_path().to_str().unwrap() == self.current_book.get_path() {
                 book_info.start_chapter = self.current_book.get_nav().get_ch();
+                book_info.start_line = self.current_book.get_nav().get_line();
                 break;
             }
         }

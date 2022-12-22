@@ -1,20 +1,23 @@
 use crate::ApplicationState;
 use druid::widget::{Button, Click, ControllerHost, DisabledIf};
 use druid::WidgetExt;
+use crate::app::{TRIGGER_OFF, TRIGGER_ON};
 
 pub struct Buttons {}
 
 impl Buttons {
     pub fn btn_next() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
+        Button::new(">").on_click(|ctx, data: &mut ApplicationState, _env| {
             data.current_book.go_on(1);
+            ctx.submit_command(TRIGGER_ON);
             data.update_view()
         })
     }
 
     pub fn btn_prev() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("<").on_click(|_ctx, data: &mut ApplicationState, _env| {
+        Button::new("<").on_click(|ctx, data: &mut ApplicationState, _env| {
             data.current_book.go_back(1);
+            ctx.submit_command(TRIGGER_ON);
             data.update_view()
         })
     }
