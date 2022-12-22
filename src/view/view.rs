@@ -13,6 +13,7 @@ pub struct View {
     window_size_edit: (f64, f64),
     window_size_home: (f64, f64),
     pub current_view: Vector<PageElement>,
+    pub scroll_height: f64,
 }
 impl View {
     pub fn new() -> Self {
@@ -21,6 +22,7 @@ impl View {
             window_size_edit: EDIT_SIZE,
             window_size_home: HOME_SIZE,
             current_view: Vector::new(),
+            scroll_height: 0.0
         }
     }
 

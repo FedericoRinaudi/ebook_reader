@@ -1,5 +1,5 @@
 use crate::book::{chapter::Chapter, Book};
-use crate::controllers::{Update, BetterScroll};
+use crate::controllers::{Update, BetterScroll, SyncScroll};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
@@ -128,7 +128,7 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
         },
     );
 
-    viewport.add_flex_child(edit.padding(10.0).scroll().vertical(), 0.5);
+    viewport.add_flex_child(SyncScroll::new(edit.padding(10.0)), 0.5);
     viewport.add_flex_child(view.padding(10.0), 0.5);
     viewport.padding(0.0)
 }
