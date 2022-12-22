@@ -1,5 +1,5 @@
 use crate::book::{chapter::Chapter, Book};
-use crate::controllers::{Update, ViewWrapper, DisplayWrapper};
+use crate::controllers::{Update, BetterScroll};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
@@ -46,7 +46,6 @@ fn render_book() -> impl Widget<ApplicationState> {
         move |_, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
             if data.edit {
                 let mut window = Flex::column();
-                let screen = render_edit_mode();
                 let buttons = ViewSwitcher::new(
                     |data: &ApplicationState, _| {
                         data.xml_backup == data.current_book.chapters[data.current_book.get_nav().get_ch()].xml
@@ -63,6 +62,9 @@ fn render_book() -> impl Widget<ApplicationState> {
                         Box::new(row)
                     },
                 );
+                let screen = render_edit_mode();
+
+
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
                 window.add_child(Flex::row().fix_height(7.0));
@@ -77,19 +79,15 @@ fn render_book() -> impl Widget<ApplicationState> {
                 buttons.add_child(Buttons::btn_save());
                 buttons.add_child(Buttons::btn_close_book());
                 buttons.add_child(Buttons::btn_next());
-                let screen = ControllerHost::new(
-                    Scroll::new(render_view_mode()).vertical(),
-                    ViewWrapper::new(|_, data: &mut ApplicationState, _| {}),
-                );
+                let screen = BetterScroll::new(render_view_mode());
+
+
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(screen, 0.9);
                 window.add_child(Flex::row().fix_height(1.0));
-                Box::new(ControllerHost::new(
-                    window,
-                    DisplayWrapper::new(|_, data: &mut ApplicationState, _| {}),
-                ))
+                Box::new(window)
             }
         },
     )
@@ -104,7 +102,7 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
                 .clone()
         },
         |_vec, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            Box::new(render_view_mode().scroll().vertical())
+            Box::new(BetterScroll::new(render_view_mode()))
         },
     );
     let edit = ViewSwitcher::new(

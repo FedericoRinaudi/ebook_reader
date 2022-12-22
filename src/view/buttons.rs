@@ -9,7 +9,6 @@ impl Buttons {
     pub fn btn_next() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new(">").on_click(|ctx, data: &mut ApplicationState, _env| {
             data.current_book.go_on(1);
-            ctx.submit_command(TRIGGER_ON);
             data.update_view()
         })
     }
@@ -17,7 +16,6 @@ impl Buttons {
     pub fn btn_prev() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("<").on_click(|ctx, data: &mut ApplicationState, _env| {
             data.current_book.go_back(1);
-            ctx.submit_command(TRIGGER_ON);
             data.update_view()
         })
     }
@@ -45,6 +43,7 @@ impl Buttons {
                 .set_window_size_view(<(f64, f64)>::from(ctx.window().get_size()));
             ctx.window().set_size(data.view.get_window_size_edit());
             ctx.window().set_title("EDIT MODE");
+
             data.edit = !data.edit
         })
     }
@@ -85,8 +84,7 @@ impl Buttons {
     }
 
     pub fn btn_close_book() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("Home")
-            .on_click(|_ctx, data: &mut ApplicationState, _env| {
+        Button::new("Home").on_click(|ctx, data: &mut ApplicationState, _env| {
                 data.close_current_book()
         })
     }
