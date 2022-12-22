@@ -15,19 +15,20 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
             |data: &ApplicationState, _| data.is_loading, /* Ad ora non funziona... lo fixo */
             |_load, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
                 if !data.is_loading {
-                    Box::new(ViewSwitcher::new(
-                        |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
-                        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-                            if data.current_book.is_empty() {
-                                /* Renderizziamo la libreria di libri disponibili */
-                                Box::new(render_library())
-                                //Box::new(render_book())
-                            } else {
-                                /* Renderizziamo il libro scelto */
-                                Box::new(render_book())
-                            }
-                        },
-                    ))
+                    Box::new(
+                        ViewSwitcher::new(
+                            |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
+                            |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                                if data.current_book.is_empty() {
+                                    /* Renderizziamo la libreria di libri disponibili */
+                                    Box::new(render_library())
+                                    //Box::new(render_book())
+                                } else {
+                                    /* Renderizziamo il libro scelto */
+                                    Box::new(render_book())
+                                }
+                            },
+                        ))
                 } else {
                     Box::new(Spinner::new())
                 }
@@ -39,7 +40,6 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
 
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
 fn render_book() -> impl Widget<ApplicationState> {
-
     /* Switcha la modalità dell'app */
     ViewSwitcher::new(
         |data: &ApplicationState, _| data.edit,
@@ -79,7 +79,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                 buttons.add_child(Buttons::btn_next());
                 let screen = ControllerHost::new(
                     Scroll::new(render_view_mode()).vertical(),
-                    ViewWrapper::new(|_, data: &mut ApplicationState, _| { }),
+                    ViewWrapper::new(|_, data: &mut ApplicationState, _| {}),
                 );
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
@@ -88,12 +88,11 @@ fn render_book() -> impl Widget<ApplicationState> {
                 window.add_child(Flex::row().fix_height(1.0));
                 Box::new(ControllerHost::new(
                     window,
-                    DisplayWrapper::new(|_, data: &mut ApplicationState, _| { }),
+                    DisplayWrapper::new(|_, data: &mut ApplicationState, _| {}),
                 ))
             }
         },
     )
-
 }
 
 fn render_edit_mode() -> impl Widget<ApplicationState> {
@@ -122,7 +121,6 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
             let host = ControllerHost::new(
                 editable_xml,
                 Update::new(|_, data: &mut ApplicationState, _| {
-
                     data.update_view()
                 }),
             );

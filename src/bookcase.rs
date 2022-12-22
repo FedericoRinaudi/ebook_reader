@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 const FILE_NAME: &str = "meta.txt";
 
-#[derive(Default, Clone, Data, Lens, Debug)]
+#[derive(Default, Clone, Data, Lens, Debug, PartialEq)]
 pub struct BookInfo {
     pub name: String,
     path: String,

@@ -97,7 +97,6 @@ impl Book {
         } {}
 
         let nav_new = Navigation::new(init_chapter, init_page);
-        println!("NAV: {:?}", nav_new.clone());
         Result::Ok(Self {
             path: book_path,
             nav: nav_new,
