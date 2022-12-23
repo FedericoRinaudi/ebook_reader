@@ -1,3 +1,4 @@
+use std::env;
 use druid::{
     commands, AppDelegate, AppLauncher, Command, DelegateCtx, Env, FileDialogOptions, FileSpec,
     Handled, LocalizedString, Target, Widget, WindowDesc,
@@ -19,7 +20,18 @@ impl AppDelegate<ApplicationState> for Delegate {
         _env: &Env,
     ) -> Handled {
         if let Some(file_info) = cmd.get(commands::SAVE_FILE_AS) {
-            let target_path = String::from(file_info.path.clone().to_str().unwrap());
+            let cwd = env::current_dir().unwrap();
+            let absolute_path = file_info.path.clone();
+
+            // Strip the prefix of the absolute path that is outside of the project folder
+            let target_path = match absolute_path.clone().strip_prefix(cwd.clone()){
+                Ok(path) => "./".to_string() + path.to_str().unwrap(),
+                Err(_e) => {
+                    //eprintln!("Error stripping prefix from path {}", e);
+                    absolute_path.clone().to_str().unwrap().to_string()
+                }
+            };
+
             data.current_book
                 .save(data.modified.clone(), target_path.clone());
             data.modified.clear();

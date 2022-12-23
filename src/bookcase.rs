@@ -1,9 +1,11 @@
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
+use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
+use druid::platform_menus::mac::file::save;
 use walkdir::WalkDir;
 
 const FILE_NAME: &str = "meta.txt";
@@ -63,8 +65,10 @@ impl BookCase {
         for entry in WalkDir::new("./libri/").into_iter().skip(1) {
             folder_books.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
         }
+        //println!("folder books {:?}", folder_books.clone());
 
         let mut saved_books: HashMap<String, BookInfo> = Self::fetch_saved(); //contiene tutti i libri letti dal file
+        //println!("saved books: {:?}", saved_books.clone());
         if instance.populate(&folder_books, &mut saved_books) {
             instance.update()
         }
@@ -76,6 +80,8 @@ impl BookCase {
         match File::open(FILE_NAME) {
             Ok(file) => {
                 let reader = BufReader::new(file);
+                let cwd = env::current_dir().unwrap();
+                //println!("{:?}", cwd);
                 for line in reader.lines() {
                     let mut words: Vec<String> = line
                         .as_ref()
@@ -86,8 +92,20 @@ impl BookCase {
 
                     if words.len() >= 4 { // TODO: Check "words" validity
                         // Example of valid words: path ch_num ch_offset img_path
+                        let absolute_path = PathBuf::from(words[0].clone());
+
+                        // Strip the prefix of the absolute path that is outside of the project folder
+                        let relative_path = match absolute_path.clone().strip_prefix(cwd.clone()){
+                            Ok(path) => ".".to_string() + path.to_str().unwrap(),
+                            Err(_e) => {
+                                //eprintln!("Error stripping prefix from path {}", e);
+                                absolute_path.clone().to_str().unwrap().to_string()
+                            }
+                        };
+                        //println!("{:?} {:?}", absolute_path.clone(), relative_path.clone());
+
                         library
-                            .entry(words[0].clone()) /* In caso di duplicati */
+                            .entry(relative_path) /* In caso di duplicati */
                             .or_insert(BookInfo::new(
                                 words.remove(0),
                                 usize::from_str_radix(&(words.remove(0)), 10).unwrap(),
@@ -113,6 +131,7 @@ impl BookCase {
     ) -> bool {
         let mut file_need_update = false;
         for book_path in folder_books {
+            //println!("Matching compare {:?} {}", saved_books.get(book_path), book_path.clone());
             self.library.push_back(match saved_books.get(book_path) {
                 Some(book_info) => {
                     let info = book_info.clone();
@@ -125,6 +144,11 @@ impl BookCase {
                 }
             })
         }
+        /* Aggiungiamo libri al di fuori della cartella libri */
+        for fs_book in saved_books.into_iter() {
+            self.library.push_back(fs_book.1.clone())
+        }
+
         if !saved_books.is_empty() {
             file_need_update = true
         }
@@ -167,7 +191,7 @@ impl BookCase {
         let mut doc = EpubDoc::new(book_path.to_string()).unwrap();
         let title = doc.mdata("title").unwrap().replace("|", "_");
 
-        println!("{}", title);
+        //println!("{}", title);
         /*.split('/')
         .into_iter()
         .next()

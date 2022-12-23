@@ -50,8 +50,12 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
         self.child.event(ctx, event, data, env);
         match event {
             Event::WindowCloseRequested => {
-                data.current_book.get_mut_nav().set_line(self.child.offset_for_axis(Axis::Vertical));
-                data.close_current_book();
+                if data.modified.len() > 0 || data.edit{
+                    println!("Window close not implemented for unsaved edits/edit mode")
+                }else {
+                    data.current_book.get_mut_nav().set_line(self.child.offset_for_axis(Axis::Vertical));
+                    data.close_current_book();
+                }
             }
             Event::Command(cmd) => if cmd.get(TRIGGER_ON).is_some(){
                 //println!("Triggered on to {}", self.child.offset_for_axis(Axis::Vertical));

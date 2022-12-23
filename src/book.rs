@@ -208,9 +208,19 @@ impl Book {
 
         // let newpath = self.path.clone().replace(".epub", "-new.epub");
         // fs::rename(&self.path, newpath).unwrap(); OLD WAY
+        println!("211: {:?}", PathBuf::from(target_path.clone()));
 
-        let writer = File::create(PathBuf::from(target_path.clone())).unwrap();
-        //TODO: ADD case in which we overwrite file
+        let mut writer = match OpenOptions::new()
+            .write(true)
+            .open(PathBuf::from(target_path.clone()))
+        {
+            Ok(out) => out,
+            Err(_) => OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(PathBuf::from(target_path.clone()))
+                .unwrap()
+        };
 
         let mut zip = zip::ZipWriter::new(writer);
         let options = FileOptions::default()
