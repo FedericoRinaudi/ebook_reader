@@ -177,14 +177,15 @@ fn render_library() -> impl Widget<ApplicationState> {
         |_app, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>>
             { // TODO:Load IMAGES IN THREAD
                 let mut col = Flex::column();
-                //col.add_spacer(12.0);
+                col.add_spacer(12.0);
                 for book_info in data.get_library().clone() {
                     let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
                     let mut uno = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
 
                     let mut due = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
+                    due.add_spacer(15.0);
                     due.add_child(Label::new(String::from("Title :") + &*book_info.name.clone()).with_text_size(20.0));
-                    due.add_spacer(2.0);
+                    due.add_spacer(4.0);
                     due.add_child(Label::new(String::from("Chapter :") + &*book_info.start_chapter.clone().to_string()));
                     due.add_spacer(1.0);
                     due.add_child(Label::new(String::from("Offset :") + &*book_info.start_line.clone().to_string()));
@@ -195,6 +196,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .fix_width(300.0)
                             .fix_height(200.0),
                         Click::new(move |ctx, data: &mut ApplicationState, _env| {
+                            println!("{}", book_info.path.clone());
                             data.current_book = Book::new(
                                 book_info.get_path(),
                                 book_info.start_chapter,
@@ -204,10 +206,14 @@ fn render_library() -> impl Widget<ApplicationState> {
                         }),
                     );
                     uno.add_child(clickable_image);
-                    pill.add_flex_child(uno.padding(6.0), 0.3);
+                    pill.add_flex_child(Padding::new((0.0,2.0,10.0,2.0),uno), 0.3);
                     pill.add_flex_child(due, 0.7);
-                    let wrap = Container::new(pill).border(Color::WHITE, 1.0);
-                    col.add_child(wrap.padding(12.0));
+
+                    let wrap = Container::new(pill)
+                        .border(Color::WHITE, 1.0)
+                        .rounded(8.0);
+
+                    col.add_child(Padding::new((12.0, 0.0, 12.0, 8.0),wrap));
                 }
                 Box::new(col.scroll().vertical())
             },

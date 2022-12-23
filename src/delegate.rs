@@ -1,4 +1,5 @@
 use std::env;
+use std::path::PathBuf;
 use druid::{
     commands, AppDelegate, AppLauncher, Command, DelegateCtx, Env, FileDialogOptions, FileSpec,
     Handled, LocalizedString, Target, Widget, WindowDesc,
@@ -40,6 +41,12 @@ impl AppDelegate<ApplicationState> for Delegate {
             if data.current_book.get_path() != target_path {
                 let mut copy_info: BookInfo = data.get_current();
                 copy_info.path = target_path.clone();
+                copy_info.name = PathBuf::from(target_path.clone())
+                    .file_stem()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
                 data.current_book.path == target_path;
                 data.bookcase.library.push_back(copy_info);
                 data.bookcase.update();

@@ -1,7 +1,7 @@
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
-use std::env;
+use std::{env, fs};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -145,13 +145,17 @@ impl BookCase {
             })
         }
         /* Aggiungiamo libri al di fuori della cartella libri */
+
         for fs_book in saved_books.into_iter() {
-            self.library.push_back(fs_book.1.clone())
+            match fs::metadata(fs_book.1.path.clone()) {
+                Ok(_) => self.library.push_back(fs_book.1.clone()),
+                Err(_) => {
+                    file_need_update = true;
+                    println!("File not found at path {}", fs_book.1.path.clone())
+                },
+            }
         }
 
-        if !saved_books.is_empty() {
-            file_need_update = true
-        }
         file_need_update
     }
 
