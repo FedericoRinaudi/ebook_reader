@@ -1,10 +1,11 @@
+use std::fmt::Alignment;
 use crate::book::{chapter::Chapter, Book};
 use crate::controllers::{Update, BetterScroll, SyncScroll};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
-use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align};
-use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec};
+use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align, LabelText, Label, Container, Padding};
+use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec, Color};
 use druid::Cursor::Custom;
 use druid::keyboard_types::Key::Control;
 use crate::utilities::save_file;
@@ -176,7 +177,18 @@ fn render_library() -> impl Widget<ApplicationState> {
         |_app, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>>
             { // TODO:Load IMAGES IN THREAD
                 let mut col = Flex::column();
+                //col.add_spacer(12.0);
                 for book_info in data.get_library().clone() {
+                    let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
+                    let mut uno = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
+
+                    let mut due = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
+                    due.add_child(Label::new(String::from("Title :") + &*book_info.name.clone()).with_text_size(20.0));
+                    due.add_spacer(2.0);
+                    due.add_child(Label::new(String::from("Chapter :") + &*book_info.start_chapter.clone().to_string()));
+                    due.add_spacer(1.0);
+                    due.add_child(Label::new(String::from("Offset :") + &*book_info.start_line.clone().to_string()));
+
                     let clickable_image = ControllerHost::new(
                         Image::new(ImageBuf::from_file(book_info.cover_path.clone())
                             .unwrap()) //TODO: unwrap_or(default image)
@@ -191,7 +203,11 @@ fn render_library() -> impl Widget<ApplicationState> {
                             data.update_view();
                         }),
                     );
-                    col.add_child(clickable_image);
+                    uno.add_child(clickable_image);
+                    pill.add_flex_child(uno.padding(6.0), 0.3);
+                    pill.add_flex_child(due, 0.7);
+                    let wrap = Container::new(pill).border(Color::WHITE, 1.0);
+                    col.add_child(wrap.padding(12.0));
                 }
                 Box::new(col.scroll().vertical())
             },
