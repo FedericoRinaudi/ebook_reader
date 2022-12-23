@@ -189,6 +189,14 @@ fn render_library() -> impl Widget<ApplicationState> {
                     due.add_child(Label::new(String::from("Chapter :") + &*book_info.start_chapter.clone().to_string()));
                     due.add_spacer(1.0);
                     due.add_child(Label::new(String::from("Offset :") + &*book_info.start_line.clone().to_string()));
+                    due.add_spacer(30.0);
+                    due.add_child(Buttons::btn_ocr(
+                        Book::new(
+                        book_info.get_path(),
+                        book_info.start_chapter,
+                        book_info.start_line,
+                    ).unwrap())
+                    );
 
                     let clickable_image = ControllerHost::new(
                         Image::new(ImageBuf::from_file(book_info.cover_path.clone())

@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::bookcase::{BookCase, BookInfo};
 use crate::Book;
 use druid::{im::HashSet, im::Vector, Data, Lens, Selector};
@@ -8,6 +9,7 @@ pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
 pub const TRIGGER_OFF: Selector<()> = Selector::new("wrapper.focus_off");
 pub const TRIGGER_SYN: Selector<()> = Selector::new("wrapper.focus_syn");
 
+
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub current_book: Book,
@@ -17,7 +19,7 @@ pub struct ApplicationState {
     pub view: View,
     pub bookcase: BookCase,
     pub is_loading: bool,
-    pub buffer:String
+    pub i_mode:bool //use enum
 }
 
 impl ApplicationState {
@@ -30,7 +32,7 @@ impl ApplicationState {
             view: View::new(),
             bookcase: BookCase::new(),
             is_loading: false,
-            buffer: "".to_string()
+            i_mode: false
         };
         //app.update_view();
         app

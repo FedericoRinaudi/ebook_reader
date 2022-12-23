@@ -1,6 +1,7 @@
 use druid::{FileDialogOptions, FileSpec, ImageBuf};
 use std::io::Read;
 use std::path::PathBuf;
+use roxmltree::{Document, Node, ParsingOptions};
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
@@ -65,7 +66,7 @@ pub fn save_file(name:String) -> FileDialogOptions {
         .button_text("Save")
 }
 
-pub fn open_file() -> FileDialogOptions {
+pub fn open_epub() -> FileDialogOptions {
     let epub = FileSpec::new("Epub file", &["epub"]);
     FileDialogOptions::new()
         .allowed_types(vec![epub])
@@ -74,4 +75,108 @@ pub fn open_file() -> FileDialogOptions {
         .name_label("Source")
         .title("Select an epub to Import")
         .button_text("Import")
+}
+
+pub fn open_image() -> FileDialogOptions {
+    let jpg = FileSpec::new("jpg file", &["jpg"]);
+    let jpeg = FileSpec::new("JPeG file", &["jpeg"]);
+    let jpg_caps = FileSpec::new("JPG file", &["JPG"]);
+    FileDialogOptions::new()
+        .allowed_types(vec![jpg, jpeg, jpg_caps])
+        .default_type(jpg)
+        .default_name("image.JPG")
+        .name_label("Source")
+        .title("Select an image to Import")
+        .button_text("Import")
+}
+
+/* FOR OCR PURPOSES */
+
+pub fn xml_to_text(xml: &str) -> String {
+    let opt = ParsingOptions { allow_dtd: true };
+    let doc = match Document::parse_with_options(xml, opt){
+        Result::Ok(doc) => doc,
+        Err(_e) => {
+            println!("Error");
+            return " ".to_string()
+        }
+    };
+    let node = doc.root_element().last_element_child().unwrap();
+    let mut cur_text = String::new();
+    xml_to_plain(
+        node,
+        &mut cur_text
+    );
+    cur_text
+}
+
+fn xml_to_plain(
+    node: Node,
+    current_text: &mut String,
+) {
+    /* Def Macros */
+    macro_rules! recur_on_children {
+            () => {
+                for child in node.children() {
+                    xml_to_plain(
+                        child,
+                        current_text,
+                    );
+                }
+            };
+        };
+
+    /*  Actual Transformation */
+
+    if node.is_text() {
+        let text = node.text().unwrap();
+        let content: Vec<_> = text.split_ascii_whitespace().collect();
+        if text.starts_with(char::is_whitespace) {
+            current_text.push_str(" ");
+        }
+        current_text.push_str(&content.join(" "));
+        if text.ends_with(char::is_whitespace) {
+            current_text.push_str(" ");
+        }
+    }
+
+    match node.tag_name().name() {
+        "br" => {
+            current_text.push_str("\n");
+        }
+        "h1" => {
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        "h2" => {
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        "h3" => {
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        "h4" => {
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        "h5" => {
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        "h6" => {
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        "blockquote" | "div" | "p" | "tr" => {
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        "li" => {
+            current_text.push_str("- ");
+            recur_on_children!();
+            current_text.push_str("\n");
+        }
+        _ => recur_on_children!(),
+    }
 }

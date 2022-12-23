@@ -1,8 +1,8 @@
-use crate::ApplicationState;
+use crate::{ApplicationState, Book};
 use druid::widget::{Button, Click, ControllerHost, DisabledIf};
 use druid::WidgetExt;
 use crate::app::{TRIGGER_OFF, TRIGGER_ON};
-use crate::utilities::{save_file, open_file};
+use crate::utilities::{save_file, open_image};
 
 pub struct Buttons {}
 
@@ -78,14 +78,19 @@ impl Buttons {
             .on_click(|ctx, data: &mut ApplicationState, _env| {
                 /* SAVE CHANGES ON NEW FILE */
                 ctx.submit_command(druid::commands::SHOW_SAVE_PANEL.with(save_file(data.get_current().name.clone()+ &*String::from(".epub"))));
-                /*
-                data.current_book
-                    .save(data.modified.0, data.modified.1.clone());
-                data.modified.0 = true;
-                data.modified.1.clear();
-                */
             })
             .disabled_if(|data: &ApplicationState, _| data.modified.is_empty())
+    }
+
+    pub fn btn_ocr(book:Book) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
+        Button::new("Try OCR")
+            .on_click(move |ctx, data: &mut ApplicationState, _env| {
+                /* Tries to load image and find matching line in chapter */
+                data.i_mode = true;
+                data.is_loading = true;
+                data.current_book = book.clone();
+                ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+            })
     }
 
     pub fn btn_close_book() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {

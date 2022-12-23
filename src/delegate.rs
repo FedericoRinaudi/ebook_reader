@@ -5,8 +5,10 @@ use druid::{
     Handled, LocalizedString, Target, Widget, WindowDesc,
 };
 use druid::piet::TextStorage;
+use crate::algorithms::OcrAlgorithms;
 use crate::ApplicationState;
 use crate::bookcase::BookInfo;
+use crate::utilities::xml_to_text;
 
 
 pub(crate) struct Delegate {}
@@ -25,7 +27,7 @@ impl AppDelegate<ApplicationState> for Delegate {
             let absolute_path = file_info.path.clone();
 
             // Strip the prefix of the absolute path that is outside of the project folder
-            let target_path = match absolute_path.clone().strip_prefix(cwd.clone()){
+            let target_path = match absolute_path.clone().strip_prefix(cwd.clone()) {
                 Ok(path) => "./".to_string() + path.to_str().unwrap(),
                 Err(_e) => {
                     //eprintln!("Error stripping prefix from path {}", e);
@@ -53,27 +55,39 @@ impl AppDelegate<ApplicationState> for Delegate {
             }
             return Handled::Yes;
         }
-        else { Handled::No }
-    }
-}
-        /*
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
-            println!("{:?}", file_info);
-            return Handled::Yes;
+            if data.i_mode {
+                let mut lt = leptess::LepTess::new(None, "ita").unwrap();
+                lt.set_image(file_info.path.clone()).unwrap();
+                let text = String::from(lt.get_utf8_text().unwrap().replace("-\n", "")).replace("\n", " ").replace(".", " ");
 
-
-
-
-            match std::fs::read_to_string(file_info.path()) {
-                Ok(s) => {
-                    let first_line = s.lines().next().unwrap_or("");
-                    data.buffer = first_line.to_owned();
+                for (index, ch) in data.current_book.chapters.iter().enumerate(){
+                    let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
+                    let p_clone = plain_text.clone();
+                    let t_clone = text.clone();
+                    if OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare) {
+                        data.current_book.get_mut_nav().set_ch(index);
+                        data.update_view();
+                        println!("OCR Done");
+                        break;
+                    }
                 }
-                Err(e) => {
-                    println!("Error opening file: {}", e);
-                }
-            }
+                data.i_mode = false;
+            } else { println!("epub mode!") }
+            data.is_loading = false;
             return Handled::Yes;
         }
         Handled::No
-    }*/
+    }
+}
+
+
+/* PROVE OCR
+
+// let plain_text = xml_to_text(&book.chapters[8].xml).replace("\n", " ");
+
+
+
+   }
+
+ */

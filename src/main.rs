@@ -5,6 +5,7 @@ mod controllers;
 mod utilities;
 mod view;
 mod delegate;
+mod algorithms;
 
 
 use druid::{AppLauncher, WindowDesc};
