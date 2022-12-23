@@ -54,11 +54,11 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
                 data.close_current_book();
             }
             Event::Command(cmd) => if cmd.get(TRIGGER_ON).is_some(){
-                println!("Triggered on to {}", self.child.offset_for_axis(Axis::Vertical));
+                //println!("Triggered on to {}", self.child.offset_for_axis(Axis::Vertical));
                 self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
                 ctx.request_paint();
             }else if cmd.get(TRIGGER_OFF).is_some(){
-                println!("Triggered off to {} out of {}", self.child.offset_for_axis(Axis::Vertical), self.child.child_size().height);
+                //println!("Triggered off to {} out of {}", self.child.offset_for_axis(Axis::Vertical), self.child.child_size().height);
                 data.current_book.get_mut_nav().set_line(self.child.offset_for_axis(Axis::Vertical));
                 data.view.scroll_height = self.child.child_size().height;
             }
@@ -71,7 +71,7 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
         match event {
             LifeCycle::HotChanged(false) => {
                 ctx.submit_command(TRIGGER_OFF);
-                ctx.submit_command(TRIGGER_SYN)
+                //ctx.submit_command(TRIGGER_SYN)
             }
             _ => {}
         }
@@ -85,7 +85,7 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &ApplicationState, env: &Env) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
         self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
-        println!("Layed to {}", data.current_book.get_nav().get_line());
+        //println!("Layed to {}", data.current_book.get_nav().get_line());
         size
     }
 
@@ -112,11 +112,13 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
 
         self.child.event(ctx, event, data, env);
         match event {
+            /*
             Event::Command(cmd) => if cmd.get(TRIGGER_SYN).is_some(){
                 println!("Synched on to {}", self.child.offset_for_axis(Axis::Vertical));
                 self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
                 ctx.request_paint();
             }
+            */
             _ => {}
         }
     }
@@ -132,9 +134,7 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &ApplicationState, env: &Env) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
         let rate =  data.view.scroll_height / self.child.child_size().height;
-        println!("edit/view rate is: {}", rate);
         self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line()*rate +15.0);
-        println!("Layed SYN START to {}", data.current_book.get_nav().get_line()*rate);
 
         size
     }

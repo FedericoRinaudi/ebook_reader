@@ -3,10 +3,11 @@ use crate::controllers::{Update, BetterScroll, SyncScroll};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
-use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox};
-use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector};
+use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align};
+use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec};
 use druid::Cursor::Custom;
 use druid::keyboard_types::Key::Control;
+use crate::utilities::save_file;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -196,3 +197,41 @@ fn render_library() -> impl Widget<ApplicationState> {
             },
     )
 }
+/*
+fn render_prova() -> impl Widget<ApplicationState> {
+    let rs = FileSpec::new("Rust source", &["rs"]);
+    let txt = FileSpec::new("Text file", &["txt"]);
+    let other = FileSpec::new("Bogus file", &["foo", "bar", "baz"]);
+    // The options can also be generated at runtime,
+    // so to show that off we create a String for the default save name.
+    let default_save_name = String::from("MyFile.txt");
+    let save_dialog_options = FileDialogOptions::new()
+        .allowed_types(vec![rs, txt, other])
+        .default_type(txt)
+        .default_name(default_save_name)
+        .name_label("Target")
+        .title("Choose a target for this lovely file")
+        .button_text("Export");
+    let open_dialog_options = save_dialog_options
+        .clone()
+        .default_name("MySavedFile.txt")
+        .name_label("Source")
+        .title("Where did you put that file?")
+        .button_text("Import");
+
+    let input = TextBox::new().lens(ApplicationState::buffer);
+    let save = Button::new("Save").on_click(move |ctx, data:&mut ApplicationState, _| {
+        ctx.submit_command(druid::commands::SHOW_SAVE_PANEL.with(save_file(data.get_current().name.clone())));
+    });
+    let open = Button::new("Open").on_click(move |ctx, _, _| {
+        ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_dialog_options.clone()))
+    });
+
+    let mut col = Flex::column();
+    col.add_child(input);
+    col.add_spacer(8.0);
+    col.add_child(save);
+    col.add_child(open);
+    Align::centered(col)
+}
+*/

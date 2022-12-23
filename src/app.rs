@@ -13,10 +13,11 @@ pub struct ApplicationState {
     pub current_book: Book,
     pub edit: bool,                       // Serve a switchare da view mode a edit mode
     pub xml_backup: String,               // xml backup useful to discard changes done in edit mode
-    pub modified: (bool, HashSet<usize>), //find better solution
+    pub modified: HashSet<usize>, //find better solution
     pub view: View,
     pub bookcase: BookCase,
-    pub is_loading: bool
+    pub is_loading: bool,
+    pub buffer:String
 }
 
 impl ApplicationState {
@@ -25,10 +26,11 @@ impl ApplicationState {
             current_book: Book::empty_book(),
             edit: false,
             xml_backup: "".to_string(),
-            modified: (false, HashSet::new()),
+            modified: HashSet::new(),
             view: View::new(),
             bookcase: BookCase::new(),
-            is_loading: false
+            is_loading: false,
+            buffer: "".to_string()
         };
         //app.update_view();
         app
@@ -53,6 +55,20 @@ impl ApplicationState {
         }
         self.bookcase.update();
         self.current_book = Book::empty_book();
+    }
+
+    pub fn get_current(&self)-> BookInfo{
+        if let Some(res) = &self.bookcase.library.iter().find(|b| b.path == *(&self.current_book.get_path())){
+            (*res).clone()
+        }else{
+            BookInfo{
+                name: "default".to_string(),
+                path: "".to_string(),
+                start_chapter: 0,
+                start_line: 0.0,
+                cover_path: "".to_string()
+            }
+        }
     }
 
 }

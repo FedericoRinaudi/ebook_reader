@@ -48,7 +48,7 @@ pub struct Book {
     // -------------------- > pub chapters_xml_and_path: Vector<(String, String)>,
     // Nella Book:new dobbiamo inizializzare i vari chapters
     nav: Navigation,
-    path: String, // Nel file system
+    pub path: String, // Nel file system
     pub chapters: Vector<Chapter>,
 }
 
@@ -149,16 +149,20 @@ impl Book {
     Save new xml to a new version of the archive
     */
 
-    pub fn save(&self, modified: bool, set: HashSet<usize>) {
+    pub fn save(&mut self, set: HashSet<usize>, target_path: String) {
         /*
         Get the ZipArchive from the original file
          */
+        /*
         let file_path = if modified {
             (&self).path.clone().replace(".epub", "-new.epub")
         } else {
             (&self).path.clone()
         };
+        */
+        let file_path = (&self).path.clone();
         let file = fs::File::open(file_path).unwrap();
+
         //file.set_permissions(fs::Permissions::from_mode(0o644)).expect("Error changing perms");
         let mut archive = zip::ZipArchive::new(file).unwrap();
 
@@ -168,8 +172,6 @@ impl Book {
         let mut dir = current_dir().unwrap().to_str().unwrap().to_string();
         dir.push_str("/tmp/");
         let path_dir = PathBuf::from(&dir).into_os_string();
-
-        // println!("{:?}", path_dir);
 
         //TODO: Different thread? Possibly
 
@@ -181,6 +183,7 @@ impl Book {
         /*
         Modify the file at path chapters_xml_and_path[current_chapter_number].1
          */
+
         for ch_n in set {
             let mut target_path = dir.clone(); // current_dir/tmp
             target_path.push_str(&self.chapters[ch_n].get_path()); // current_dir/temp/pathdelcapitolodamodificare
@@ -195,17 +198,19 @@ impl Book {
                 .write_all(&self.chapters[ch_n].xml.clone().as_bytes())
                 .expect("Unable to write data");
         }
+
         /*
-        Change the old epub file.epub -> file-old.epub
-        Zip the file again with the original epub's name
-        Cleanup by deleting the tmp folder
+        Zip the file again with the target epub's name
          */
 
         let walkdir = WalkDir::new(dir.to_string());
         let it = walkdir.into_iter();
-        let newpath = self.path.clone().replace(".epub", "-new.epub");
+
+        // let newpath = self.path.clone().replace(".epub", "-new.epub");
         // fs::rename(&self.path, newpath).unwrap(); OLD WAY
-        let writer = File::create(PathBuf::from(newpath)).unwrap();
+
+        let writer = File::create(PathBuf::from(target_path.clone())).unwrap();
+        //TODO: ADD case in which we overwrite file
 
         let mut zip = zip::ZipWriter::new(writer);
         let options = FileOptions::default()
@@ -227,6 +232,8 @@ impl Book {
             }
         }
         zip.finish().unwrap();
+
+        //Cleanup by deleting the tmp folder
         fs::remove_dir_all(&dir).unwrap(); // Cancella tmp dir
     }
 }

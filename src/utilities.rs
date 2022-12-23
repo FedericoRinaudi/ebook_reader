@@ -1,4 +1,4 @@
-use druid::ImageBuf;
+use druid::{FileDialogOptions, FileSpec, ImageBuf};
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -51,4 +51,27 @@ pub fn get_image_buf(
         Ok(im) => Some(im),
         Err(_) => None, //TODO: default image
     }
+}
+
+
+pub fn save_file(name:String) -> FileDialogOptions {
+    let epub = FileSpec::new("Epub file", &["epub"]);
+    FileDialogOptions::new()
+        .allowed_types(vec![epub])
+        .default_type(epub)
+        .default_name(name)
+        .name_label("Target")
+        .title("Select where to Save")
+        .button_text("Save")
+}
+
+pub fn open_file() -> FileDialogOptions {
+    let epub = FileSpec::new("Epub file", &["epub"]);
+    FileDialogOptions::new()
+        .allowed_types(vec![epub])
+        .default_type(epub)
+        .default_name("Book.epub")
+        .name_label("Source")
+        .title("Select an epub to Import")
+        .button_text("Import")
 }

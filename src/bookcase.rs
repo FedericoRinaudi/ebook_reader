@@ -11,7 +11,7 @@ const FILE_NAME: &str = "meta.txt";
 #[derive(Default, Clone, Data, Lens, Debug, PartialEq)]
 pub struct BookInfo {
     pub name: String,
-    path: String,
+    pub path: String,
     pub start_chapter: usize,
     pub start_line: f64,
     pub cover_path: String,
