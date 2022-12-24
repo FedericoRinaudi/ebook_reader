@@ -2,11 +2,13 @@ use std::{env, thread};
 use std::io::sink;
 use std::path::PathBuf;
 use druid::{commands, AppDelegate, AppLauncher, Command, DelegateCtx, Env, FileDialogOptions, FileSpec, Handled, LocalizedString, Target, Widget, WindowDesc, ExtEventSink};
+use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::im::Vector;
 use druid::piet::TextStorage;
 use crate::algorithms::OcrAlgorithms;
 use crate::app::FINISH_SLOW_FUNCTION;
 use crate::ApplicationState;
+use crate::book::Book;
 use crate::book::chapter::Chapter;
 use crate::bookcase::BookInfo;
 use crate::utilities::xml_to_text;
@@ -63,7 +65,7 @@ impl AppDelegate<ApplicationState> for Delegate {
             if data.i_mode {
                 /* Qui stiamo prendendo un immagine per usare l'OCR */
                 data.i_mode = false;
-
+                println!("aaa");
                 th_find_it(ctx.get_external_handle(), file_info.path.clone(), data.current_book.chapters.clone())
 
             } else {
@@ -78,6 +80,17 @@ impl AppDelegate<ApplicationState> for Delegate {
             data.current_book.get_mut_nav().set_ch(*ch);
             data.update_view();
             println!("OCR Done, ch: {}, offset di words with len()>5: {}", ch, off);
+            data.is_loading = false;
+            return Handled::Yes
+        }
+
+        if let Some(..) = cmd.get(SAVE_PANEL_CANCELLED) {
+            data.is_loading = false;
+            return Handled::Yes
+        }
+
+        if let Some(..) = cmd.get(OPEN_PANEL_CANCELLED) {
+            data.current_book = Book::empty_book();
             data.is_loading = false;
             return Handled::Yes
         }
@@ -101,6 +114,9 @@ fn th_find_it(sink: ExtEventSink, path:PathBuf, chs:Vector<Chapter>){
     });
 
 }
+
+
+
 
 
 
