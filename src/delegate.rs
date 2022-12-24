@@ -73,11 +73,11 @@ impl AppDelegate<ApplicationState> for Delegate {
             return Handled::Yes;
         }
 
-        if let Some(index) = cmd.get(FINISH_SLOW_FUNCTION) {
+        if let Some((ch,off)) = cmd.get(FINISH_SLOW_FUNCTION) {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
-            data.current_book.get_mut_nav().set_ch(index.clone());
+            data.current_book.get_mut_nav().set_ch(*ch);
             data.update_view();
-            println!("OCR Done");
+            println!("OCR Done, ch: {}, offset di words with len()>5: {}", ch, off);
             data.is_loading = false;
             return Handled::Yes
         }
@@ -89,42 +89,72 @@ impl AppDelegate<ApplicationState> for Delegate {
 
 fn th_find_it(sink: ExtEventSink, path:PathBuf, chs:Vector<Chapter>){
 
-
-
     thread::spawn(move || {
         let mut lt = leptess::LepTess::new(None, "ita").unwrap();
         lt.set_image(path).unwrap();
         let text = String::from(lt.get_utf8_text().unwrap().replace("-\n", "")).replace("\n", " ").replace(".", " ");
-        let index = find_it(text, chs);
-        // Once the slow function is done we can use the event sink (the external handle).
-        // This sends the `FINISH_SLOW_FUNCTION` command to the main thread and attach
-        // the number as payload.
-        sink.submit_command(FINISH_SLOW_FUNCTION, index, Target::Auto)
-            .expect("command failed to submit");
+        if let Some((index,offset)) = find_it(text, chs){
+            sink.submit_command(FINISH_SLOW_FUNCTION, (index, offset), Target::Auto)
+                .expect("command failed to submit");
+        }
+
     });
 
 }
 
 
 
-fn find_it(text:String, chs:Vector<Chapter>)->usize{
+fn find_it(text:String, chs:Vector<Chapter>)->Option<(usize, usize)>{
     for (index, ch) in chs.iter().enumerate(){
         let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
         let p_clone = plain_text.clone();
         let t_clone = text.clone();
-        if OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare) {
-            return index;
+        if let Some(offset) = OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare) {
+            return Some((index,offset))
         }
     }
-    0 //TODO: Use option instead of returning default 0
+    None
 }
 
 /* PROVE OCR
 
-// let plain_text = xml_to_text(&book.chapters[8].xml).replace("\n", " ");
+fn th_find_it(sink: ExtEventSink, path:PathBuf, chs:Vector<Chapter>){
+
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(num_cpus::get()) // specify the number of threads in the pool
+        .build()
+        .unwrap();
+
+    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
+    lt.set_image(path).unwrap();
+    let text = String::from(lt.get_utf8_text().unwrap().replace("-\n", "")).replace("\n", " ").replace(".", " ");
+
+
+    for (index, ch) in chs.into_iter().enumerate() {
+        // use the thread pool to execute a task in parallel
+        let sink_clone = sink.clone();
+        let text_clone = text.clone();
+        pool.spawn(move || {
+            if let Some(_) =  find_it(text_clone, ch.clone()){
+                sink_clone.submit_command(FINISH_SLOW_FUNCTION, index, Target::Auto)
+                    .expect("command failed to submit")
+            }
+        })
+    }
+}
 
 
 
-   }
+fn find_it(text:String, ch:Chapter)->Option<()>{
+
+        let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
+        let p_clone = plain_text.clone();
+        let t_clone = text.clone();
+        if OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare) {
+            return Some(());
+        }
+        None
+}
+
 
  */

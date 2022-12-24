@@ -8,7 +8,7 @@ pub const TRIGGER_A: Selector<()> = Selector::new("monitor.update_status");
 pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
 pub const TRIGGER_OFF: Selector<()> = Selector::new("wrapper.focus_off");
 pub const TRIGGER_SYN: Selector<()> = Selector::new("wrapper.focus_syn");
-pub const FINISH_SLOW_FUNCTION: Selector<usize> = Selector::new("finish_slow_function");
+pub const FINISH_SLOW_FUNCTION: Selector<(usize,usize)> = Selector::new("finish_slow_function");
 
 
 #[derive(Default, Clone, Data, Lens)]

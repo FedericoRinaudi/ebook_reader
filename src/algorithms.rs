@@ -31,20 +31,20 @@ impl OcrAlgorithms {
     }
 
 
-    pub fn fuzzy_match(chapter: String, page: String, algorithm:fn (&[String],&[String],f64)->bool) -> bool {
+    pub fn fuzzy_match(chapter: String, page: String, algorithm:fn (&[String],&[String],f64)->bool) -> Option<usize> {
         let chapter:Vec<String> = chapter.split(" ").map(|el|el.chars().filter(|c| c.is_alphabetic()).collect::<String>()).filter(|w| w.len() >= 5).collect();
         let page:Vec<String> = page.split(" ").map(|el|el.chars().filter(|c| c.is_alphabetic()).collect::<String>()).filter(|w| w.len() >= 5).collect();
+        let mut offset = 0;
 
         for w in chapter.windows(page.len()) {
 
             if algorithm(w,&page, 0.5) {
-                return true;
-            }else {
-                //println!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+                return Some(offset);
             }
+            offset += 1
         }
         //println!("Finito su current chap");
-        false
+        None
     }
 
     pub fn fuzzy_linear_compare(a: &[String], b:&[String], tol: f64) -> bool{
