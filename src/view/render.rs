@@ -4,8 +4,8 @@ use crate::controllers::{Update, BetterScroll, SyncScroll};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
-use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align, LabelText, Label, Container, Padding};
-use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec, Color};
+use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align, LabelText, Label, Container, Padding, SizedBox};
+use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec, Color, KeyOrValue};
 use druid::Cursor::Custom;
 use druid::keyboard_types::Key::Control;
 use crate::utilities::save_file;
@@ -32,7 +32,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                             },
                         ))
                 } else {
-                    Box::new(Spinner::new())
+                    Box::new(Spinner::new().fix_height(40.0).center())
                 }
             },
         );
