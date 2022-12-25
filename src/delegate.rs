@@ -1,14 +1,15 @@
-use std::{env, thread};
+use std::{env, fs, thread};
 use std::path::PathBuf;
 use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target, ExtEventSink};
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::im::Vector;
+use epub::doc::EpubDoc;
 use crate::algorithms::OcrAlgorithms;
 use crate::app::FINISH_SLOW_FUNCTION;
 use crate::ApplicationState;
 use crate::book::Book;
 use crate::book::chapter::Chapter;
-use crate::bookcase::BookInfo;
+use crate::bookcase::{BookCase, BookInfo};
 use crate::utilities::xml_to_text;
 extern crate num_cpus;
 
@@ -67,7 +68,13 @@ impl AppDelegate<ApplicationState> for Delegate {
 
             } else {
                 /* Qui stiamo prendendo un epub da aggiungere (?) TODO:IMPLEMENT THIS */
-                println!("epub mode!")
+                println!("epub mode!");
+                if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
+                    data.is_loading = true;
+                    fs::copy(file_info.path.clone(), "./libri/".to_owned() + file_info.path.file_name().unwrap().to_str().unwrap()).expect("Failed to copy file");
+                    data.bookcase = BookCase::new();
+                    data.is_loading = false;
+                }
             }
             return Handled::Yes;
         }
@@ -112,9 +119,6 @@ fn th_find_it(sink: ExtEventSink, path:PathBuf, chs:Vector<Chapter>){
     });
 
 }
-
-
-
 
 
 

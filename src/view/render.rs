@@ -213,7 +213,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                                 Buttons::btn_ocr(book_info.clone())
                             )
                             .with_spacer(10.0)
-                            .with_child(Buttons::btn_remove_book(book_info.path.clone()))
+                            .with_child(Buttons::btn_remove_book(i))
                             .with_spacer(10.0)
                             .with_child(Buttons::btn_read_book(book_info.clone()))
                         );

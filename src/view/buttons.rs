@@ -1,3 +1,4 @@
+use std::fs;
 use crate::{ApplicationState, Book};
 use druid::widget::{Button, Click, ControllerHost, DisabledIf, Svg, SvgData};
 use druid::{Widget, WidgetExt};
@@ -111,14 +112,22 @@ impl Buttons {
         })
     }
 
-    pub fn btn_remove_book(book_path: String) -> impl Widget<ApplicationState> {
+    pub fn btn_remove_book(index: usize) -> impl Widget<ApplicationState> {
         let trash_bin_svg = match include_str!("../../icons/trash_bin.svg").parse::<SvgData>() {
             Ok(svg) => svg,
             Err(_) => {
                 SvgData::default()
             }
         };
-        Svg::new(trash_bin_svg.clone()).fix_width(LIBRARY_SVG_DIM).center().on_click(|_, _, _|{println!("prova")})
+        Svg::new(trash_bin_svg.clone()).fix_width(LIBRARY_SVG_DIM).center().on_click(move |_, data: &mut ApplicationState, _|{
+            let removed_book_info = data.bookcase.library.remove(index);
+            data.bookcase.update();
+            //TODO: anzi che le print metto poi un pop-up o comunque do un feedback all'utente
+            match fs::remove_file(removed_book_info.path.clone()) {
+                Ok(()) => println!("Successfully removed file"),
+                Err(e) => println!("Error deleting file: {}", e),
+            }
+        })
     }
 
     pub fn btn_add_book() -> impl Widget<ApplicationState> {
