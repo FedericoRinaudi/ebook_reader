@@ -1,8 +1,11 @@
 use crate::{ApplicationState, Book};
-use druid::widget::{Button, Click, ControllerHost, DisabledIf};
-use druid::WidgetExt;
+use druid::widget::{Button, Click, ControllerHost, DisabledIf, Svg, SvgData};
+use druid::{Widget, WidgetExt};
 use crate::app::{TRIGGER_OFF, TRIGGER_ON};
+use crate::bookcase::BookInfo;
 use crate::utilities::{save_file, open_image};
+
+const LIBRARY_SVG_DIM: f64 = 30.0;
 
 pub struct Buttons {}
 
@@ -82,13 +85,23 @@ impl Buttons {
             .disabled_if(|data: &ApplicationState, _| data.modified.is_empty())
     }
 
-    pub fn btn_ocr(book:Book) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
-        Button::new("Try OCR")
+    pub fn btn_ocr(book_info: BookInfo) -> impl Widget<ApplicationState> {
+        let ocr_svg = match include_str!("../../icons/ocr.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(err) => {
+                SvgData::default()
+            }
+        };
+        Svg::new(ocr_svg).fix_width(LIBRARY_SVG_DIM).center()
             .on_click(move |ctx, data: &mut ApplicationState, _env| {
                 /* Tries to load image and find matching line in chapter */
                 data.i_mode = true;
                 data.is_loading = true;
-                data.current_book = book.clone();
+                data.current_book = Book::new(
+                    book_info.get_path(),
+                    book_info.start_chapter,
+                    book_info.start_line,
+                ).unwrap();
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
             })
     }
@@ -96,6 +109,34 @@ impl Buttons {
     pub fn btn_close_book() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("Home").on_click(|ctx, data: &mut ApplicationState, _env| {
                 data.close_current_book()
+        })
+    }
+
+    pub fn btn_remove_book(book_path: String) -> impl Widget<ApplicationState> {
+        let trash_bin_svg = match include_str!("../../icons/trash_bin.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(err) => {
+                SvgData::default()
+            }
+        };
+        Svg::new(trash_bin_svg.clone()).fix_width(LIBRARY_SVG_DIM).center().on_click(|_, _, _|{println!("prova")})
+    }
+
+    pub fn btn_read_book(book_info: BookInfo) -> impl Widget<ApplicationState> {
+        let book_svg = match include_str!("../../icons/read.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(err) => {
+                SvgData::default()
+            }
+        };
+        Svg::new(book_svg.clone()).fix_width(LIBRARY_SVG_DIM).center().on_click(move |ctx, data: &mut ApplicationState, _env| {
+            println!("{}", book_info.path.clone());
+            data.current_book = Book::new(
+                book_info.get_path(),
+                book_info.start_chapter,
+                book_info.start_line,
+            ).unwrap();
+            data.update_view();
         })
     }
 }

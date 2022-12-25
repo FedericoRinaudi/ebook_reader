@@ -4,8 +4,8 @@ use crate::controllers::{Update, BetterScroll, SyncScroll};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
-use druid::widget::{Axis, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align, LabelText, Label, Container, Padding, SizedBox};
-use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec, Color, KeyOrValue};
+use druid::widget::{Axis, Painter, SvgData, Svg, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align, LabelText, Label, Container, Padding, SizedBox};
+use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec, Color, KeyOrValue, RenderContext};
 use druid::Cursor::Custom;
 use druid::keyboard_types::Key::Control;
 use crate::utilities::save_file;
@@ -178,55 +178,61 @@ fn render_library() -> impl Widget<ApplicationState> {
             { // TODO:Load IMAGES IN THREAD
                 let mut col = Flex::column();
                 col.add_spacer(12.0);
-                for book_info in data.get_library().clone() {
+                for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                     let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
-                    let mut uno = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
+                    let mut uno = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start)
+                        .with_child(
+                            Image::new(ImageBuf::from_file(book_info.cover_path.clone())
+                                .unwrap()) //TODO: unwrap_or(default image)
+                                .fix_width(300.0)
+                                .fix_height(200.0)
+                        );
+                    let mut due = Flex::column()
+                        .cross_axis_alignment(CrossAxisAlignment::Start)
+                        .with_spacer(15.0)
+                        .with_child(Label::new(String::from("Title: ") + &*book_info.name.clone()).with_text_size(20.0))
+                        .with_spacer(4.0)
+                        .with_child(Label::new(String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string()))
+                        .with_spacer(1.0)
+                        .with_child(Label::new(String::from("Offset: ") + &*book_info.start_line.clone().to_string()))
+                        .with_spacer(30.0)
+                        .with_child(Flex::row()
+                            .cross_axis_alignment(CrossAxisAlignment::Start)
+                            .with_child(
+                                Buttons::btn_ocr(book_info.clone())
+                            )
+                            .with_spacer(10.0)
+                            .with_child(Buttons::btn_remove_book(book_info.path.clone()))
+                            .with_spacer(10.0)
+                            .with_child(Buttons::btn_read_book(book_info.clone()))
+                        );
 
-                    let mut due = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
-                    due.add_spacer(15.0);
-                    due.add_child(Label::new(String::from("Title :") + &*book_info.name.clone()).with_text_size(20.0));
-                    due.add_spacer(4.0);
-                    due.add_child(Label::new(String::from("Chapter :") + &*book_info.start_chapter.clone().to_string()));
-                    due.add_spacer(1.0);
-                    due.add_child(Label::new(String::from("Offset :") + &*book_info.start_line.clone().to_string()));
-                    due.add_spacer(30.0);
-                    due.add_child(Buttons::btn_ocr(
-                        Book::new(
-                        book_info.get_path(),
-                        book_info.start_chapter,
-                        book_info.start_line,
-                    ).unwrap())
-                    );
-
-                    let clickable_image = ControllerHost::new(
-                        Image::new(ImageBuf::from_file(book_info.cover_path.clone())
-                            .unwrap()) //TODO: unwrap_or(default image)
-                            .fix_width(300.0)
-                            .fix_height(200.0),
-                        Click::new(move |ctx, data: &mut ApplicationState, _env| {
-                            println!("{}", book_info.path.clone());
-                            data.current_book = Book::new(
-                                book_info.get_path(),
-                                book_info.start_chapter,
-                                book_info.start_line,
-                            ).unwrap();
-                            data.update_view();
-                        }),
-                    );
-                    uno.add_child(clickable_image);
                     pill.add_flex_child(Padding::new((0.0,2.0,10.0,2.0),uno), 0.3);
                     pill.add_flex_child(due, 0.7);
 
-                    let wrap = Container::new(pill)
-                        .border(Color::WHITE, 1.0)
-                        .rounded(8.0);
 
-                    col.add_child(Padding::new((12.0, 0.0, 12.0, 8.0),wrap));
+                    /*let wrap = Container::new(pill)
+                        .border(Color::WHITE, 1.0)
+                        .rounded(8.0);*/
+
+                    col.add_child(Padding::new((12.0, 0.0, 12.0, 8.0),pill));
+                    if i != (data.get_library().len() - 1) {
+                        col.add_child(
+                            Painter::new(|ctx, _: &_, _: &_| {
+                                let size = ctx.size().to_rect();
+                                ctx.fill(size, &Color::WHITE)
+                            })
+                                .fix_height(1.0).padding(20.0),
+                        );
+                    }
+
                 }
                 Box::new(col.scroll().vertical())
             },
     )
 }
+
+
 /*
 fn render_prova() -> impl Widget<ApplicationState> {
     let rs = FileSpec::new("Rust source", &["rs"]);
