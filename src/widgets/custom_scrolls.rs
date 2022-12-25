@@ -70,13 +70,15 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
 
 
 pub struct SyncScroll<W: Widget<ApplicationState>> {
-    child: Scroll<ApplicationState, W>
+    child: Scroll<ApplicationState, W>,
+    flag: bool
 }
 
 impl <W: Widget<ApplicationState>> SyncScroll<W> {
     pub fn new(widget: W) -> Self {
         SyncScroll {
             child: Scroll::new(widget).vertical(),
+            flag: true
         }
     }
 }
@@ -107,9 +109,12 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &ApplicationState, env: &Env) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
-        let rate =  data.view.scroll_height / self.child.child_size().height;
-        self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line()*rate +15.0);
 
+        if self.flag {
+            let rate =  data.view.scroll_height / self.child.child_size().height;
+            self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line()*rate +15.0);
+            self.flag = false
+        }
         size
     }
 
