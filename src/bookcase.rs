@@ -5,7 +5,6 @@ use std::{env, fs};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use druid::platform_menus::mac::file::save;
 use walkdir::WalkDir;
 
 const FILE_NAME: &str = "meta.txt";

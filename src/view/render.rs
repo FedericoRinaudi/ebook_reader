@@ -1,14 +1,11 @@
-use std::fmt::Alignment;
 use crate::book::{chapter::Chapter, Book};
-use crate::controllers::{Update, BetterScroll, SyncScroll};
+use crate::controllers::{Update};
+use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::{ApplicationState, PageElement};
-use druid::widget::{Axis, Painter, SvgData, Svg, Scroll, ControllerHost, Click, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, ClipBox, Button, Align, LabelText, Label, Container, Padding, SizedBox};
-use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Vec2, LifeCycle, Selector, FileDialogOptions, FileSpec, Color, KeyOrValue, RenderContext};
-use druid::Cursor::Custom;
-use druid::keyboard_types::Key::Control;
-use crate::utilities::save_file;
+use druid::widget::{Padding, Painter, Scroll, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, LineBreaking, List, RawLabel, Spinner, TextBox, ViewSwitcher, Label};
+use druid::{lens, ImageBuf, LensExt, Widget, WidgetExt, Color, RenderContext};
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -176,26 +173,39 @@ fn render_library() -> impl Widget<ApplicationState> {
         |data: &ApplicationState, _| data.bookcase.library.clone(),
         |_app, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>>
             { // TODO:Load IMAGES IN THREAD
-                let mut col = Flex::column();
-                col.add_spacer(12.0);
+                let mut col = Flex::column()
+                    .cross_axis_alignment(CrossAxisAlignment::Start)
+                    .with_spacer(12.0)
+                    .with_child(
+                        Flex::row()
+                            .with_child(
+                                Label::new(String::from("Your Library"))
+                                    .with_text_size(40.0)
+                                    .padding(30.0)
+                            )
+                            .with_flex_spacer(0.7)
+                            .with_child(Buttons::btn_add_book().padding(20.0))
+                    );
+                //TODO: provo con molti libri e valuto le tempistiche, valuto multithread
                 for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                     let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
-                    let mut uno = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start)
+                    let uno = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start)
                         .with_child(
                             Image::new(ImageBuf::from_file(book_info.cover_path.clone())
                                 .unwrap()) //TODO: unwrap_or(default image)
                                 .fix_width(300.0)
                                 .fix_height(200.0)
                         );
-                    let mut due = Flex::column()
+                    let due = Flex::column()
                         .cross_axis_alignment(CrossAxisAlignment::Start)
                         .with_spacer(15.0)
-                        .with_child(Label::new(String::from("Title: ") + &*book_info.name.clone()).with_text_size(20.0))
+                        .with_child(Label::new(&*book_info.name.clone()).with_text_size(20.0))
                         .with_spacer(4.0)
+                        //TODO: Salvo su file e aggiungo le informazioni corrette
                         .with_child(Label::new(String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string()))
                         .with_spacer(1.0)
                         .with_child(Label::new(String::from("Offset: ") + &*book_info.start_line.clone().to_string()))
-                        .with_spacer(30.0)
+                        .with_spacer(90.0)
                         .with_child(Flex::row()
                             .cross_axis_alignment(CrossAxisAlignment::Start)
                             .with_child(

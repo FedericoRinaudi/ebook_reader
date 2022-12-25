@@ -90,6 +90,8 @@ pub fn open_image() -> FileDialogOptions {
         .button_text("Import")
 }
 
+
+
 /* FOR OCR PURPOSES */
 
 pub fn xml_to_text(xml: &str) -> String {
@@ -124,7 +126,7 @@ fn xml_to_plain(
                     );
                 }
             };
-        };
+        }
 
     /*  Actual Transformation */
 

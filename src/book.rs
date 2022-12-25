@@ -210,7 +210,7 @@ impl Book {
         // fs::rename(&self.path, newpath).unwrap(); OLD WAY
         println!("211: {:?}", PathBuf::from(target_path.clone()));
 
-        let mut writer = match OpenOptions::new()
+        let writer = match OpenOptions::new()
             .write(true)
             .open(PathBuf::from(target_path.clone()))
         {

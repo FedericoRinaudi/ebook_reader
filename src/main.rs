@@ -6,6 +6,7 @@ mod utilities;
 mod view;
 mod delegate;
 mod algorithms;
+mod widgets;
 
 
 use druid::{AppLauncher, WindowDesc};
