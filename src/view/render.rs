@@ -145,6 +145,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
 
             let chapter =
                 List::new(|| {
+                    let mut s = String::new();
                     ViewSwitcher::new(
                         |data: &PageElement, _| data.clone(),
                         |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {

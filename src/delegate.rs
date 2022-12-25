@@ -79,7 +79,7 @@ impl AppDelegate<ApplicationState> for Delegate {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
             data.current_book.get_mut_nav().set_ch(*ch);
             data.update_view();
-            println!("OCR Done, ch: {}, offset di words with len()>5: {}", ch, off);
+            println!("OCR Done, ch: {}, offset di words with len()>5: {}", ch, off );
             data.is_loading = false;
             return Handled::Yes
         }

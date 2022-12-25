@@ -89,7 +89,7 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &ApplicationState, env: &Env) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
         self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
-        //println!("Layed to {}", data.current_book.get_nav().get_line());
+        println!("Window size: {:?} Guessed_scroll_size: {}", self.child.child_size().height, data.view.get_view_size(self.child.child_size().width));
         size
     }
 
@@ -100,13 +100,15 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
 
 
 pub struct SyncScroll<W: Widget<ApplicationState>> {
-    child: Scroll<ApplicationState, W>
+    child: Scroll<ApplicationState, W>,
+    flag:bool
 }
 
 impl <W: Widget<ApplicationState>> SyncScroll<W> {
     pub fn new(widget: W) -> Self {
         SyncScroll {
             child: Scroll::new(widget).vertical(),
+            flag: true
         }
     }
 }
@@ -129,6 +131,17 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &ApplicationState, env: &Env) {
         self.child.lifecycle(ctx, event, data, env);
+        match event {
+            /*
+            LifeCycle::FocusChanged(true) => {
+                println!("FOCUSED");
+                let rate =  data.view.scroll_height / self.child.child_size().height;
+                self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line()*rate +15.0);
+            }
+            */
+
+            _ => {}
+        }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &ApplicationState, data: &ApplicationState, env: &Env) {
@@ -137,8 +150,13 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &ApplicationState, env: &Env) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
-        let rate =  data.view.scroll_height / self.child.child_size().height;
-        self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line()*rate +15.0);
+
+        if self.flag {
+            let rate =  data.view.scroll_height / self.child.child_size().height;
+            self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line()*rate +15.0);
+            self.flag = false
+        }
+
 
         size
     }
