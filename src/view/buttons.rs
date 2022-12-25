@@ -1,24 +1,23 @@
 use crate::{ApplicationState, Book};
 use druid::widget::{Button, Click, ControllerHost, DisabledIf, Svg, SvgData};
 use druid::{Widget, WidgetExt};
-use crate::app::{TRIGGER_OFF, TRIGGER_ON};
 use crate::bookcase::BookInfo;
-use crate::utilities::{save_file, open_image};
-
+use crate::utilities::{save_file, open_image, open_epub};
+//use crate::controllers::ClickableOpacity;
 const LIBRARY_SVG_DIM: f64 = 30.0;
 
 pub struct Buttons {}
 
 impl Buttons {
     pub fn btn_next() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new(">").on_click(|ctx, data: &mut ApplicationState, _env| {
+        Button::new(">").on_click(|_ctx, data: &mut ApplicationState, _env| {
             data.current_book.go_on(1);
             data.update_view()
         })
     }
 
     pub fn btn_prev() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("<").on_click(|ctx, data: &mut ApplicationState, _env| {
+        Button::new("<").on_click(|_ctx, data: &mut ApplicationState, _env| {
             data.current_book.go_back(1);
             data.update_view()
         })
@@ -88,7 +87,7 @@ impl Buttons {
     pub fn btn_ocr(book_info: BookInfo) -> impl Widget<ApplicationState> {
         let ocr_svg = match include_str!("../../icons/ocr.svg").parse::<SvgData>() {
             Ok(svg) => svg,
-            Err(err) => {
+            Err(_) => {
                 SvgData::default()
             }
         };
@@ -107,7 +106,7 @@ impl Buttons {
     }
 
     pub fn btn_close_book() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("Home").on_click(|ctx, data: &mut ApplicationState, _env| {
+        Button::new("Home").on_click(|_ctx, data: &mut ApplicationState, _env| {
                 data.close_current_book()
         })
     }
@@ -115,21 +114,34 @@ impl Buttons {
     pub fn btn_remove_book(book_path: String) -> impl Widget<ApplicationState> {
         let trash_bin_svg = match include_str!("../../icons/trash_bin.svg").parse::<SvgData>() {
             Ok(svg) => svg,
-            Err(err) => {
+            Err(_) => {
                 SvgData::default()
             }
         };
         Svg::new(trash_bin_svg.clone()).fix_width(LIBRARY_SVG_DIM).center().on_click(|_, _, _|{println!("prova")})
     }
 
-    pub fn btn_read_book(book_info: BookInfo) -> impl Widget<ApplicationState> {
-        let book_svg = match include_str!("../../icons/read.svg").parse::<SvgData>() {
+    pub fn btn_add_book() -> impl Widget<ApplicationState> {
+        let add_svg = match include_str!("../../icons/add.svg").parse::<SvgData>() {
             Ok(svg) => svg,
-            Err(err) => {
+            Err(_) => {
                 SvgData::default()
             }
         };
-        Svg::new(book_svg.clone()).fix_width(LIBRARY_SVG_DIM).center().on_click(move |ctx, data: &mut ApplicationState, _env| {
+        Svg::new(add_svg.clone()).fix_width(35.0).center().on_click(|ctx, _, _|{
+            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_epub()));
+        })
+
+    }
+
+    pub fn btn_read_book(book_info: BookInfo) -> impl Widget<ApplicationState> {
+        let book_svg = match include_str!("../../icons/read.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(_) => {
+                SvgData::default()
+            }
+        };
+        Svg::new(book_svg.clone()).fix_width(LIBRARY_SVG_DIM).center().on_click(move |_ctx, data: &mut ApplicationState, _env| {
             println!("{}", book_info.path.clone());
             data.current_book = Book::new(
                 book_info.get_path(),

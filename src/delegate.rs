@@ -1,10 +1,8 @@
 use std::{env, thread};
-use std::io::sink;
 use std::path::PathBuf;
-use druid::{commands, AppDelegate, AppLauncher, Command, DelegateCtx, Env, FileDialogOptions, FileSpec, Handled, LocalizedString, Target, Widget, WindowDesc, ExtEventSink};
+use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target, ExtEventSink};
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::im::Vector;
-use druid::piet::TextStorage;
 use crate::algorithms::OcrAlgorithms;
 use crate::app::FINISH_SLOW_FUNCTION;
 use crate::ApplicationState;
@@ -54,7 +52,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                     .to_str()
                     .unwrap()
                     .to_string();
-                data.current_book.path == target_path;
+                data.current_book.path = target_path;
                 data.bookcase.library.push_back(copy_info);
                 data.bookcase.update();
             }
@@ -65,7 +63,6 @@ impl AppDelegate<ApplicationState> for Delegate {
             if data.i_mode {
                 /* Qui stiamo prendendo un immagine per usare l'OCR */
                 data.i_mode = false;
-                println!("aaa");
                 th_find_it(ctx.get_external_handle(), file_info.path.clone(), data.current_book.chapters.clone())
 
             } else {
@@ -91,6 +88,7 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(..) = cmd.get(OPEN_PANEL_CANCELLED) {
             data.current_book = Book::empty_book();
+            data.i_mode = false;
             data.is_loading = false;
             return Handled::Yes
         }
