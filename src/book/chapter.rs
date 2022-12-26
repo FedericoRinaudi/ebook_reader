@@ -90,11 +90,16 @@ impl Chapter {
         if node.is_text() {
             let text = node.text().unwrap();
             let content: Vec<_> = text.split_ascii_whitespace().collect();
-            if current_text.get_attributes().get(&AttributeCase::FontSize).is_none(){
+            if current_text
+                .get_attributes()
+                .get(&AttributeCase::FontSize)
+                .is_none()
+            {
                 current_text.add_attr(
-                AttributeCase::FontSize,
-                Attribute::FontSize(druid::KeyOrValue::Concrete(16.0)),
-            );}
+                    AttributeCase::FontSize,
+                    Attribute::FontSize(druid::KeyOrValue::Concrete(16.0)),
+                );
+            }
 
             if text.starts_with(char::is_whitespace) {
                 current_text.push_str(" ");

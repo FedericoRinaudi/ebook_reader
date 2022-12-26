@@ -1,18 +1,17 @@
-use std::{env, fs, thread};
-use std::path::PathBuf;
-use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target, ExtEventSink};
-use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
-use druid::im::Vector;
-use epub::doc::EpubDoc;
 use crate::algorithms::OcrAlgorithms;
 use crate::app::FINISH_SLOW_FUNCTION;
-use crate::ApplicationState;
-use crate::book::Book;
 use crate::book::chapter::Chapter;
+use crate::book::Book;
 use crate::bookcase::{BookCase, BookInfo};
 use crate::utilities::xml_to_text;
+use crate::ApplicationState;
+use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
+use druid::im::Vector;
+use druid::{commands, AppDelegate, Command, DelegateCtx, Env, ExtEventSink, Handled, Target};
+use epub::doc::EpubDoc;
+use std::path::PathBuf;
+use std::{env, fs, thread};
 extern crate num_cpus;
-
 
 pub(crate) struct Delegate {}
 
@@ -25,7 +24,6 @@ impl AppDelegate<ApplicationState> for Delegate {
         data: &mut ApplicationState,
         _env: &Env,
     ) -> Handled {
-
         if let Some(file_info) = cmd.get(commands::SAVE_FILE_AS) {
             let cwd = env::current_dir().unwrap();
             let absolute_path = file_info.path.clone();
@@ -64,14 +62,22 @@ impl AppDelegate<ApplicationState> for Delegate {
             if data.i_mode {
                 /* Qui stiamo prendendo un immagine per usare l'OCR */
                 data.i_mode = false;
-                th_find_it(ctx.get_external_handle(), file_info.path.clone(), data.current_book.chapters.clone())
-
+                th_find_it(
+                    ctx.get_external_handle(),
+                    file_info.path.clone(),
+                    data.current_book.chapters.clone(),
+                )
             } else {
                 /* Qui stiamo prendendo un epub da aggiungere (?) TODO:IMPLEMENT THIS */
                 println!("epub mode!");
                 if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
                     data.is_loading = true;
-                    fs::copy(file_info.path.clone(), "./libri/".to_owned() + file_info.path.file_name().unwrap().to_str().unwrap()).expect("Failed to copy file");
+                    fs::copy(
+                        file_info.path.clone(),
+                        "./libri/".to_owned()
+                            + file_info.path.file_name().unwrap().to_str().unwrap(),
+                    )
+                    .expect("Failed to copy file");
                     data.bookcase = BookCase::new();
                     data.is_loading = false;
                 }
@@ -79,56 +85,57 @@ impl AppDelegate<ApplicationState> for Delegate {
             return Handled::Yes;
         }
 
-        if let Some((ch,off)) = cmd.get(FINISH_SLOW_FUNCTION) {
+        if let Some((ch, off)) = cmd.get(FINISH_SLOW_FUNCTION) {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
             data.current_book.get_mut_nav().set_ch(*ch);
             data.update_view();
-            println!("OCR Done, ch: {}, offset di words with len()>5: {}", ch, off );
+            println!(
+                "OCR Done, ch: {}, offset di words with len()>5: {}",
+                ch, off
+            );
             data.is_loading = false;
-            return Handled::Yes
+            return Handled::Yes;
         }
 
         if let Some(..) = cmd.get(SAVE_PANEL_CANCELLED) {
             data.is_loading = false;
-            return Handled::Yes
+            return Handled::Yes;
         }
 
         if let Some(..) = cmd.get(OPEN_PANEL_CANCELLED) {
             data.current_book = Book::empty_book();
             data.i_mode = false;
             data.is_loading = false;
-            return Handled::Yes
+            return Handled::Yes;
         }
-
 
         Handled::No
     }
 }
 
-fn th_find_it(sink: ExtEventSink, path:PathBuf, chs:Vector<Chapter>){
-
+fn th_find_it(sink: ExtEventSink, path: PathBuf, chs: Vector<Chapter>) {
     thread::spawn(move || {
         let mut lt = leptess::LepTess::new(None, "ita").unwrap();
         lt.set_image(path).unwrap();
-        let text = String::from(lt.get_utf8_text().unwrap().replace("-\n", "")).replace("\n", " ").replace(".", " ");
-        if let Some((index,offset)) = find_it(text, chs){
+        let text = String::from(lt.get_utf8_text().unwrap().replace("-\n", ""))
+            .replace("\n", " ")
+            .replace(".", " ");
+        if let Some((index, offset)) = find_it(text, chs) {
             sink.submit_command(FINISH_SLOW_FUNCTION, (index, offset), Target::Auto)
                 .expect("command failed to submit");
         }
-
     });
-
 }
 
-
-
-fn find_it(text:String, chs:Vector<Chapter>)->Option<(usize, usize)>{
-    for (index, ch) in chs.iter().enumerate(){
+fn find_it(text: String, chs: Vector<Chapter>) -> Option<(usize, usize)> {
+    for (index, ch) in chs.iter().enumerate() {
         let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
         let p_clone = plain_text.clone();
         let t_clone = text.clone();
-        if let Some(offset) = OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare) {
-            return Some((index,offset))
+        if let Some(offset) =
+            OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare)
+        {
+            return Some((index, offset));
         }
     }
     None

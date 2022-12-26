@@ -18,15 +18,12 @@ use zip::write::FileOptions;
 
 #[derive(Default, Debug, Clone, Data, Lens)]
 pub struct Navigation {
-    ch: usize,   // N° Capitolo corrente
+    ch: usize, // N° Capitolo corrente
     line: f64, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
 }
 impl Navigation {
     pub fn new(ch: usize, line: f64) -> Self {
-        Navigation {
-            ch,
-            line: line,
-        }
+        Navigation { ch, line: line }
     }
 
     pub fn get_ch(&self) -> usize {
@@ -61,11 +58,7 @@ impl Book {
         self.chapters.len() == 0
     }
 
-    pub fn new<P: AsRef<Path>>(
-        path: P,
-        init_chapter: usize,
-        init_page: f64,
-    ) -> Result<Self, ()> {
+    pub fn new<P: AsRef<Path>>(path: P, init_chapter: usize, init_page: f64) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
             .as_ref()
@@ -116,7 +109,9 @@ impl Book {
         &mut (*self).nav
     }
 
-    pub fn _get_ch(&self) -> usize {self.nav.get_ch()}
+    pub fn _get_ch(&self) -> usize {
+        self.nav.get_ch()
+    }
     //pub fn _get_line(&self) -> f64 {self.nav.get_line()}
 
     pub fn format_current_chapter(&self) -> Vector<PageElement> {
@@ -125,7 +120,8 @@ impl Book {
 
     pub fn go_on(&mut self, n: usize) {
         self.get_mut_nav().set_line(0.0);
-        self.nav.set_ch(if (self.nav.get_ch() + n) >= self.chapters.len() {
+        self.nav
+            .set_ch(if (self.nav.get_ch() + n) >= self.chapters.len() {
                 self.chapters.len() - 1
             } else {
                 self.nav.get_ch() + n
@@ -219,7 +215,7 @@ impl Book {
                 .create_new(true)
                 .write(true)
                 .open(PathBuf::from(target_path.clone()))
-                .unwrap()
+                .unwrap(),
         };
 
         let mut zip = zip::ZipWriter::new(writer);

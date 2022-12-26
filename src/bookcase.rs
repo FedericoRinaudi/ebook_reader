@@ -1,10 +1,10 @@
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
-use std::{env, fs};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
+use std::{env, fs};
 use walkdir::WalkDir;
 
 const FILE_NAME: &str = "meta.txt";
@@ -19,7 +19,7 @@ pub struct BookInfo {
 }
 
 impl BookInfo {
-    fn new(path: String, start_chapter: usize, start_line:f64, cover_path: String) -> Self {
+    fn new(path: String, start_chapter: usize, start_line: f64, cover_path: String) -> Self {
         let name = PathBuf::from(path.clone())
             .file_stem()
             .unwrap()
@@ -36,7 +36,7 @@ impl BookInfo {
         }
     }
 
-    pub fn get_path(&self)->PathBuf {
+    pub fn get_path(&self) -> PathBuf {
         PathBuf::from(&self.path)
     }
 }
@@ -67,7 +67,7 @@ impl BookCase {
         //println!("folder books {:?}", folder_books.clone());
 
         let mut saved_books: HashMap<String, BookInfo> = Self::fetch_saved(); //contiene tutti i libri letti dal file
-        //println!("saved books: {:?}", saved_books.clone());
+                                                                              //println!("saved books: {:?}", saved_books.clone());
         if instance.populate(&folder_books, &mut saved_books) {
             instance.update()
         }
@@ -89,12 +89,13 @@ impl BookCase {
                         .map(|s| s.to_string())
                         .collect();
 
-                    if words.len() >= 4 { // TODO: Check "words" validity
+                    if words.len() >= 4 {
+                        // TODO: Check "words" validity
                         // Example of valid words: path ch_num ch_offset img_path
                         let absolute_path = PathBuf::from(words[0].clone());
 
                         // Strip the prefix of the absolute path that is outside of the project folder
-                        let relative_path = match absolute_path.clone().strip_prefix(cwd.clone()){
+                        let relative_path = match absolute_path.clone().strip_prefix(cwd.clone()) {
                             Ok(path) => ".".to_string() + path.to_str().unwrap(),
                             Err(_e) => {
                                 //eprintln!("Error stripping prefix from path {}", e);
@@ -115,10 +116,10 @@ impl BookCase {
                     }
                 }
                 library
-            },
+            }
             Err(_) => {
                 eprintln!("No meta file found");
-                return library
+                return library;
             }
         }
     }
@@ -151,7 +152,7 @@ impl BookCase {
                 Err(_) => {
                     file_need_update = true;
                     println!("File not found at path {}", fs_book.1.path.clone())
-                },
+                }
             }
         }
 
@@ -160,16 +161,13 @@ impl BookCase {
 
     pub fn update(&self) {
         /* Write file containing our BookInfos */
-        let mut output = match OpenOptions::new()
-            .write(true)
-            .open(FILE_NAME)
-        {
+        let mut output = match OpenOptions::new().write(true).open(FILE_NAME) {
             Ok(out) => out,
             Err(_) => OpenOptions::new()
                 .create_new(true)
                 .write(true)
                 .open(FILE_NAME)
-                .unwrap()
+                .unwrap(),
         };
 
         for infos in self.library.iter() {

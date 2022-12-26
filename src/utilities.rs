@@ -1,7 +1,7 @@
 use druid::{FileDialogOptions, FileSpec, ImageBuf};
+use roxmltree::{Document, Node, ParsingOptions};
 use std::io::Read;
 use std::path::PathBuf;
-use roxmltree::{Document, Node, ParsingOptions};
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
@@ -54,8 +54,7 @@ pub fn get_image_buf(
     }
 }
 
-
-pub fn save_file(name:String) -> FileDialogOptions {
+pub fn save_file(name: String) -> FileDialogOptions {
     let epub = FileSpec::new("Epub file", &["epub"]);
     FileDialogOptions::new()
         .allowed_types(vec![epub])
@@ -90,43 +89,32 @@ pub fn open_image() -> FileDialogOptions {
         .button_text("Import")
 }
 
-
-
 /* FOR OCR PURPOSES */
 
 pub fn xml_to_text(xml: &str) -> String {
     let opt = ParsingOptions { allow_dtd: true };
-    let doc = match Document::parse_with_options(xml, opt){
+    let doc = match Document::parse_with_options(xml, opt) {
         Result::Ok(doc) => doc,
         Err(_e) => {
             println!("Error");
-            return " ".to_string()
+            return " ".to_string();
         }
     };
     let node = doc.root_element().last_element_child().unwrap();
     let mut cur_text = String::new();
-    xml_to_plain(
-        node,
-        &mut cur_text
-    );
+    xml_to_plain(node, &mut cur_text);
     cur_text
 }
 
-fn xml_to_plain(
-    node: Node,
-    current_text: &mut String,
-) {
+fn xml_to_plain(node: Node, current_text: &mut String) {
     /* Def Macros */
     macro_rules! recur_on_children {
-            () => {
-                for child in node.children() {
-                    xml_to_plain(
-                        child,
-                        current_text,
-                    );
-                }
-            };
-        }
+        () => {
+            for child in node.children() {
+                xml_to_plain(child, current_text);
+            }
+        };
+    }
 
     /*  Actual Transformation */
 

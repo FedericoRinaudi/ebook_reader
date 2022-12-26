@@ -1,6 +1,6 @@
 use crate::{ApplicationState, PageElement};
-use druid::{im::Vector, Data, Lens, LocalizedString};
 use druid::piet::TextStorage;
+use druid::{im::Vector, Data, Lens, LocalizedString};
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
     LocalizedString::new("Ebook Reader - Library");
@@ -23,7 +23,7 @@ impl View {
             window_size_edit: EDIT_SIZE,
             window_size_home: HOME_SIZE,
             current_view: Vector::new(),
-            scroll_height: 0.0
+            scroll_height: 0.0,
         }
     }
 
@@ -55,7 +55,7 @@ impl View {
         (*self).window_size_home = size
     }
 
-    pub fn get_view_size(&self, width:f64) -> usize {
+    pub fn get_view_size(&self, width: f64) -> usize {
         let mut size = 0;
         for text in self.current_view.iter() {
             match text {
@@ -77,16 +77,12 @@ impl View {
 
                      */
 
-                    let current_size = rt.as_str().chars().count()/100 +1; //TODO: make 100 a window_size based value
-                    size += current_size*16
-
-
-                },
-                _ => ()
+                    let current_size = rt.as_str().chars().count() / 100 + 1; //TODO: make 100 a window_size based value
+                    size += current_size * 16
+                }
+                _ => (),
             }
         }
         size
     }
-
-
 }
