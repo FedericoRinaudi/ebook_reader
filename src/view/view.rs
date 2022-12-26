@@ -1,3 +1,5 @@
+use azul_text_layout::text_layout::{split_text_into_words, words_to_scaled_words};
+use azul_text_layout::text_shaping::get_font_metrics_freetype;
 use crate::{ApplicationState, PageElement};
 use druid::{im::Vector, Data, Lens, LocalizedString};
 use druid::piet::TextStorage;
@@ -55,8 +57,14 @@ impl View {
         (*self).window_size_home = size
     }
 
-    pub fn get_view_size(&self, width:f64) -> usize {
+    pub fn get_view_size(&self, width:f32, h:f32) -> usize {
         let mut size = 0;
+        let mut size_a = 0.0;
+
+        let font_size = 16.0; // px
+        let font = include_bytes!("SansSerif.ttf");
+        let font_metrics = get_font_metrics_freetype(font, 0);
+
         for text in self.current_view.iter() {
             match text {
                 PageElement::Text(rt) => {
@@ -74,17 +82,27 @@ impl View {
                     should be used here or maybe the size could be calculated in the chapter.format() function and associated
                     with the richtext in the PageElement
 
+                    */
+                    let text = rt.as_str();
 
-                     */
+                    let words = split_text_into_words(text);
+                    let scaled_words = words_to_scaled_words(&words, font, 0, font_metrics, font_size);
+
+                    let total_width:f32 = scaled_words.items.iter().map(|i| {
+                        //println!("word_width: {}", i.word_width);
+                        i.word_width+ scaled_words.space_advance_px
+                    }).sum();
+                    //println!("total: {} ---- total/width: {}", total_width, total_width/width);
+                    size_a += if total_width == 0.0 {1.0} else {(total_width/width).ceil()};
 
                     let current_size = rt.as_str().chars().count()/100 +1; //TODO: make 100 a window_size based value
-                    size += current_size*16
-
+                    size += current_size
 
                 },
                 _ => ()
             }
         }
+        println!("Line guess: {}, Line Azul: {}, ScrollHeight:{}, Azul scroll height: {}", size, size_a, h, size_a*(20.0 as f32));
         size
     }
 

@@ -59,6 +59,7 @@ impl <W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &ApplicationState, env: &Env) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
         self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
+        data.view.get_view_size((self.child.child_size().width -100.0) as f32, self.child.child_size().height as f32); //100 should be the total horizontal padding
         //println!("Layed to {}", data.current_book.get_nav().get_line());
         size
     }
