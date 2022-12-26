@@ -52,15 +52,17 @@ fn render_book() -> impl Widget<ApplicationState> {
                             == data.current_book.chapters[data.current_book.get_nav().get_ch()].xml
                     },
                     |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-                        let mut row: Flex<ApplicationState> = Flex::row();
-                        if *cond {
-                            row.add_child(Buttons::bnt_view());
-                            row.add_child(Buttons::btn_save());
+                        Box::new( if *cond {
+                            Flex::row()
+                                .with_child(Buttons::bnt_view())
+                                .with_spacer(20.0)
+                                .with_child(Buttons::btn_save())
                         } else {
-                            row.add_child(Buttons::btn_confirm());
-                            row.add_child(Buttons::bnt_discard());
-                        }
-                        Box::new(row)
+                            Flex::row()
+                                .with_child(Buttons::btn_discard())
+                                .with_spacer(20.0)
+                                .with_child(Buttons::btn_confirm())
+                        })
                     },
                 );
                 let screen = render_edit_mode();

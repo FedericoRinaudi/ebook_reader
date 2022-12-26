@@ -41,11 +41,14 @@ impl Buttons {
             })
     }
 
-    pub fn btn_confirm() -> DisabledIf<
-        ApplicationState,
-        ControllerHost<Button<ApplicationState>, Click<ApplicationState>>,
-    > {
-        Button::new("Confirm")
+    pub fn btn_confirm() -> DisabledIf<ApplicationState, ControllerHost<Align<ApplicationState>, Click<ApplicationState>>> {
+        let confirm_svg = match include_str!("../../icons/confirm.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(_) => SvgData::default(),
+        };
+        Svg::new(confirm_svg.clone())
+            .fix_width(LIBRARY_SVG_DIM)
+            .center()
             .on_click(|_ctx, data: &mut ApplicationState, _env| {
                 /* EDIT MODE -> EDIT MODE, CONFIRM CHANGES */
                 // data.current_book.save();
@@ -76,8 +79,15 @@ impl Buttons {
             })
     }
 
-    pub fn bnt_view() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("View").on_click(|ctx, data: &mut ApplicationState, _env| {
+    pub fn bnt_view() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
+
+        let read_svg = match include_str!("../../icons/read.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(_) => SvgData::default(),
+        };
+        Svg::new(read_svg.clone())
+            .fix_width(LIBRARY_SVG_BIG)
+            .center().on_click(|ctx, data: &mut ApplicationState, _env| {
             /*  EDIT MODE -> VIEW MODE */
             data.view
                 .set_window_size_edit(<(f64, f64)>::from(ctx.window().get_size()));
@@ -87,8 +97,14 @@ impl Buttons {
         })
     }
 
-    pub fn bnt_discard() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("Discard").on_click(|_ctx, data: &mut ApplicationState, _env| {
+    pub fn btn_discard() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
+        let discard_svg = match include_str!("../../icons/discard.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(_) => SvgData::default(),
+        };
+        Svg::new(discard_svg.clone())
+            .fix_width(LIBRARY_SVG_BIG)
+            .center().on_click(|_ctx, data: &mut ApplicationState, _env| {
             /* EDIT MODE -> EDIT MODE, Discard Changes */
             data.current_book.update_xml(data.xml_backup.clone());
             data.update_view();
@@ -97,6 +113,7 @@ impl Buttons {
 
     //TODO: Button to save on file
     pub fn btn_save() -> ViewSwitcher<ApplicationState, bool> {
+        //VIWE SWITCHER PER DISABILITARE O MENO L'ICONA
         ViewSwitcher::new(
             |data: &ApplicationState, _| data.modified.is_empty(),
             |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
