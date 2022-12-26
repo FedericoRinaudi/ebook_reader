@@ -1,11 +1,9 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
 use druid::text::{Attribute, RichText};
-use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens, FontFamily};
+use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
-use druid::piet::FontFamilyInner;
-use druid::piet::FontFamilyInner::Serif;
 
 use crate::book::page_element::PageElement;
 use crate::utilities::get_image_buf;
@@ -92,7 +90,11 @@ impl Chapter {
         if node.is_text() {
             let text = node.text().unwrap();
             let content: Vec<_> = text.split_ascii_whitespace().collect();
-            if current_text.get_attributes().get(&AttributeCase::FontSize).is_none(){
+            if current_text
+                .get_attributes()
+                .get(&AttributeCase::FontSize)
+                .is_none()
+            {
                 current_text.add_attr(
                 AttributeCase::FontSize,
                 Attribute::FontSize(druid::KeyOrValue::Concrete(16.0)),

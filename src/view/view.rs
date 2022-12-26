@@ -1,8 +1,8 @@
 use azul_text_layout::text_layout::{split_text_into_words, words_to_scaled_words};
 use azul_text_layout::text_shaping::get_font_metrics_freetype;
 use crate::{ApplicationState, PageElement};
-use druid::{im::Vector, Data, Lens, LocalizedString};
 use druid::piet::TextStorage;
+use druid::{im::Vector, Data, Lens, LocalizedString};
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
     LocalizedString::new("Ebook Reader - Library");
@@ -25,7 +25,7 @@ impl View {
             window_size_edit: EDIT_SIZE,
             window_size_home: HOME_SIZE,
             current_view: Vector::new(),
-            scroll_height: 0.0
+            scroll_height: 0.0,
         }
     }
 
@@ -57,7 +57,7 @@ impl View {
         (*self).window_size_home = size
     }
 
-    pub fn get_view_size(&self, width:f32, h:f32) -> usize {
+    pub fn get_view_size(&self, width:f64) -> usize {
         let mut size = 0;
         let mut size_a = 0.0;
 
@@ -97,9 +97,8 @@ impl View {
 
                     let current_size = rt.as_str().chars().count()/100 +1; //TODO: make 100 a window_size based value
                     size += current_size
-
-                },
-                _ => ()
+                }
+                _ => (),
             }
         }
         println!("Line guess: {}, Line Azul: {}, ScrollHeight:{}, Azul scroll height: {}", size, size_a, h, size_a*(20.0 as f32));

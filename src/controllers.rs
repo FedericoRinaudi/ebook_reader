@@ -25,7 +25,6 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for Update<T> {
     }
 }
 
-
 /*
 pub struct ClickableOpacity <T: Data> {
     action: Box<dyn Fn(&mut EventCtx, &mut T, &Env)>,

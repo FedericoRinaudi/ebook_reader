@@ -1,13 +1,12 @@
+mod algorithms;
 mod app;
 mod book;
 mod bookcase;
 mod controllers;
+mod delegate;
 mod utilities;
 mod view;
-mod delegate;
-mod algorithms;
 mod widgets;
-
 
 use druid::{AppLauncher, WindowDesc};
 use view::view::WINDOW_TITLE;
@@ -19,7 +18,6 @@ use crate::view::render::build_main_view;
 use delegate::Delegate;
 
 fn main() {
-
     let app = ApplicationState::new();
 
     // Describe the main Window
@@ -29,7 +27,7 @@ fn main() {
 
     // Start the Application
     AppLauncher::with_window(main_window)
-        .delegate( Delegate{} )
+        .delegate(Delegate {})
         .launch(app)
         .expect("Failed to launch application");
 }
