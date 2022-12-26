@@ -1,7 +1,7 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
 use druid::text::{Attribute, RichText};
-use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens};
+use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens, FontFamily};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
 
@@ -165,7 +165,6 @@ impl Chapter {
 
             /* TODO: Determinare se sia il caso di gestire diversamente i vari hx */
             "h1" => {
-                new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
@@ -178,7 +177,6 @@ impl Chapter {
                 new_line!();
             }
             "h2" => {
-                new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
@@ -191,7 +189,6 @@ impl Chapter {
                 new_line!();
             }
             "h3" => {
-                new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
@@ -204,7 +201,6 @@ impl Chapter {
                 new_line!();
             }
             "h4" => {
-                new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
@@ -217,7 +213,6 @@ impl Chapter {
                 new_line!();
             }
             "h5" => {
-                new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
@@ -230,7 +225,6 @@ impl Chapter {
                 new_line!();
             }
             "h6" => {
-                new_line!();
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(

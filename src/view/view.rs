@@ -57,9 +57,10 @@ impl View {
         (*self).window_size_home = size
     }
 
-    pub fn get_view_size(&self, width:f64) -> usize {
+    pub fn get_view_size(&self, width:f32, h:f32) -> usize {
+        println!("WIDTH: {}", width);
         let mut size = 0;
-        let mut size_a = 0.0;
+        let mut size_a = 0;
 
         let font_size = 16.0; // px
         let font = include_bytes!("SansSerif.ttf");
@@ -88,12 +89,25 @@ impl View {
                     let words = split_text_into_words(text);
                     let scaled_words = words_to_scaled_words(&words, font, 0, font_metrics, font_size);
 
-                    let total_width:f32 = scaled_words.items.iter().map(|i| {
-                        //println!("word_width: {}", i.word_width);
-                        i.word_width+ scaled_words.space_advance_px
-                    }).sum();
-                    //println!("total: {} ---- total/width: {}", total_width, total_width/width);
-                    size_a += if total_width == 0.0 {1.0} else {(total_width/width).ceil()};
+                    let space = scaled_words.space_advance_px;
+
+                    let mut current_w = 0.0;
+                    size_a +=1;
+                    println!("NEW ELEMENT!");
+
+                    for word in scaled_words.items {
+
+                        if current_w + word.word_width > width{
+                            size_a +=1; //Andiamo a capo, +1 linea
+                            current_w = word.word_width + space;
+                            println!("NEW LINE: {:?}, total: {}", word.word_width, size_a);
+                        }else{
+                            current_w += word.word_width + space;
+                            println!("{:?} added, current width: {}, lines: {}", word.word_width, current_w, size_a);
+                        }
+                    }
+
+                    // size_a += if total_width == 0.0 {1.0} else {(total_width/width).ceil()};
 
                     let current_size = rt.as_str().chars().count()/100 +1; //TODO: make 100 a window_size based value
                     size += current_size
@@ -101,7 +115,7 @@ impl View {
                 _ => (),
             }
         }
-        println!("Line guess: {}, Line Azul: {}, ScrollHeight:{}, Azul scroll height: {}", size, size_a, h, size_a*(20.0 as f32));
+        println!("Line guess: {}, Line Azul: {}, ScrollHeight:{}, Azul scroll height: {}", size, size_a, h, size_a*20);
         size
     }
 

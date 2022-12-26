@@ -169,7 +169,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
             })
             .lens(lens);
             viewport.add_child(chapter);
-            Box::new(viewport.padding(30.0))
+            Box::new(Padding::new((30.0,0.0,30.0,0.0),viewport))
         },
     )
 }
