@@ -84,6 +84,26 @@ impl View {
         }
         element_number
     }
+
+    pub fn ocr_offset_to_element(&self, mut offset: usize) -> usize {
+        let mut page_element_number = 0;
+        for page_element in &self.current_view {
+            if let ContentType::Text(text) = page_element.content.clone() {
+                let long_words = text.text
+                    .split(" ")
+                    .map(|el| el.chars().filter(|c| c.is_alphabetic()).collect::<String>())
+                    .filter(|w| w.len() >= 5)
+                    .count();
+                if (offset as i32 - long_words as i32) < 0 {
+                    break;
+                } else {
+                    offset -= long_words;
+                }
+            }
+            page_element_number += 1;
+        }
+        page_element_number
+    }
     /*
     pub fn get_view_size(&self, width:f32, h:f32) -> usize {
         println!("WIDTH: {}", width);

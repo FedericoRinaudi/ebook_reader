@@ -87,9 +87,10 @@ impl AppDelegate<ApplicationState> for Delegate {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
             data.current_book.get_mut_nav().set_ch(*ch);
             data.update_view();
+            data.current_book.get_mut_nav().set_element_number(data.view.ocr_offset_to_element(*off));
             println!(
-                "OCR Done, ch: {}, offset di words with len()>5: {}",
-                ch, off
+                "OCR Done, ch: {}, offset di words with len()>5: {}, page element n. {}",
+                ch, off, data.view.ocr_offset_to_element(*off)
             );
             data.is_loading = false;
             return Handled::Yes;
@@ -142,6 +143,8 @@ fn find_it(text: String, chs: Vector<Chapter>) -> Option<(usize, usize)> {
     }
     None
 }
+
+
 
 /* PROVE OCR
 
