@@ -1,4 +1,4 @@
-use crate::app::{ApplicationState, TRIGGER_OFF, TRIGGER_ON};
+use crate::app::{ApplicationState, SCROLL_REQUEST, TRIGGER_OFF, TRIGGER_ON};
 use druid::widget::{Axis, Scroll};
 use druid::{
     BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
@@ -26,9 +26,14 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
                 if data.modified.len() > 0 || data.edit {
                     println!("Window close not implemented for unsaved edits/edit mode")
                 } else {
+
                     data.current_book
                         .get_mut_nav()
-                        .set_line(self.child.offset_for_axis(Axis::Vertical));
+                        .set_element_number(
+                            data.view.get_element_from_offset(
+                                self.child.offset_for_axis(Axis::Vertical)
+                            )
+                        );
                     data.close_current_book();
                 }
             }
@@ -36,14 +41,29 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
                 if cmd.get(TRIGGER_ON).is_some() {
                     //println!("Triggered on to {}", self.child.offset_for_axis(Axis::Vertical));
                     self.child
-                        .scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
+                        .scroll_to_on_axis(Axis::Vertical, data.view.get_element_offset(
+                            data.current_book.get_nav().get_element_numer()
+                        ));
                     ctx.request_paint();
                 } else if cmd.get(TRIGGER_OFF).is_some() {
                     //println!("Triggered off to {} out of {}", self.child.offset_for_axis(Axis::Vertical), self.child.child_size().height);
                     data.current_book
                         .get_mut_nav()
-                        .set_line(self.child.offset_for_axis(Axis::Vertical));
+                        .set_element_number(
+                            data.view.get_element_from_offset(
+                                self.child.offset_for_axis(Axis::Vertical)
+                            )
+                        );
                     data.view.scroll_height = self.child.child_size().height;
+                }
+                else if cmd.get(SCROLL_REQUEST).is_some() {
+                    //println!("Triggered off to {} out of {}", self.child.offset_for_axis(Axis::Vertical), self.child.child_size().height);
+                    self.child.scroll_to_on_axis(Axis::Vertical,
+                                                 data.view.get_element_offset(
+                                                     data.current_book.get_nav().get_element_numer()
+                                                 )
+                    );
+                    ctx.request_paint();
                 }
             }
             _ => {}
@@ -74,7 +94,14 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
         data: &ApplicationState,
         env: &Env,
     ) {
-
+        if data.view.current_view.iter().any(|a| a.size.is_some()) && !old_data.view.current_view.iter().any(|a| a.size.is_some()){
+            self.child.scroll_to_on_axis(Axis::Vertical,
+                                         data.view.get_element_offset(
+                                             data.current_book.get_nav().get_element_numer()
+                                         )
+            );
+            ctx.request_paint();
+        }
         if data.view.current_view.iter().zip(old_data.view.current_view.iter()).any(|(a1, a2)| a1.content != a2.content) {
             self.child.update(ctx, old_data, data, env)
         }
@@ -88,9 +115,11 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
         env: &Env,
     ) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
-        self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
-        //data.view.get_view_size((self.child.child_size().width -80.0) as f32, self.child.child_size().height as f32); //100 should be the total horizontal padding
-        //println!("Layed to {}", data.current_book.get_nav().get_line());
+        /*self.child.scroll_to_on_axis(Axis::Vertical,
+                                     data.view.get_element_offset(
+                                         data.current_book.get_nav().get_element_numer()
+                                     )
+        );*/
         size
     }
 
@@ -116,16 +145,8 @@ impl<W: Widget<ApplicationState>> SyncScroll<W> {
 
 impl<W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut ApplicationState, env: &Env) {
-
         self.child.event(ctx, event, data, env);
         match event {
-            /*
-            Event::Command(cmd) => if cmd.get(TRIGGER_SYN).is_some(){
-                println!("Synched on to {}", self.child.offset_for_axis(Axis::Vertical));
-                self.child.scroll_to_on_axis(Axis::Vertical, data.current_book.get_nav().get_line());
-                ctx.request_paint();
-            }
-            */
             _ => {}
         }
     }
@@ -163,7 +184,10 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
             let rate = data.view.scroll_height / self.child.child_size().height;
             self.child.scroll_to_on_axis(
                 Axis::Vertical,
-                data.current_book.get_nav().get_line() * rate + 15.0,
+                data.view.get_element_offset(
+                    data.current_book.get_nav().get_element_numer()
+                )* rate + 15.0
+                ,
             );
             self.flag = false
         }

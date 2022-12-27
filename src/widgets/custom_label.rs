@@ -2,6 +2,7 @@ use std::any::Any;
 use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector, Size, UpdateCtx, Widget};
 use druid::widget::{LineBreaking, RawLabel};
 use crate::{ApplicationState, ContentType};
+use crate::app::SCROLL_REQUEST;
 use crate::book::page_element::PageElement;
 
 pub const UPDATE_SIZE: Selector<()> = Selector::new("label.size_changed");
@@ -28,7 +29,8 @@ impl Widget<PageElement> for BetterLabel {
         match event {
             Event::Command(cmd) => {
                 if cmd.get(UPDATE_SIZE).is_some() {
-                    data.size = <(f64, f64)>::from(ctx.size());
+                    data.size = Some(<(f64, f64)>::from(ctx.size()));
+                    //ctx.submit_command(SCROLL_REQUEST);
                 }
             }
             Event::MouseDown(_) => println!("WIDTH, HEIGHT -- {:?}", data.size),

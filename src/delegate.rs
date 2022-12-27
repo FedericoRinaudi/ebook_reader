@@ -68,8 +68,6 @@ impl AppDelegate<ApplicationState> for Delegate {
                     data.current_book.chapters.clone(),
                 )
             } else {
-                /* Qui stiamo prendendo un epub da aggiungere (?) TODO:IMPLEMENT THIS */
-                println!("epub mode!");
                 if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
                     data.is_loading = true;
                     fs::copy(
@@ -122,6 +120,10 @@ fn th_find_it(sink: ExtEventSink, path: PathBuf, chs: Vector<Chapter>) {
             .replace(".", " ");
         if let Some((index, offset)) = find_it(text, chs) {
             sink.submit_command(FINISH_SLOW_FUNCTION, (index, offset), Target::Auto)
+                .expect("command failed to submit");
+        }
+        else { //TODO: GESTISCI MEGLIO
+            sink.submit_command(FINISH_SLOW_FUNCTION, (0, 0), Target::Auto)
                 .expect("command failed to submit");
         }
     });

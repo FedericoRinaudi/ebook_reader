@@ -7,14 +7,14 @@ use druid::{ArcStr, Data, Env, ImageBuf};
 #[derive(Clone, Data, Debug)]
 pub struct PageElement{
     pub content: ContentType,
-    pub size: (f64, f64)
+    pub size: Option<(f64, f64)>
 }
 
 impl PageElement {
     pub fn new(con:ContentType) -> PageElement{
         PageElement{
             content : con,
-            size: (0.0,0.0)
+            size: Option::None
         }
     }
 }

@@ -169,7 +169,7 @@ impl Buttons {
                 data.current_book = Book::new(
                     book_info.get_path(),
                     book_info.start_chapter,
-                    book_info.start_line,
+                    book_info.start_element_number,
                 )
                 .unwrap();
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
@@ -232,7 +232,7 @@ impl Buttons {
                 data.current_book = Book::new(
                     book_info.get_path(),
                     book_info.start_chapter,
-                    book_info.start_line,
+                    book_info.start_element_number,
                 )
                 .unwrap();
                 data.update_view();

@@ -48,16 +48,16 @@ impl OcrAlgorithms {
 
         for w in chapter.windows(page.len()) {
             if algorithm(w, &page, 0.5) {
+                println!("Finito con offset: {}", offset);
                 return Some(offset);
             }
             offset += 1
         }
-        //println!("Finito su current chap");
         None
     }
 
     pub fn fuzzy_linear_compare(a: &[String], b: &[String], tol: f64) -> bool {
-        let mut eq: i32 = 0;
+        let mut eq: usize = 0;
 
         for (i, e) in a.iter().enumerate() {
             if *e == *(b.get(i).unwrap_or(&String::new())) {

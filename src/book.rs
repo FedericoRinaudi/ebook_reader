@@ -19,11 +19,11 @@ use zip::write::FileOptions;
 #[derive(Default, Debug, Clone, Data, Lens)]
 pub struct Navigation {
     ch: usize, // N° Capitolo corrente
-    line: f64, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
+    element_number: usize, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
 }
 impl Navigation {
-    pub fn new(ch: usize, line: f64) -> Self {
-        Navigation { ch, line: line }
+    pub fn new(ch: usize, line: usize) -> Self {
+        Navigation { ch, element_number: line }
     }
 
     pub fn get_ch(&self) -> usize {
@@ -32,11 +32,11 @@ impl Navigation {
     pub fn set_ch(&mut self, n: usize) {
         (*self).ch = n
     }
-    pub fn get_line(&self) -> f64 {
-        self.line
+    pub fn get_element_numer(&self) -> usize {
+        self.element_number
     }
-    pub fn set_line(&mut self, n: f64) {
-        (*self).line = n
+    pub fn set_element_number(&mut self, n: usize) {
+        (*self).element_number = n
     }
 }
 
@@ -58,7 +58,7 @@ impl Book {
         self.chapters.len() == 0
     }
 
-    pub fn new<P: AsRef<Path>>(path: P, init_chapter: usize, init_page: f64) -> Result<Self, ()> {
+    pub fn new<P: AsRef<Path>>(path: P, init_chapter: usize, init_element_number: usize) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
             .as_ref()
@@ -89,7 +89,7 @@ impl Book {
             epub_doc.go_next().is_ok()
         } {}
 
-        let nav_new = Navigation::new(init_chapter, init_page);
+        let nav_new = Navigation::new(init_chapter, init_element_number);
         Result::Ok(Self {
             path: book_path,
             nav: nav_new,
@@ -119,7 +119,7 @@ impl Book {
     }
 
     pub fn go_on(&mut self, n: usize) {
-        self.get_mut_nav().set_line(0.0);
+        self.get_mut_nav().set_element_number(0);
         self.nav
             .set_ch(if (self.nav.get_ch() + n) >= self.chapters.len() {
                 self.chapters.len() - 1
@@ -129,7 +129,7 @@ impl Book {
     }
 
     pub fn go_back(&mut self, n: usize) {
-        self.get_mut_nav().set_line(0.0);
+        self.get_mut_nav().set_element_number(0);
         self.nav.set_ch(if self.nav.get_ch() > n {
             self.nav.get_ch() - n
         } else {

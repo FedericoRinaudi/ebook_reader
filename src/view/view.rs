@@ -3,6 +3,7 @@ use azul_text_layout::text_shaping::get_font_metrics_freetype;
 use crate::{ApplicationState, ContentType};
 use druid::piet::TextStorage;
 use druid::{im::Vector, Data, Lens, LocalizedString};
+use druid::widget::Axis;
 use crate::book::page_element::PageElement;
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
@@ -58,6 +59,31 @@ impl View {
         (*self).window_size_home = size
     }
 
+    pub fn get_element_offset(&self, n:usize) -> f64 {
+        let mut sum = 0.0;
+        for el in self.current_view.iter().take(if n==0 {0} else {n-1} ) {
+            sum += el.size.unwrap_or((0.0,0.0)).1;
+        }
+        sum
+    }
+
+    pub fn get_element_from_offset(&self, height:f64) -> usize {
+        let mut element_number = 0;
+        let mut sum = 0.0;
+
+        for cont in self.current_view.iter() {
+            if let Some(size) = cont.size
+            {
+                if size.1 + sum < height - 1e-10 {
+                    sum += size.1;
+                    element_number += 1;
+                } else {
+                    break;
+                }
+            }
+        }
+        element_number
+    }
     /*
     pub fn get_view_size(&self, width:f32, h:f32) -> usize {
         println!("WIDTH: {}", width);

@@ -14,12 +14,12 @@ pub struct BookInfo {
     pub name: String,
     pub path: String,
     pub start_chapter: usize,
-    pub start_line: f64,
+    pub start_element_number: usize,
     pub cover_path: String,
 }
 
 impl BookInfo {
-    fn new(path: String, start_chapter: usize, start_line: f64, cover_path: String) -> Self {
+    fn new(path: String, start_chapter: usize, element_number: usize, cover_path: String) -> Self {
         let name = PathBuf::from(path.clone())
             .file_stem()
             .unwrap()
@@ -31,7 +31,7 @@ impl BookInfo {
             name,
             path,
             start_chapter,
-            start_line,
+            start_element_number: element_number,
             cover_path,
         }
     }
@@ -140,7 +140,7 @@ impl BookCase {
                 }
                 None => {
                     file_need_update = true;
-                    BookInfo::new(book_path.clone(), 0, 0.0, Self::get_image(book_path))
+                    BookInfo::new(book_path.clone(), 0, 0, Self::get_image(book_path))
                 }
             })
         }
@@ -177,7 +177,7 @@ impl BookCase {
                         + "|"
                         + &(infos.start_chapter.to_string())
                         + "|"
-                        + &(infos.start_line.to_string())
+                        + &(infos.start_element_number.to_string())
                         + "|"
                         + &(infos.cover_path.to_string())
                         + "\n")

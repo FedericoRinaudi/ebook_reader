@@ -205,7 +205,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                 let due = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_spacer(15.0)
-                    .with_child(Label::new(&*book_info.name.clone()).with_text_size(20.0))
+                    .with_child(Label::new(&*book_info.name.clone()).with_text_size(20.0).with_line_break_mode(LineBreaking::WordWrap))
                     .with_spacer(4.0)
                     //TODO: Salvo su file e aggiungo le informazioni corrette
                     .with_child(Label::new(
@@ -213,7 +213,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                     ))
                     .with_spacer(1.0)
                     .with_child(Label::new(
-                        String::from("Offset: ") + &*book_info.start_line.clone().to_string(),
+                        String::from("Offset: ") + &*book_info.start_element_number.clone().to_string(),
                     ))
                     .with_spacer(90.0)
                     .with_child(
@@ -227,7 +227,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                     );
 
                 pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.3);
-                pill.add_flex_child(due, 0.7);
+                pill.add_flex_child(Padding::new((0.0, 0.0, 0.0, 10.0), due), 0.7);
 
                 /*let wrap = Container::new(pill)
                 .border(Color::WHITE, 1.0)
