@@ -1,15 +1,17 @@
-use druid::im::HashMap;
-use druid::text::Attribute;
+use druid::im::{HashMap, Vector};
+use druid::text::{Attribute, RichText};
+use druid::Data;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum AttributeCase {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Data)]
+pub enum AttributeCase {
     FontSize,
     Style,
     Weight, //TODO: aggiungo e aggiorno i casi man mano che mi servono
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct RangeAttribute {
+#[derive(Debug, Clone, Data)]
+pub struct RangeAttribute {
+    #[data(ignore)]
     attribute: Attribute,
     start: usize,
     end: Option<usize>,
@@ -35,10 +37,10 @@ impl RangeAttribute {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Data)]
 pub struct EpubText {
-    attributes: HashMap<AttributeCase, Vec<RangeAttribute>>,
-    text: String,
+    pub attributes: HashMap<AttributeCase, Vector<RangeAttribute>>,
+    pub text: String,
 }
 
 impl EpubText {
@@ -48,12 +50,18 @@ impl EpubText {
             text: String::new(),
         }
     }
+    pub(crate) fn from(s:String) -> Self {
+        Self {
+            attributes: HashMap::new(),
+            text: s,
+        }
+    }
 
     pub(crate) fn get_text(&self) -> &String {
         &self.text
     }
 
-    pub(crate) fn get_attributes(&self) -> &HashMap<AttributeCase, Vec<RangeAttribute>> {
+    pub(crate) fn get_attributes(&self) -> &HashMap<AttributeCase, Vector<RangeAttribute>> {
         &self.attributes
     }
 
@@ -61,23 +69,33 @@ impl EpubText {
         self.attributes
             .entry(attr_name)
             .and_modify(|range_attribute| {
-                range_attribute.push(RangeAttribute::new(
+                range_attribute.push_back(RangeAttribute::new(
                     attr.clone(),
                     self.text.len(),
                     Option::None,
                 ));
             })
-            .or_insert(vec![RangeAttribute::new(
+            .or_insert(Vector::from(vec![RangeAttribute::new(
                 attr,
                 self.text.len(),
                 Option::None,
-            )]);
+            )]));
     }
 
     pub(crate) fn rm_attr(&mut self, attr_name: AttributeCase) {
+        /*
         self.attributes
             .entry(attr_name)
-            .and_modify(|range_attribute| match range_attribute.last_mut() {
+            .and_modify(|range_attribute| match range_attribute.last_mut() { //last mut
+                Some(attr) => {
+                    (*attr).end = Option::Some(self.text.len());
+                }
+                None => {}
+            });
+          */
+        self.attributes
+            .entry(attr_name)
+            .and_modify(|range_attribute| match range_attribute.iter_mut().last() { //last mut
                 Some(attr) => {
                     (*attr).end = Option::Some(self.text.len());
                 }
@@ -99,13 +117,33 @@ impl EpubText {
             .map(|(key, val)| {
                 (
                     key,
-                    vec![RangeAttribute::new(
+                    Vector::from(vec![RangeAttribute::new(
                         (*val.last().unwrap()).attribute.clone(),
                         0 as usize,
                         None,
-                    )],
+                    )]),
                 )
             })
             .collect();
+    }
+
+    /* Crea un PageElement a partire da un EpubText */
+    pub fn to_richtext(&self) -> RichText {
+        let mut rich_text = RichText::new(self.get_text().as_str().into());
+        for range_attributes in self.get_attributes().values() {
+            for range_attr in range_attributes {
+                match range_attr.get_end() {
+                    Some(end) => rich_text.add_attribute(
+                        (*range_attr).get_start()..end,
+                        range_attr.get_attribute().clone(),
+                    ),
+                    None => rich_text.add_attribute(
+                        (*range_attr).get_start()..,
+                        range_attr.get_attribute().clone(),
+                    ),
+                };
+            }
+        }
+        rich_text
     }
 }

@@ -84,38 +84,38 @@ impl View {
                     with the richtext in the PageElement
 
                     */
-                    let text = rt.as_str();
+                    let text = rt.clone().text;
 
-                    let words = split_text_into_words(text);
+                    let words = split_text_into_words(&*text);
                     let scaled_words = words_to_scaled_words(&words, font, 0, font_metrics, font_size);
 
                     let space = scaled_words.space_advance_px;
 
                     let mut current_w = 0.0;
                     size_a +=1;
-                    println!("NEW ELEMENT!");
+                    //println!("NEW ELEMENT!");
 
                     for word in scaled_words.items {
 
                         if current_w + word.word_width > width{
                             size_a +=1; //Andiamo a capo, +1 linea
                             current_w = word.word_width + space;
-                            println!("NEW LINE: {:?}, total: {}", word.word_width, size_a);
+                            //println!("NEW LINE: {:?}, total: {}", word.word_width, size_a);
                         }else{
                             current_w += word.word_width + space;
-                            println!("{:?} added, current width: {}, lines: {}", word.word_width, current_w, size_a);
+                            //println!("{:?} added, current width: {}, lines: {}", word.word_width, current_w, size_a);
                         }
                     }
 
                     // size_a += if total_width == 0.0 {1.0} else {(total_width/width).ceil()};
 
-                    let current_size = rt.as_str().chars().count()/100 +1; //TODO: make 100 a window_size based value
+                    let current_size = rt.text.chars().count()/100 +1; //TODO: make 100 a window_size based value
                     size += current_size
                 }
                 _ => (),
             }
         }
-        println!("Line guess: {}, Line Azul: {}, ScrollHeight:{}, Azul scroll height: {}", size, size_a, h, size_a*20);
+        println!("Line guess: {}, Line Azul: {}, ScrollHeight:{}, Azul scroll height: {}", size, size_a, h, size_a*19);
         size
     }
 

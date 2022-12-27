@@ -3,32 +3,18 @@ use druid::piet::{PietTextLayoutBuilder, TextStorage as PietTextStorage};
 use druid::text::{EnvUpdateCtx, Link, RichText, TextStorage};
 use druid::{ArcStr, Data, Env, ImageBuf};
 
+
+
+
 #[derive(Clone, Data, Debug)]
 pub enum PageElement {
-    Text(RichText),
+    Text(EpubText),
     Image(ImageBuf),
-    Error(RichText),
+    Error(EpubText),
 }
+
+
 impl PageElement {
-    /* Crea un PageElement a partire da un EpubText */
-    pub fn from_text(text: &EpubText) -> Self {
-        let mut rich_text = RichText::new(text.get_text().as_str().into());
-        for range_attributes in text.get_attributes().values() {
-            for range_attr in range_attributes {
-                match range_attr.get_end() {
-                    Some(end) => rich_text.add_attribute(
-                        (*range_attr).get_start()..end,
-                        range_attr.get_attribute().clone(),
-                    ),
-                    None => rich_text.add_attribute(
-                        (*range_attr).get_start()..,
-                        range_attr.get_attribute().clone(),
-                    ),
-                };
-            }
-        }
-        PageElement::Text(rich_text)
-    }
 
     /* Crea un PageElement a partire da un'immagine */
     pub fn _from_image(img_data: &[u8]) -> Self {
@@ -39,7 +25,7 @@ impl PageElement {
             }
             Err(_) => {
                 // println!("Errore, interrotto");
-                PageElement::Text(RichText::new(ArcStr::from("[Error rendering image]")))
+                PageElement::Text(EpubText::from("[IMG]".to_string()))
             }
         }
     }
@@ -54,9 +40,9 @@ impl PietTextStorage for PageElement {
     //
     fn as_str(&self) -> &str {
         match self {
-            PageElement::Text(t) => t.as_str(),
+            PageElement::Text(t) => &t.text,
             PageElement::Image(_) => "[IMG]",
-            PageElement::Error(e) => e.as_str(),
+            PageElement::Error(e) => &e.text,
         }
     }
 }
@@ -64,25 +50,26 @@ impl PietTextStorage for PageElement {
 impl TextStorage for PageElement {
     fn add_attributes(&self, builder: PietTextLayoutBuilder, env: &Env) -> PietTextLayoutBuilder {
         match self {
-            PageElement::Text(t) => t.add_attributes(builder, env),
+            PageElement::Text(t) => t.to_richtext().add_attributes(builder, env),
             PageElement::Image(_) => RichText::new("".into()).add_attributes(builder, env),
-            PageElement::Error(e) => e.add_attributes(builder, env),
+            PageElement::Error(e) => e.to_richtext().add_attributes(builder, env),
         }
     }
 
     fn env_update(&self, ctx: &EnvUpdateCtx) -> bool {
         match self {
-            PageElement::Text(t) => t.env_update(ctx),
+            PageElement::Text(t) => t.to_richtext().env_update(ctx),
             PageElement::Image(_) => true,
-            PageElement::Error(e) => e.env_update(ctx),
+            PageElement::Error(e) => e.to_richtext().env_update(ctx),
         }
     }
-
+    /*
     fn links(&self) -> &[Link] {
         match self {
-            PageElement::Text(t) => t.links(),
+            PageElement::Text(t) => t.to_richtext().links().clone(),
             PageElement::Image(_) => Default::default(),
-            PageElement::Error(e) => e.links(),
+            PageElement::Error(e) => e.to_richtext().links().clone(),
         }
     }
+    */
 }

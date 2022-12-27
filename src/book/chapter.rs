@@ -34,7 +34,7 @@ impl Chapter {
             Result::Ok(doc) => doc,
             Err(e) => {
                 let mut v = Vector::new();
-                v.push_back(PageElement::Error(RichText::new(e.to_string().into())));
+                v.push_back(PageElement::Error(EpubText::from(e.to_string())));
                 return v;
             }
         };
@@ -80,7 +80,7 @@ impl Chapter {
 
         macro_rules! new_line {
             () => {
-                elements.push_back(PageElement::from_text(&current_text));
+                elements.push_back(PageElement::Text(current_text.clone()));
                 current_text.reset();
             };
         }

@@ -9,6 +9,7 @@ use druid::widget::{
     List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
 };
 use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
+use crate::widgets::custom_label::BetterLabel;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -151,10 +152,8 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                         match data {
                             PageElement::Text(_) => {
-                                let mut label = RawLabel::new();
-                                label.set_line_break_mode(LineBreaking::WordWrap);
-                                Box::new(label)
-                            }
+                                Box::new(BetterLabel::new())
+                            },
                             PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
                                 Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
                             )),
