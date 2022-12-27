@@ -50,7 +50,7 @@ impl EpubText {
             text: String::new(),
         }
     }
-    pub(crate) fn from(s:String) -> Self {
+    pub(crate) fn from(s: String) -> Self {
         Self {
             attributes: HashMap::new(),
             text: s,
@@ -95,7 +95,8 @@ impl EpubText {
           */
         self.attributes
             .entry(attr_name)
-            .and_modify(|range_attribute| match range_attribute.iter_mut().last() { //last mut
+            .and_modify(|range_attribute| match range_attribute.iter_mut().last() {
+                //last mut
                 Some(attr) => {
                     (*attr).end = Option::Some(self.text.len());
                 }

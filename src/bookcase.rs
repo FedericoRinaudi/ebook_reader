@@ -199,7 +199,6 @@ impl BookCase {
         .unwrap()
         .to_string();*/
 
-        //TODO: gestisco un eventuale fallimento della get cover
         let cover_data = match doc.get_cover() {
             Ok(data) => data,
             Err(_) => return String::from("./images/default.jpeg"),

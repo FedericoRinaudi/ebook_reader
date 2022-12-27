@@ -1,7 +1,7 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
 use druid::text::{Attribute, RichText};
-use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens, FontFamily};
+use druid::{im::Vector, Data, FontFamily, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
 
@@ -34,7 +34,9 @@ impl Chapter {
             Result::Ok(doc) => doc,
             Err(e) => {
                 let mut v = Vector::new();
-                v.push_back(PageElement::new(ContentType::Error(EpubText::from(e.to_string()))));
+                v.push_back(PageElement::new(ContentType::Error(EpubText::from(
+                    e.to_string(),
+                ))));
                 return v;
             }
         };
@@ -100,7 +102,10 @@ impl Chapter {
                     Attribute::FontSize(druid::KeyOrValue::Concrete(16.0)),
                 );
             }
-            current_text.add_attr(AttributeCase::Style, Attribute::FontFamily(FontFamily::SANS_SERIF));
+            current_text.add_attr(
+                AttributeCase::Style,
+                Attribute::FontFamily(FontFamily::SANS_SERIF),
+            );
 
             if text.starts_with(char::is_whitespace) {
                 current_text.push_str(" ");

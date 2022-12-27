@@ -3,18 +3,17 @@ use druid::piet::{PietTextLayoutBuilder, TextStorage as PietTextStorage};
 use druid::text::{EnvUpdateCtx, Link, RichText, TextStorage};
 use druid::{ArcStr, Data, Env, ImageBuf};
 
-
 #[derive(Clone, Data, Debug)]
-pub struct PageElement{
+pub struct PageElement {
     pub content: ContentType,
-    pub size: Option<(f64, f64)>
+    pub size: Option<(f64, f64)>,
 }
 
 impl PageElement {
-    pub fn new(con:ContentType) -> PageElement{
-        PageElement{
-            content : con,
-            size: Option::None
+    pub fn new(con: ContentType) -> PageElement {
+        PageElement {
+            content: con,
+            size: Option::None,
         }
     }
 }
@@ -48,9 +47,6 @@ impl TextStorage for PageElement {
     }
 }
 
-
-
-
 #[derive(Clone, Data, Debug)]
 pub enum ContentType {
     Text(EpubText),
@@ -58,9 +54,7 @@ pub enum ContentType {
     Error(EpubText),
 }
 
-
 impl ContentType {
-
     /* Crea un PageElement a partire da un'immagine */
     pub fn _from_image(img_data: &[u8]) -> Self {
         match ImageBuf::from_data(img_data) {
@@ -124,15 +118,11 @@ impl TextStorage for ContentType {
 impl PartialEq for ContentType {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-
             (ContentType::Text(s1), ContentType::Text(s2)) => s1.text == s2.text,
             (ContentType::Error(e1), ContentType::Error(e2)) => e1.text == e2.text,
-            (ContentType::Image(i1), ContentType::Image(i2)) => {
-                true
-            }
+            (ContentType::Image(i1), ContentType::Image(i2)) => true,
             // Return false if the enums contain different types
             _ => false,
         }
     }
 }
-

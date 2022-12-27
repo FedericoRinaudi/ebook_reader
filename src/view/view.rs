@@ -1,10 +1,10 @@
+use crate::book::page_element::PageElement;
+use crate::{ApplicationState, ContentType};
 use azul_text_layout::text_layout::{split_text_into_words, words_to_scaled_words};
 use azul_text_layout::text_shaping::get_font_metrics_freetype;
-use crate::{ApplicationState, ContentType};
 use druid::piet::TextStorage;
-use druid::{im::Vector, Data, Lens, LocalizedString};
 use druid::widget::Axis;
-use crate::book::page_element::PageElement;
+use druid::{im::Vector, Data, Lens, LocalizedString};
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
     LocalizedString::new("Ebook Reader - Library");
@@ -59,21 +59,24 @@ impl View {
         (*self).window_size_home = size
     }
 
-    pub fn get_element_offset(&self, n:usize) -> f64 {
+    pub fn get_element_offset(&self, n: usize) -> f64 {
         let mut sum = 0.0;
-        for el in self.current_view.iter().take(if n==0 {0} else {n-1} ) {
-            sum += el.size.unwrap_or((0.0,0.0)).1;
+        for el in self
+            .current_view
+            .iter()
+            .take(if n == 0 { 0 } else { n - 1 })
+        {
+            sum += el.size.unwrap_or((0.0, 0.0)).1;
         }
         sum
     }
 
-    pub fn get_element_from_offset(&self, height:f64) -> usize {
+    pub fn get_element_from_offset(&self, height: f64) -> usize {
         let mut element_number = 0;
         let mut sum = 0.0;
 
         for cont in self.current_view.iter() {
-            if let Some(size) = cont.size
-            {
+            if let Some(size) = cont.size {
                 if size.1 + sum < height - 1e-10 {
                     sum += size.1;
                     element_number += 1;
@@ -89,7 +92,8 @@ impl View {
         let mut page_element_number = 0;
         for page_element in &self.current_view {
             if let ContentType::Text(text) = page_element.content.clone() {
-                let long_words = text.text
+                let long_words = text
+                    .text
                     .split(" ")
                     .map(|el| el.chars().filter(|c| c.is_alphabetic()).collect::<String>())
                     .filter(|w| w.len() >= 5)
@@ -167,5 +171,4 @@ impl View {
         size
     }
     */
-
 }

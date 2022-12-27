@@ -1,20 +1,37 @@
+use crate::book::page_element::PageElement;
 use crate::book::{chapter::Chapter, Book};
 use crate::controllers::Update;
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
+use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::{ApplicationState, ContentType};
 use druid::widget::{
-    ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking,
-    List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
+    BackgroundBrush, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label,
+    LineBreaking, List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
 };
 use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
-use crate::book::page_element::PageElement;
-use crate::widgets::custom_label::BetterLabel;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
-    let main_nav: ViewSwitcher<ApplicationState, bool> = ViewSwitcher::new(
+    Flex::column()
+        .with_child(ViewSwitcher::new(
+        |data: &ApplicationState, _| data.error_message.clone(), /* Ad ora non funziona... lo fixo */
+        |msg, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+            let mut error_row = Flex::row().must_fill_main_axis(true);
+            match msg {
+                None => {}
+                Some(msg) => {
+                    error_row.add_child(Padding::new(10.0,Label::new(msg.to_string()).with_text_color(Color::rgb(0.9, 0.05, 0.05)).with_text_size(14.)));
+                    error_row.add_flex_spacer(1.0);
+                    error_row.add_child(Padding::new(10.0,Buttons::btn_close_error()));
+                }
+            }
+            Box::new(error_row.background(Color::rgb(0.247, 0.194, 0.182)))
+        },
+    )
+        )
+        .with_flex_child(ViewSwitcher::new(
         |data: &ApplicationState, _| data.is_loading, /* Ad ora non funziona... lo fixo */
         |_load, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
             if !data.is_loading {
@@ -35,9 +52,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                 Box::new(Spinner::new().fix_height(40.0).center())
             }
         },
-    );
-
-    main_nav
+    ), 1.)
 }
 
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
@@ -54,7 +69,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                             == data.current_book.chapters[data.current_book.get_nav().get_ch()].xml
                     },
                     |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-                        Box::new( if *cond {
+                        Box::new(if *cond {
                             Flex::row()
                                 .with_child(Buttons::bnt_view())
                                 .with_spacer(20.0)
@@ -68,7 +83,6 @@ fn render_book() -> impl Widget<ApplicationState> {
                     },
                 );
                 let screen = render_edit_mode();
-
 
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
@@ -88,7 +102,6 @@ fn render_book() -> impl Widget<ApplicationState> {
                     .with_flex_spacer(0.3)
                     .with_flex_child(Buttons::btn_next(), 0.1);
                 let screen = BetterScroll::new(render_view_mode());
-
 
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
@@ -152,9 +165,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     |data: &PageElement, _| data.content.clone(),
                     |ele, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                         match &ele {
-                            ContentType::Text(_) => {
-                                Box::new(BetterLabel::new())
-                            },
+                            ContentType::Text(_) => Box::new(BetterLabel::new()),
                             ContentType::Image(img_buf) => Box::new(Flex::row().with_child(
                                 Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
                             )),
@@ -169,7 +180,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
             })
             .lens(lens);
             viewport.add_child(chapter);
-            Box::new(Padding::new((30.0,0.0,30.0,0.0),viewport))
+            Box::new(Padding::new((30.0, 0.0, 30.0, 0.0), viewport))
         },
     )
 }
@@ -205,7 +216,11 @@ fn render_library() -> impl Widget<ApplicationState> {
                 let due = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_spacer(15.0)
-                    .with_child(Label::new(&*book_info.name.clone()).with_text_size(20.0).with_line_break_mode(LineBreaking::WordWrap))
+                    .with_child(
+                        Label::new(&*book_info.name.clone())
+                            .with_text_size(20.0)
+                            .with_line_break_mode(LineBreaking::WordWrap),
+                    )
                     .with_spacer(4.0)
                     //TODO: Salvo su file e aggiungo le informazioni corrette
                     .with_child(Label::new(
@@ -213,7 +228,8 @@ fn render_library() -> impl Widget<ApplicationState> {
                     ))
                     .with_spacer(1.0)
                     .with_child(Label::new(
-                        String::from("Offset: ") + &*book_info.start_element_number.clone().to_string(),
+                        String::from("Offset: ")
+                            + &*book_info.start_element_number.clone().to_string(),
                     ))
                     .with_spacer(90.0)
                     .with_child(

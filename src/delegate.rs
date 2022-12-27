@@ -78,20 +78,31 @@ impl AppDelegate<ApplicationState> for Delegate {
                     .expect("Failed to copy file");
                     data.bookcase = BookCase::new();
                     data.is_loading = false;
+                } else {
+                    data.error_message = Option::Some("Impossible to open selected Epub".to_string());
                 }
             }
             return Handled::Yes;
         }
 
-        if let Some((ch, off)) = cmd.get(FINISH_SLOW_FUNCTION) {
+        if let Some(res) = cmd.get(FINISH_SLOW_FUNCTION) {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
-            data.current_book.get_mut_nav().set_ch(*ch);
-            data.update_view();
-            data.current_book.get_mut_nav().set_element_number(data.view.ocr_offset_to_element(*off));
-            println!(
-                "OCR Done, ch: {}, offset di words with len()>5: {}, page element n. {}",
-                ch, off, data.view.ocr_offset_to_element(*off)
-            );
+            if let Some((ch, off)) = res {
+                data.current_book.get_mut_nav().set_ch(*ch);
+                data.update_view();
+                data.current_book
+                    .get_mut_nav()
+                    .set_element_number(data.view.ocr_offset_to_element(*off));
+                println!(
+                    "OCR Done, ch: {}, offset di words with len()>5: {}, page element n. {}",
+                    ch,
+                    off,
+                    data.view.ocr_offset_to_element(*off)
+                );
+            } else {
+                data.error_message = Some("No matches were found, please try again with a better quality image.".to_string());
+                data.current_book = Book::empty_book();
+            }
             data.is_loading = false;
             return Handled::Yes;
         }
@@ -120,11 +131,14 @@ fn th_find_it(sink: ExtEventSink, path: PathBuf, chs: Vector<Chapter>) {
             .replace("\n", " ")
             .replace(".", " ");
         if let Some((index, offset)) = find_it(text, chs) {
-            sink.submit_command(FINISH_SLOW_FUNCTION, (index, offset), Target::Auto)
-                .expect("command failed to submit");
-        }
-        else { //TODO: GESTISCI MEGLIO
-            sink.submit_command(FINISH_SLOW_FUNCTION, (0, 0), Target::Auto)
+            sink.submit_command(
+                FINISH_SLOW_FUNCTION,
+                Option::Some((index, offset)),
+                Target::Auto,
+            )
+            .expect("command failed to submit");
+        } else {
+            sink.submit_command(FINISH_SLOW_FUNCTION, Option::None, Target::Auto)
                 .expect("command failed to submit");
         }
     });
@@ -143,8 +157,6 @@ fn find_it(text: String, chs: Vector<Chapter>) -> Option<(usize, usize)> {
     }
     None
 }
-
-
 
 /* PROVE OCR
 

@@ -18,12 +18,15 @@ use zip::write::FileOptions;
 
 #[derive(Default, Debug, Clone, Data, Lens)]
 pub struct Navigation {
-    ch: usize, // N° Capitolo corrente
+    ch: usize,             // N° Capitolo corrente
     element_number: usize, // Pagine rimosse -> Offset nel capitolo !!!! Tipo diverso da usize(?)
 }
 impl Navigation {
     pub fn new(ch: usize, line: usize) -> Self {
-        Navigation { ch, element_number: line }
+        Navigation {
+            ch,
+            element_number: line,
+        }
     }
 
     pub fn get_ch(&self) -> usize {
@@ -58,7 +61,11 @@ impl Book {
         self.chapters.len() == 0
     }
 
-    pub fn new<P: AsRef<Path>>(path: P, init_chapter: usize, init_element_number: usize) -> Result<Self, ()> {
+    pub fn new<P: AsRef<Path>>(
+        path: P,
+        init_chapter: usize,
+        init_element_number: usize,
+    ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
             .as_ref()

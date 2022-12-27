@@ -41,7 +41,10 @@ impl Buttons {
             })
     }
 
-    pub fn btn_confirm() -> DisabledIf<ApplicationState, ControllerHost<Align<ApplicationState>, Click<ApplicationState>>> {
+    pub fn btn_confirm() -> DisabledIf<
+        ApplicationState,
+        ControllerHost<Align<ApplicationState>, Click<ApplicationState>>,
+    > {
         let confirm_svg = match include_str!("../../icons/confirm.svg").parse::<SvgData>() {
             Ok(svg) => svg,
             Err(_) => SvgData::default(),
@@ -80,21 +83,21 @@ impl Buttons {
     }
 
     pub fn bnt_view() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
-
         let read_svg = match include_str!("../../icons/read.svg").parse::<SvgData>() {
             Ok(svg) => svg,
             Err(_) => SvgData::default(),
         };
         Svg::new(read_svg.clone())
             .fix_width(LIBRARY_SVG_BIG)
-            .center().on_click(|ctx, data: &mut ApplicationState, _env| {
-            /*  EDIT MODE -> VIEW MODE */
-            data.view
-                .set_window_size_edit(<(f64, f64)>::from(ctx.window().get_size()));
-            ctx.window().set_size(data.view.get_window_size_view());
-            ctx.window().set_title("VIEW MODE");
-            data.edit = !data.edit;
-        })
+            .center()
+            .on_click(|ctx, data: &mut ApplicationState, _env| {
+                /*  EDIT MODE -> VIEW MODE */
+                data.view
+                    .set_window_size_edit(<(f64, f64)>::from(ctx.window().get_size()));
+                ctx.window().set_size(data.view.get_window_size_view());
+                ctx.window().set_title("VIEW MODE");
+                data.edit = !data.edit;
+            })
     }
 
     pub fn btn_discard() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
@@ -104,11 +107,26 @@ impl Buttons {
         };
         Svg::new(discard_svg.clone())
             .fix_width(LIBRARY_SVG_BIG)
-            .center().on_click(|_ctx, data: &mut ApplicationState, _env| {
-            /* EDIT MODE -> EDIT MODE, Discard Changes */
-            data.current_book.update_xml(data.xml_backup.clone());
-            data.update_view();
-        })
+            .center()
+            .on_click(|_ctx, data: &mut ApplicationState, _env| {
+                /* EDIT MODE -> EDIT MODE, Discard Changes */
+                data.current_book.update_xml(data.xml_backup.clone());
+                data.update_view();
+            })
+    }
+
+    pub fn btn_close_error() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
+        let close_svg = match include_str!("../../icons/close_error.svg").parse::<SvgData>() {
+            Ok(svg) => svg,
+            Err(_) => SvgData::default(),
+        };
+        Svg::new(close_svg.clone())
+            .fix_width(20.)
+            .center()
+            .on_click(|_ctx, data: &mut ApplicationState, _env| {
+                /* EDIT MODE -> EDIT MODE, Discard Changes */
+                data.error_message = None;
+            })
     }
 
     //TODO: Button to save on file
@@ -124,17 +142,19 @@ impl Buttons {
                             Ok(svg) => svg,
                             Err(_) => SvgData::default(),
                         };
-                        Box::new(Svg::new(save_svg)
-                            .fix_width(LIBRARY_SVG_DIM)
-                            .center()
-                            .on_click(|ctx, data: &mut ApplicationState, _env| {
-                                /* SAVE CHANGES ON NEW FILE */
-                                ctx.submit_command(druid::commands::SHOW_SAVE_PANEL.with(
-                                    save_file(
-                                        data.get_current().name.clone() + &*String::from(".epub"),
-                                    ),
-                                ));
-                            })
+                        Box::new(
+                            Svg::new(save_svg)
+                                .fix_width(LIBRARY_SVG_DIM)
+                                .center()
+                                .on_click(|ctx, data: &mut ApplicationState, _env| {
+                                    /* SAVE CHANGES ON NEW FILE */
+                                    ctx.submit_command(druid::commands::SHOW_SAVE_PANEL.with(
+                                        save_file(
+                                            data.get_current().name.clone()
+                                                + &*String::from(".epub"),
+                                        ),
+                                    ));
+                                }),
                         )
                     }
                     false => {
@@ -144,9 +164,10 @@ impl Buttons {
                             Ok(svg) => svg,
                             Err(_) => SvgData::default(),
                         };
-                        Box::new(Svg::new(save_disabled_svg)
-                            .fix_width(LIBRARY_SVG_DIM)
-                            .center()
+                        Box::new(
+                            Svg::new(save_disabled_svg)
+                                .fix_width(LIBRARY_SVG_DIM)
+                                .center(),
                         )
                     }
                 }

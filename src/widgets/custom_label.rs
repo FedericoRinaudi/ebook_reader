@@ -1,9 +1,12 @@
-use std::any::Any;
-use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector, Size, UpdateCtx, Widget};
-use druid::widget::{LineBreaking, RawLabel};
-use crate::{ApplicationState, ContentType};
 use crate::app::SCROLL_REQUEST;
 use crate::book::page_element::PageElement;
+use crate::{ApplicationState, ContentType};
+use druid::widget::{LineBreaking, RawLabel};
+use druid::{
+    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector,
+    Size, UpdateCtx, Widget,
+};
+use std::any::Any;
 
 pub const UPDATE_SIZE: Selector<()> = Selector::new("label.size_changed");
 
@@ -14,12 +17,9 @@ pub struct BetterLabel {
 impl BetterLabel {
     /*TODO: FAI CASO PER IMMAGINE*/
     pub fn new() -> BetterLabel {
-
         let mut rawlab = RawLabel::new();
         rawlab.set_line_break_mode(LineBreaking::WordWrap);
-            BetterLabel {
-                child: rawlab
-            }
+        BetterLabel { child: rawlab }
     }
 }
 

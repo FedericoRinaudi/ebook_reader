@@ -9,10 +9,12 @@ pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
 pub const TRIGGER_OFF: Selector<()> = Selector::new("wrapper.focus_off");
 pub const SCROLL_REQUEST: Selector<()> = Selector::new("wrapper.scroll");
 //pub const TRIGGER_SYN: Selector<()> = Selector::new("wrapper.focus_syn");
-pub const FINISH_SLOW_FUNCTION: Selector<(usize, usize)> = Selector::new("finish_slow_function");
+pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize)>> =
+    Selector::new("finish_slow_function");
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
+    pub error_message: Option<String>,
     pub current_book: Book,
     pub edit: bool,               // Serve a switchare da view mode a edit mode
     pub xml_backup: String,       // xml backup useful to discard changes done in edit mode
@@ -26,6 +28,7 @@ pub struct ApplicationState {
 impl ApplicationState {
     pub fn new() -> ApplicationState {
         let app = ApplicationState {
+            error_message: None,
             current_book: Book::empty_book(),
             edit: false,
             xml_backup: "".to_string(),
