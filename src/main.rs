@@ -12,7 +12,7 @@ use druid::{AppLauncher, WindowDesc};
 use view::view::WINDOW_TITLE;
 
 use crate::app::ApplicationState;
-use crate::book::page_element::PageElement;
+use crate::book::page_element::ContentType;
 use crate::book::Book;
 use crate::view::render::build_main_view;
 use delegate::Delegate;

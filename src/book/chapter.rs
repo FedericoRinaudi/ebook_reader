@@ -5,7 +5,7 @@ use druid::{im::Vector, Data, FontStyle, FontWeight, ImageBuf, Lens, FontFamily}
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
 
-use crate::book::page_element::PageElement;
+use crate::book::page_element::{ContentType, PageElement};
 use crate::utilities::get_image_buf;
 
 const MAX_SIZE: f64 = 35.0;
@@ -34,7 +34,7 @@ impl Chapter {
             Result::Ok(doc) => doc,
             Err(e) => {
                 let mut v = Vector::new();
-                v.push_back(PageElement::Error(EpubText::from(e.to_string())));
+                v.push_back(PageElement::new(ContentType::Error(EpubText::from(e.to_string()))));
                 return v;
             }
         };
@@ -80,7 +80,7 @@ impl Chapter {
 
         macro_rules! new_line {
             () => {
-                elements.push_back(PageElement::Text(current_text.clone()));
+                elements.push_back(PageElement::new(ContentType::Text(current_text.clone())));
                 current_text.reset();
             };
         }
@@ -96,9 +96,10 @@ impl Chapter {
                 .is_none()
             {
                 current_text.add_attr(
-                AttributeCase::FontSize,
-                Attribute::FontSize(druid::KeyOrValue::Concrete(16.0)),
-            );}
+                    AttributeCase::FontSize,
+                    Attribute::FontSize(druid::KeyOrValue::Concrete(16.0)),
+                );
+            }
             current_text.add_attr(AttributeCase::Style, Attribute::FontFamily(FontFamily::SANS_SERIF));
 
             if text.starts_with(char::is_whitespace) {
@@ -128,9 +129,9 @@ impl Chapter {
             "img" => {
                 new_line!();
                 let image_path = PathBuf::from(node.attribute("src").unwrap());
-                elements.push_back(PageElement::Image(
+                elements.push_back(PageElement::new(ContentType::Image(
                     images_cache.get(&image_path).unwrap().clone(),
-                ));
+                )));
                 new_line!();
             }
             "a" => {

@@ -5,7 +5,7 @@ pub(crate) mod page_element;
 use walkdir::WalkDir;
 
 use crate::book::chapter::Chapter;
-use crate::book::page_element::PageElement;
+use crate::book::page_element::{ContentType, PageElement};
 use druid::im::HashSet;
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;

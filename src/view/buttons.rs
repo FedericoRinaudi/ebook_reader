@@ -54,7 +54,7 @@ impl Buttons {
                 // data.current_book.save();
                 data.xml_backup = data.current_book.chapters[data.current_book.get_nav().get_ch()].xml.clone();
                 data.modified.insert(data.current_book.get_nav().get_ch()); /* Inserisco se non è già presente il capitolo corrente in quelli modificati */
-            }).disabled_if(|data: &ApplicationState, _| data.view.current_view.len()==0 || data.view.current_view[0].is_err())
+            }).disabled_if(|data: &ApplicationState, _| data.view.current_view.len()==0 || data.view.current_view[0].content.is_err())
     }
 
     pub fn btn_edit() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {

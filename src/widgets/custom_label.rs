@@ -1,6 +1,10 @@
-use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget};
+use std::any::Any;
+use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector, Size, UpdateCtx, Widget};
 use druid::widget::{LineBreaking, RawLabel};
-use crate::{ApplicationState, PageElement};
+use crate::{ApplicationState, ContentType};
+use crate::book::page_element::PageElement;
+
+pub const UPDATE_SIZE: Selector<()> = Selector::new("label.size_changed");
 
 pub struct BetterLabel {
     child: RawLabel<PageElement>,
@@ -22,7 +26,12 @@ impl Widget<PageElement> for BetterLabel {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut PageElement, env: &Env) {
         self.child.event(ctx, event, data, env);
         match event {
-            Event::MouseDown(_) => println!("Cujerbfkjewnr"),
+            Event::Command(cmd) => {
+                if cmd.get(UPDATE_SIZE).is_some() {
+                    data.size = <(f64, f64)>::from(ctx.size());
+                }
+            }
+            Event::MouseDown(_) => println!("WIDTH, HEIGHT -- {:?}", data.size),
             _ => {}
         }
     }
@@ -58,8 +67,9 @@ impl Widget<PageElement> for BetterLabel {
         env: &Env,
     ) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
-        println!("{:?}", size);
-        //println!("Layed to {}", data.current_book.get_nav().get_line());
+        //data.size = *size;
+        ctx.submit_command(UPDATE_SIZE);
+        //
         size
     }
 

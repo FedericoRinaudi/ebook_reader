@@ -1,8 +1,9 @@
 use azul_text_layout::text_layout::{split_text_into_words, words_to_scaled_words};
 use azul_text_layout::text_shaping::get_font_metrics_freetype;
-use crate::{ApplicationState, PageElement};
+use crate::{ApplicationState, ContentType};
 use druid::piet::TextStorage;
 use druid::{im::Vector, Data, Lens, LocalizedString};
+use crate::book::page_element::PageElement;
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
     LocalizedString::new("Ebook Reader - Library");
@@ -57,6 +58,7 @@ impl View {
         (*self).window_size_home = size
     }
 
+    /*
     pub fn get_view_size(&self, width:f32, h:f32) -> usize {
         println!("WIDTH: {}", width);
         let mut size = 0;
@@ -66,9 +68,9 @@ impl View {
         let font = include_bytes!("SansSerif.ttf");
         let font_metrics = get_font_metrics_freetype(font, 0);
 
-        for text in self.current_view.iter() {
-            match text {
-                PageElement::Text(rt) => {
+        for pe in self.current_view.iter() {
+            match &pe.content {
+                ContentType::Text(rt) => {
                     /* TODO: Following
                     The idea is to somehow produce a richtext width and confront it with the view width passed as parameter
 
@@ -118,6 +120,6 @@ impl View {
         println!("Line guess: {}, Line Azul: {}, ScrollHeight:{}, Azul scroll height: {}", size, size_a, h, size_a*19);
         size
     }
-
+    */
 
 }

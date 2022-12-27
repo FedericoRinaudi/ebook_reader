@@ -3,12 +3,13 @@ use crate::controllers::Update;
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
-use crate::{ApplicationState, PageElement};
+use crate::{ApplicationState, ContentType};
 use druid::widget::{
     ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking,
     List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
 };
 use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
+use crate::book::page_element::PageElement;
 use crate::widgets::custom_label::BetterLabel;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
@@ -148,16 +149,16 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
 
             let chapter = List::new(|| {
                 ViewSwitcher::new(
-                    |data: &PageElement, _| data.clone(),
-                    |_, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
-                        match data {
-                            PageElement::Text(_) => {
+                    |data: &PageElement, _| data.content.clone(),
+                    |ele, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                        match &ele {
+                            ContentType::Text(_) => {
                                 Box::new(BetterLabel::new())
                             },
-                            PageElement::Image(img_buf) => Box::new(Flex::row().with_child(
+                            ContentType::Image(img_buf) => Box::new(Flex::row().with_child(
                                 Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
                             )),
-                            PageElement::Error(_e) => {
+                            ContentType::Error(_e) => {
                                 let mut label = RawLabel::new();
                                 label.set_line_break_mode(LineBreaking::WordWrap);
                                 Box::new(label)
