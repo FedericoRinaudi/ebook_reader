@@ -11,6 +11,10 @@ use druid::{commands, AppDelegate, Command, DelegateCtx, Env, ExtEventSink, Hand
 use epub::doc::EpubDoc;
 use std::path::PathBuf;
 use std::{env, fs, thread};
+use leptess::leptonica::Pix;
+use leptess::Variable::TesseditCreateWordstrbox;
+
+
 extern crate num_cpus;
 
 pub(crate) struct Delegate {}
@@ -125,11 +129,17 @@ impl AppDelegate<ApplicationState> for Delegate {
 
 fn th_find_it(sink: ExtEventSink, path: PathBuf, chs: Vector<Chapter>) {
     thread::spawn(move || {
+
         let mut lt = leptess::LepTess::new(None, "ita").unwrap();
         lt.set_image(path).unwrap();
-        let text = String::from(lt.get_utf8_text().unwrap().replace("-\n", ""))
+        let lines_ori= lt.get_word_str_box_text(0).unwrap();
+        let lines = lines_ori.split("WordStr").map(|r|r.to_string()).collect::<Vec<String>>();
+
+        let text = String::from(lt.get_utf8_text().unwrap()
+            .replace("-\n", "")
             .replace("\n", " ")
-            .replace(".", " ");
+            .replace(".", " "));
+        println!("lines: {} ", lines_ori);
         if let Some((index, offset)) = find_it(text, chs) {
             sink.submit_command(
                 FINISH_SLOW_FUNCTION,
