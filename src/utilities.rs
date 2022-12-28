@@ -15,6 +15,7 @@ pub fn page_num_lines(path: PathBuf) -> usize {
         .into_iter()
         .filter(|el|(*el).as_ref().w > 70)
         .count()
+    as usize
 }
 
 pub fn page_num_lines_char_count(path: PathBuf) -> usize {
@@ -44,8 +45,20 @@ pub fn page_stats(path: PathBuf) -> (f64, usize) {
         .filter(|s|s.graphemes(true).count() > 4)
         .map(|s|s.to_string())
         .collect::<Vec<String>>();
+    let sum_count = lines
+        .iter()
+        .filter(|s| {
+            let last = s.chars().last().unwrap();
+                last.is_alphabetic() || last == '-'
+        } )
+        .map(|s| s.len())
+        .fold((0, 0), |(sum, count), value| {
+            (sum + value as i32, count + 1)
+        });
+    println!("AVERAGE CHARS PER LINE: {}\n NUMBER OF LINES: {}", sum_count.0 as f64/ sum_count.1 as f64, lines.len());
+    (sum_count.0 as f64/ sum_count.1 as f64 , lines.len())
 
-    println!("lines for avg graphemes ocr: {} ", lines.len());
+    /*
 
     //ALTERNATIVAMENTE ANZI CHE METTERE UN THRESHOLD CALCOLATO IN BASE ALLA MEDIA POSSO RICONOSCERE LE LINEE NON INTERE
     //COME LE LINEE CHE FINISCONO CON . ? ! ecc... E RIMUOVERLE PRIMA DI CALCOLARE LA MEDIA
@@ -63,6 +76,7 @@ pub fn page_stats(path: PathBuf) -> (f64, usize) {
             }
         });
     ((sum_count.0 as f64) / (sum_count.1 as f64), lines.len())
+    */
 }
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {

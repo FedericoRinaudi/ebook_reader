@@ -5,6 +5,7 @@ use azul_text_layout::text_shaping::get_font_metrics_freetype;
 use druid::piet::TextStorage;
 use druid::widget::Axis;
 use druid::{im::Vector, Data, Lens, LocalizedString};
+use unicode_segmentation::UnicodeSegmentation;
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
     LocalizedString::new("Ebook Reader - Library");
@@ -20,6 +21,7 @@ pub struct View {
     pub current_view: Vector<PageElement>,
     pub scroll_height: f64,
 }
+
 impl View {
     pub fn new() -> Self {
         View {
@@ -64,10 +66,11 @@ impl View {
         for el in self
             .current_view
             .iter()
-            .take(if n == 0 { 0 } else { n - 1 })
+            .take(if n == 0 { 0 } else { n })
         {
             sum += el.size.unwrap_or((0.0, 0.0)).1;
         }
+        //println!("sum: {}", sum);
         sum
     }
 
@@ -77,7 +80,7 @@ impl View {
 
         for cont in self.current_view.iter() {
             if let Some(size) = cont.size {
-                if size.1 + sum < height - 1e-10 {
+                if size.1 + sum <= height {
                     sum += size.1;
                     element_number += 1;
                 } else {
@@ -108,6 +111,33 @@ impl View {
         }
         page_element_number
     }
+
+    pub fn guess_lines(&mut self, max_chars: f64, lines_in_page: usize) {
+        let mut guessed_lines = 0;
+        let mut curr_page = 1;
+
+        for el in self.current_view.iter_mut() {
+            if let ContentType::Text(text) = el.clone().content {
+                let element_lines = (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
+                let max_lines = if curr_page == 1 { 26 } else { lines_in_page };
+                guessed_lines = if (guessed_lines + element_lines) <= max_lines
+                {
+                    guessed_lines + element_lines
+                } else {
+                    curr_page += 1;
+                    //println!(" NEW PAGE DURING : {} with {} lines", text.text, guessed_lines + element_lines - max_lines);
+                    guessed_lines + element_lines - max_lines
+                };
+                // println!("guessed_lines_current: {} of {}", guessed_lines, text.text);
+            }
+            el.pg_offset = curr_page;
+        }
+
+        println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
+        println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
+    }
+
+
     /*
     pub fn get_view_size(&self, width:f32, h:f32) -> usize {
         println!("WIDTH: {}", width);

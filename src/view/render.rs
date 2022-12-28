@@ -106,8 +106,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
                 window.add_child(Flex::row().fix_height(7.0));
-                window.add_flex_child(screen, 0.9);
-                window.add_child(Flex::row().fix_height(1.0));
+                window.add_flex_child(Padding::new((0.0,0.0,0.0,7.0),screen), 0.9);
                 Box::new(window)
             }
         },

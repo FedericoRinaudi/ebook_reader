@@ -2,10 +2,7 @@ use crate::app::SCROLL_REQUEST;
 use crate::book::page_element::PageElement;
 use crate::{ApplicationState, ContentType};
 use druid::widget::{LineBreaking, RawLabel};
-use druid::{
-    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector,
-    Size, UpdateCtx, Widget,
-};
+use druid::{BoxConstraints, Color, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector, Size, UpdateCtx, Widget};
 use std::any::Any;
 
 pub const UPDATE_SIZE: Selector<()> = Selector::new("label.size_changed");
@@ -33,7 +30,9 @@ impl Widget<PageElement> for BetterLabel {
                     //ctx.submit_command(SCROLL_REQUEST);
                 }
             }
-            Event::MouseDown(_) => println!("WIDTH, HEIGHT -- {:?}", data.size),
+            Event::MouseDown(_) => {
+                println!("OFFSET FROM START CHAPTER: {}", data.pg_offset);
+            },
             _ => {}
         }
     }

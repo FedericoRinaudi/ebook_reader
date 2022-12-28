@@ -67,11 +67,13 @@ impl AppDelegate<ApplicationState> for Delegate {
             if data.i_mode {
                 /* Qui stiamo prendendo un immagine per usare l'OCR */
                 data.i_mode = false;
+
                 th_find_it(
                     ctx.get_external_handle(),
                     file_info.path.clone(),
                     data.current_book.chapters.clone(),
                 )
+
             } else {
                 if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
                     data.is_loading = true;
@@ -93,8 +95,14 @@ impl AppDelegate<ApplicationState> for Delegate {
         if let Some(res) = cmd.get(FINISH_SLOW_FUNCTION) {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
             if let Some((ch, off)) = res {
+
                 data.current_book.get_mut_nav().set_ch(*ch);
                 data.update_view();
+
+                let (avg, lines) = page_stats(PathBuf::from("../fp3.jpg"));
+                data.view.guess_lines(avg, lines);
+
+
                 data.current_book
                     .get_mut_nav()
                     .set_element_number(data.view.ocr_offset_to_element(*off));
@@ -130,11 +138,12 @@ impl AppDelegate<ApplicationState> for Delegate {
 
 fn th_find_it(sink: ExtEventSink, path: PathBuf, chs: Vector<Chapter>) {
     thread::spawn(move || {
-        println!("num lines using width: {}\nnum lines counting chars: {}\navg graphemes per line: {:?}", page_num_lines(path.clone()), page_num_lines_char_count(path.clone()), page_stats(path.clone()));
+
+        // println!("num lines using width: {}\nnum lines counting chars: {}\navg graphemes per line: {:?}", page_num_lines(path.clone()), page_num_lines_char_count(path.clone()), page_stats(path.clone()));
         let mut lt = leptess::LepTess::new(None, "ita").unwrap();
         lt.set_image(path).unwrap();
-        let lines_ori= lt.get_word_str_box_text(0).unwrap();
-      //  let lines = lines_ori.split("WordStr").map(|r|r.to_string()).collect::<Vec<String>>();
+        // let lines_ori= lt.get_word_str_box_text(0).unwrap();
+        // let lines = lines_ori.split("WordStr").map(|r|r.to_string()).collect::<Vec<String>>();
         let text = String::from(lt.get_utf8_text().unwrap()
             .replace("-\n", "")
             .replace("\n", " ")

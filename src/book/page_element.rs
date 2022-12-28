@@ -7,6 +7,8 @@ use druid::{ArcStr, Data, Env, ImageBuf};
 pub struct PageElement {
     pub content: ContentType,
     pub size: Option<(f64, f64)>,
+    //#[data(ignore)]
+    pub pg_offset: usize
 }
 
 impl PageElement {
@@ -14,6 +16,7 @@ impl PageElement {
         PageElement {
             content: con,
             size: Option::None,
+            pg_offset: 0
         }
     }
 }

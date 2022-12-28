@@ -246,13 +246,12 @@ impl Chapter {
                 // TODO: compress newlines
                 new_line!();
                 recur_on_children!();
-                new_line!();
             }
             "li" => {
                 new_line!();
                 current_text.push_str("- ");
                 recur_on_children!();
-                new_line!();
+
             }
             //TODO: implementare tag pre
             /*"pre" => {
