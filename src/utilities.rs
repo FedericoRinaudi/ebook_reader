@@ -18,8 +18,10 @@ pub fn page_num_lines(path: PathBuf) -> usize {
 }
 
 pub fn page_num_lines_char_count(path: PathBuf) -> usize {
+    //TODO: INPUT LT
     let mut lt = leptess::LepTess::new(None, "ita").unwrap();
     lt.set_image(path).unwrap();
+
     lt.get_word_str_box_text(0).unwrap()
         .split("WordStr")
         .map(|s| {
@@ -32,19 +34,24 @@ pub fn page_num_lines_char_count(path: PathBuf) -> usize {
 
 
 //Mi sembra che il valore della media sia abbastanza buono, ma dobbiamo verificare
-pub fn avg_graphemes_in_full_line(path: PathBuf) -> f64 {
+pub fn page_stats(path: PathBuf) -> (f64, usize) {
     let mut lt = leptess::LepTess::new(None, "ita").unwrap();
     lt.set_image(path).unwrap();
+
+    //ARRAY CON UNA LINEA PER OGNI RIGA
     let lines = lt.get_utf8_text().unwrap()
         .split("\n")
-        .filter(|s|s.graphemes(true).count() > 3)
+        .filter(|s|s.graphemes(true).count() > 4)
         .map(|s|s.to_string())
         .collect::<Vec<String>>();
-    println!("lines for avg graphemes ocr: {}", lines.len());
+
+    println!("lines for avg graphemes ocr: {} ", lines.len());
+
     //ALTERNATIVAMENTE ANZI CHE METTERE UN THRESHOLD CALCOLATO IN BASE ALLA MEDIA POSSO RICONOSCERE LE LINEE NON INTERE
     //COME LE LINEE CHE FINISCONO CON . ? ! ecc... E RIMUOVERLE PRIMA DI CALCOLARE LA MEDIA
     let threshold = (lines.iter().fold(0, |a, b|{a + b.graphemes(true).count() as i32}) as f64 / lines.len() as f64) * 4./5.;
     println!("threshold for full line: {}", threshold);
+    
     let sum_count = lines
         .iter()
         .fold((0, 0), |(sum, count), value| {
@@ -55,7 +62,7 @@ pub fn avg_graphemes_in_full_line(path: PathBuf) -> f64 {
                 (sum, count)
             }
         });
-    (sum_count.0 as f64) / (sum_count.1 as f64)
+    ((sum_count.0 as f64) / (sum_count.1 as f64), lines.len())
 }
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {

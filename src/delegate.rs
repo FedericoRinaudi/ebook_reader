@@ -3,7 +3,7 @@ use crate::app::FINISH_SLOW_FUNCTION;
 use crate::book::chapter::Chapter;
 use crate::book::Book;
 use crate::bookcase::{BookCase, BookInfo};
-use crate::utilities::{xml_to_text, page_num_lines, page_num_lines_char_count, avg_graphemes_in_full_line};
+use crate::utilities::{xml_to_text, page_num_lines, page_num_lines_char_count, page_stats};
 use crate::ApplicationState;
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::im::Vector;
@@ -130,7 +130,7 @@ impl AppDelegate<ApplicationState> for Delegate {
 
 fn th_find_it(sink: ExtEventSink, path: PathBuf, chs: Vector<Chapter>) {
     thread::spawn(move || {
-        println!("num lines using width: {}\nnum lines counting chars: {}\navg graphemes per line: {}", page_num_lines(path.clone()), page_num_lines_char_count(path.clone()), avg_graphemes_in_full_line(path.clone()));
+        println!("num lines using width: {}\nnum lines counting chars: {}\navg graphemes per line: {:?}", page_num_lines(path.clone()), page_num_lines_char_count(path.clone()), page_stats(path.clone()));
         let mut lt = leptess::LepTess::new(None, "ita").unwrap();
         lt.set_image(path).unwrap();
         let lines_ori= lt.get_word_str_box_text(0).unwrap();
