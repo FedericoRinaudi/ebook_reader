@@ -2,6 +2,61 @@ use druid::{FileDialogOptions, FileSpec, ImageBuf};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::io::Read;
 use std::path::PathBuf;
+use leptess::capi::TessPageIteratorLevel_RIL_TEXTLINE;
+use unicode_segmentation::UnicodeSegmentation;
+
+//CONTA LE RIGHE DA UNA FOTO CON LEPTESS; PROBABILMENTE ANDRA' IN UNA STRUCT APPOSITA
+//VALUTIAMO SE VA BEME GUARDARE LA WIDTH O SE CONVIENE RICAVARE E CONTARE I CARATERI
+pub fn page_num_lines(path: PathBuf) -> usize {
+    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
+    lt.set_image(path).unwrap();
+    lt.get_component_boxes(TessPageIteratorLevel_RIL_TEXTLINE,true)
+        .unwrap()
+        .into_iter()
+        .filter(|el|(*el).as_ref().w > 70)
+        .count()
+}
+
+pub fn page_num_lines_char_count(path: PathBuf) -> usize {
+    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
+    lt.set_image(path).unwrap();
+    lt.get_word_str_box_text(0).unwrap()
+        .split("WordStr")
+        .map(|s| {
+            s.chars()
+                .filter(|c| c.is_alphabetic())
+                .collect::<String>()
+        }).filter(|s| s.graphemes(true).count() > 3)
+        .count()
+}
+
+
+//Mi sembra che il valore della media sia abbastanza buono, ma dobbiamo verificare
+pub fn avg_graphemes_in_full_line(path: PathBuf) -> f64 {
+    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
+    lt.set_image(path).unwrap();
+    let lines = lt.get_utf8_text().unwrap()
+        .split("\n")
+        .filter(|s|s.graphemes(true).count() > 3)
+        .map(|s|s.to_string())
+        .collect::<Vec<String>>();
+    println!("lines for avg graphemes ocr: {}", lines.len());
+    //ALTERNATIVAMENTE ANZI CHE METTERE UN THRESHOLD CALCOLATO IN BASE ALLA MEDIA POSSO RICONOSCERE LE LINEE NON INTERE
+    //COME LE LINEE CHE FINISCONO CON . ? ! ecc... E RIMUOVERLE PRIMA DI CALCOLARE LA MEDIA
+    let threshold = (lines.iter().fold(0, |a, b|{a + b.graphemes(true).count() as i32}) as f64 / lines.len() as f64) * 4./5.;
+    println!("threshold for full line: {}", threshold);
+    let sum_count = lines
+        .iter()
+        .fold((0, 0), |(sum, count), value| {
+            let grapheme_n = value.graphemes(true).count();
+            if grapheme_n as f64 > threshold {
+                (sum + grapheme_n as i32, count + 1)
+            } else {
+                (sum, count)
+            }
+        });
+    (sum_count.0 as f64) / (sum_count.1 as f64)
+}
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
