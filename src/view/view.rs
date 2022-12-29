@@ -9,9 +9,9 @@ use unicode_segmentation::UnicodeSegmentation;
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
     LocalizedString::new("Ebook Reader - Library");
-const VIEW_SIZE: (f64, f64) = (800.0, 1000.0);
-const EDIT_SIZE: (f64, f64) = (1600.0, 1000.0);
-const HOME_SIZE: (f64, f64) = (800.0, 1000.0);
+const VIEW_SIZE: (f64, f64) = (800.0, 800.0);
+const EDIT_SIZE: (f64, f64) = (1600.0, 800.0);
+const HOME_SIZE: (f64, f64) = (800.0, 800.0);
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct View {

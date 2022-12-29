@@ -44,7 +44,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                             //Box::new(render_book())
                         } else {
                             /* Renderizziamo il libro scelto */
-                            Box::new(render_book())
+                            Box::new(Padding::new((0.0,0.0,0.0,18.0), render_book()))
                         }
                     },
                 ))

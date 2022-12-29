@@ -2,20 +2,23 @@ use druid::{FileDialogOptions, FileSpec, ImageBuf};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::io::Read;
 use std::path::PathBuf;
+use druid::im::Vector;
 use leptess::capi::TessPageIteratorLevel_RIL_TEXTLINE;
 use unicode_segmentation::UnicodeSegmentation;
+use crate::book::page_element::PageElement;
+use crate::ContentType;
 
 //CONTA LE RIGHE DA UNA FOTO CON LEPTESS; PROBABILMENTE ANDRA' IN UNA STRUCT APPOSITA
 //VALUTIAMO SE VA BEME GUARDARE LA WIDTH O SE CONVIENE RICAVARE E CONTARE I CARATERI
 pub fn page_num_lines(path: PathBuf) -> usize {
     let mut lt = leptess::LepTess::new(None, "ita").unwrap();
     lt.set_image(path).unwrap();
-    lt.get_component_boxes(TessPageIteratorLevel_RIL_TEXTLINE,true)
+    lt.get_component_boxes(TessPageIteratorLevel_RIL_TEXTLINE, true)
         .unwrap()
         .into_iter()
-        .filter(|el|(*el).as_ref().w > 70)
+        .filter(|el| (*el).as_ref().w > 70)
         .count()
-    as usize
+        as usize
 }
 
 pub fn page_num_lines_char_count(path: PathBuf) -> usize {
@@ -42,21 +45,21 @@ pub fn page_stats(path: PathBuf) -> (f64, usize) {
     //ARRAY CON UNA LINEA PER OGNI RIGA
     let lines = lt.get_utf8_text().unwrap()
         .split("\n")
-        .filter(|s|s.graphemes(true).count() > 4)
-        .map(|s|s.to_string())
+        .filter(|s| s.graphemes(true).count() > 4)
+        .map(|s| s.to_string())
         .collect::<Vec<String>>();
     let sum_count = lines
         .iter()
         .filter(|s| {
             let last = s.chars().last().unwrap();
-                last.is_alphabetic() || last == '-'
-        } )
+            last.is_alphabetic() || last == '-'
+        })
         .map(|s| s.len())
         .fold((0, 0), |(sum, count), value| {
             (sum + value as i32, count + 1)
         });
-    println!("AVERAGE CHARS PER LINE: {}\n NUMBER OF LINES: {}", sum_count.0 as f64/ sum_count.1 as f64, lines.len());
-    (sum_count.0 as f64/ sum_count.1 as f64 , lines.len())
+    println!("AVERAGE CHARS PER LINE: {}\n NUMBER OF LINES: {}", sum_count.0 as f64 / sum_count.1 as f64, lines.len());
+    (sum_count.0 as f64 / sum_count.1 as f64, lines.len())
 
     /*
 
@@ -245,4 +248,32 @@ fn xml_to_plain(node: Node, current_text: &mut String) {
         }
         _ => recur_on_children!(),
     }
+}
+
+pub fn is_part(vec: Vector<PageElement>) -> bool {
+    /* Elementi non vuoti */
+    let filtered = vec.iter().filter(|elem| {
+        if let ContentType::Text(text) = (*elem).clone().content {
+            if text.text.trim().len() > 0 {
+                return true
+            }
+            return false
+        }
+        false
+    }).map(|el| (*el).clone()).collect::<Vector<PageElement>>();
+    /* Elementi non vuoti non maggiori di 80 char*/
+    if filtered.clone().iter().any(|el| {
+        if let ContentType::Text(text) = (*el).clone().content {
+            if text.text.replace(" ", "").graphemes(true).count() > 80 {
+                return true
+            }
+        }
+        return false
+    }) { println!("any"); return false} ;
+    /* Massimo 3 elementi */
+    if filtered.len() > 0 && filtered.len() < 4 {
+        return true
+    }
+
+    false
 }

@@ -1,3 +1,4 @@
+use std::num;
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
 use druid::text::{Attribute, RichText};
@@ -6,7 +7,7 @@ use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
 
 use crate::book::page_element::{ContentType, PageElement};
-use crate::utilities::get_image_buf;
+use crate::utilities::{get_image_buf, is_part};
 
 const MAX_SIZE: f64 = 35.0;
 
@@ -15,6 +16,7 @@ pub struct Chapter {
     path: String,
     pub xml: String,
     imgs: HashMap<PathBuf, ImageBuf>,
+    pub is_part: bool
 }
 
 impl Chapter {
@@ -25,10 +27,10 @@ impl Chapter {
         let doc = Document::parse_with_options(&xml, opt).unwrap();
         let node = doc.root_element().last_element_child().unwrap();
         Self::fetch_ch_imgs(node, &path, ebook_path, &mut imgs);
-        Chapter { path, xml, imgs }
+        Chapter { path, xml, imgs, is_part:false }
     }
 
-    pub fn format(&self) -> Vector<PageElement> {
+    pub fn format(&mut self) -> Vector<PageElement> {
         let opt = ParsingOptions { allow_dtd: true };
         let doc = match Document::parse_with_options(&self.xml, opt) {
             Result::Ok(doc) => doc,
@@ -270,4 +272,5 @@ impl Chapter {
     pub fn get_path(&self) -> String {
         (&self).path.clone()
     }
+
 }

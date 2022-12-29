@@ -116,12 +116,12 @@ impl Book {
         &mut (*self).nav
     }
 
-    pub fn _get_ch(&self) -> usize {
+    pub fn get_ch(&self) -> usize {
         self.nav.get_ch()
     }
     //pub fn _get_line(&self) -> f64 {self.nav.get_line()}
 
-    pub fn format_current_chapter(&self) -> Vector<PageElement> {
+    pub fn format_current_chapter(&mut self) -> Vector<PageElement> {
         (*self).chapters[self.nav.get_ch()].format()
     }
 
@@ -143,6 +143,15 @@ impl Book {
             0
         })
     }
+
+    /*
+    pub fn is_at_chapter(&self) -> bool {
+        if self.chapters[self.get_ch()] {
+            true
+        }
+        false
+    }
+     */
 
     pub fn update_xml(&mut self, xml: String) {
         (*self).chapters[self.nav.get_ch()].xml = xml;
