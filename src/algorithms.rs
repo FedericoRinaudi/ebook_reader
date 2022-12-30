@@ -3,7 +3,7 @@ use std::collections::HashMap;
 pub struct OcrAlgorithms {}
 
 impl OcrAlgorithms {
-    pub fn fuzzy_freq_compare(v1: &[String], v2: &[String], tol: f64) -> bool {
+    pub fn _fuzzy_freq_compare(v1: &[String], v2: &[String], tol: f64) -> bool {
         let mut map1 = HashMap::new();
         let mut map2 = HashMap::new();
 

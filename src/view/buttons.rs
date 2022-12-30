@@ -2,7 +2,7 @@ use crate::bookcase::BookInfo;
 use crate::utilities::{open_epub, open_image, save_file};
 use crate::{ApplicationState, Book};
 use druid::widget::{
-    Align, Button, Click, ControllerHost, DisabledIf, Flex, Svg, SvgData, ViewSwitcher,
+    Align, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher,
 };
 use druid::{Widget, WidgetExt};
 use std::fs;

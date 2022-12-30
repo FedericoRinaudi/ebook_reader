@@ -1,6 +1,9 @@
+use std::thread;
 use crate::bookcase::{BookCase, BookInfo};
 use crate::Book;
-use druid::{im::HashSet, im::Vector, Data, Lens, Selector};
+use druid::{im::HashSet, im::Vector, Data, Lens, Selector, ExtEventSink, Target};
+use crate::book::chapter::Chapter;
+use crate::ocr::{Mapping, OcrData};
 
 use crate::view::view::View;
 
@@ -11,14 +14,19 @@ pub const SCROLL_REQUEST: Selector<()> = Selector::new("wrapper.scroll");
 //pub const TRIGGER_SYN: Selector<()> = Selector::new("wrapper.focus_syn");
 pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize)>> =
     Selector::new("finish_slow_function");
+pub const FINISH_LEPTO_LOAD: Selector<Option<String>> =
+    Selector::new("leptonica.finish_load");
 
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub error_message: Option<String>,
     pub current_book: Book,
-    pub edit: bool,               // Serve a switchare da view mode a edit mode
-    pub xml_backup: String,       // xml backup useful to discard changes done in edit mode
-    pub modified: HashSet<usize>, //find better solution
+    pub edit: bool,
+    // Serve a switchare da view mode a edit mode
+    pub xml_backup: String,
+    // xml backup useful to discard changes done in edit mode
+    pub modified: HashSet<usize>,
+    //find better solution
     pub view: View,
     pub bookcase: BookCase,
     pub is_loading: bool,
@@ -78,7 +86,50 @@ impl ApplicationState {
                 start_chapter: 0,
                 start_element_number: 0,
                 cover_path: "".to_string(),
+                ocr: OcrData::new(),
             }
         }
     }
+
+    pub fn get_mut_current(&mut self) -> Option<&mut BookInfo> {
+        if let Some(res) = self
+            .bookcase
+            .library
+            .iter_mut()
+            .find(|b| b.path == *(&self.current_book.get_path()))
+        {
+            return Some(res)
+        }
+        None
+    }
+
+    pub fn ocr_jump(&self, sink: ExtEventSink, id: usize) {
+        if let Some(map) = self.get_current().ocr.get_mapping(id) {
+            th_find(
+                map,
+                sink,
+                self.current_book.chapters.clone(),
+            )
+        }
+    }
+}
+
+
+fn th_find(map: Mapping, sink: ExtEventSink, vec: Vector<Chapter>) {
+    thread::spawn(move || {
+        match map.find_ch(vec) {
+            Some((index, offset)) => {
+                sink.submit_command(
+                    FINISH_SLOW_FUNCTION,
+                    Option::Some((index, offset)),
+                    Target::Auto,
+                )
+                    .expect("command failed to submit")
+            }
+            None => {
+                sink.submit_command(FINISH_SLOW_FUNCTION, Option::None, Target::Auto)
+                    .expect("command failed to submit");
+            }
+        }
+    });
 }

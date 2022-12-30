@@ -1,19 +1,13 @@
-use crate::algorithms::OcrAlgorithms;
-use crate::app::FINISH_SLOW_FUNCTION;
-use crate::book::chapter::Chapter;
+use crate::app::{FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION};
 use crate::book::Book;
 use crate::bookcase::{BookCase, BookInfo};
-use crate::utilities::{xml_to_text, page_num_lines, page_num_lines_char_count, page_stats};
+use crate::utilities::{th_lepto_load};
 use crate::ApplicationState;
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
-use druid::im::Vector;
-use druid::{commands, AppDelegate, Command, DelegateCtx, Env, ExtEventSink, Handled, Target};
+use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target};
 use epub::doc::EpubDoc;
 use std::path::PathBuf;
-use std::{env, fs, thread};
-use leptess::capi::{TessPageIteratorLevel, TessPageIteratorLevel_RIL_TEXTLINE};
-use leptess::leptonica::Pix;
-use leptess::Variable::TesseditCreateWordstrbox;
+use std::{env, fs};
 
 
 extern crate num_cpus;
@@ -68,11 +62,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                 /* Qui stiamo prendendo un immagine per usare l'OCR */
                 data.i_mode = false;
 
-                th_find_it(
-                    ctx.get_external_handle(),
-                    file_info.path.clone(),
-                    data.current_book.chapters.clone(),
-                )
+                th_lepto_load(ctx.get_external_handle(), file_info.path.clone())
 
             } else {
                 if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
@@ -99,19 +89,21 @@ impl AppDelegate<ApplicationState> for Delegate {
                 data.current_book.get_mut_nav().set_ch(*ch);
                 data.update_view();
 
-                let (avg, lines) = page_stats(PathBuf::from("../fp3.jpg"));
-                data.view.guess_lines(avg, lines);
+                let ocr = data.get_current().ocr;
+                data.view.guess_lines(ocr.get_avg_ch(), ocr.get_lines());
 
 
                 data.current_book
                     .get_mut_nav()
                     .set_element_number(data.view.ocr_offset_to_element(*off));
+
                 println!(
                     "OCR Done, ch: {}, offset di words with len()>5: {}, page element n. {}",
                     ch,
                     off,
                     data.view.ocr_offset_to_element(*off)
                 );
+
             } else {
                 data.error_message = Some("No matches were found, please try again with a better quality image.".to_string());
                 data.current_book = Book::empty_book();
@@ -119,6 +111,25 @@ impl AppDelegate<ApplicationState> for Delegate {
             data.is_loading = false;
             return Handled::Yes;
         }
+
+        if let Some(str) = cmd.get(FINISH_LEPTO_LOAD) {
+            match str {
+                Some(str) => {
+                    match data.get_mut_current().unwrap().ocr.ocr_log(str.clone(), false){
+                        Ok(map_id) => {
+                            data.ocr_jump(ctx.get_external_handle(), map_id).clone()
+                        },
+                        Err(e) => eprintln!("{}", e)
+                    }
+                },
+                None => {
+                    data.error_message = Some("Couldn't load image".to_string());
+                    data.current_book = Book::empty_book();
+                }
+            }
+            return Handled::Yes;
+        }
+
 
         if let Some(..) = cmd.get(SAVE_PANEL_CANCELLED) {
             data.is_loading = false;
@@ -135,87 +146,3 @@ impl AppDelegate<ApplicationState> for Delegate {
         Handled::No
     }
 }
-
-fn th_find_it(sink: ExtEventSink, path: PathBuf, chs: Vector<Chapter>) {
-    thread::spawn(move || {
-
-        // println!("num lines using width: {}\nnum lines counting chars: {}\navg graphemes per line: {:?}", page_num_lines(path.clone()), page_num_lines_char_count(path.clone()), page_stats(path.clone()));
-        let mut lt = leptess::LepTess::new(None, "ita").unwrap();
-        lt.set_image(path).unwrap();
-        // let lines_ori= lt.get_word_str_box_text(0).unwrap();
-        // let lines = lines_ori.split("WordStr").map(|r|r.to_string()).collect::<Vec<String>>();
-        let text = String::from(lt.get_utf8_text().unwrap()
-            .replace("-\n", "")
-            .replace("\n", " ")
-            .replace(".", " "));
-        //println!("lines: {} ", lines_ori);
-        if let Some((index, offset)) = find_it(text, chs) {
-            sink.submit_command(
-                FINISH_SLOW_FUNCTION,
-                Option::Some((index, offset)),
-                Target::Auto,
-            )
-            .expect("command failed to submit");
-        } else {
-            sink.submit_command(FINISH_SLOW_FUNCTION, Option::None, Target::Auto)
-                .expect("command failed to submit");
-        }
-    });
-}
-
-fn find_it(text: String, chs: Vector<Chapter>) -> Option<(usize, usize)> {
-    for (index, ch) in chs.iter().enumerate() {
-        let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
-        let p_clone = plain_text.clone();
-        let t_clone = text.clone();
-        if let Some(offset) =
-            OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare)
-        {
-            return Some((index, offset));
-        }
-    }
-    None
-}
-
-/* PROVE OCR
-
-fn th_find_it(sink: ExtEventSink, path:PathBuf, chs:Vector<Chapter>){
-
-    let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(num_cpus::get()) // specify the number of threads in the pool
-        .build()
-        .unwrap();
-
-    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
-    lt.set_image(path).unwrap();
-    let text = String::from(lt.get_utf8_text().unwrap().replace("-\n", "")).replace("\n", " ").replace(".", " ");
-
-
-    for (index, ch) in chs.into_iter().enumerate() {
-        // use the thread pool to execute a task in parallel
-        let sink_clone = sink.clone();
-        let text_clone = text.clone();
-        pool.spawn(move || {
-            if let Some(_) =  find_it(text_clone, ch.clone()){
-                sink_clone.submit_command(FINISH_SLOW_FUNCTION, index, Target::Auto)
-                    .expect("command failed to submit")
-            }
-        })
-    }
-}
-
-
-
-fn find_it(text:String, ch:Chapter)->Option<()>{
-
-        let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
-        let p_clone = plain_text.clone();
-        let t_clone = text.clone();
-        if OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare) {
-            return Some(());
-        }
-        None
-}
-
-
- */

@@ -5,7 +5,7 @@ pub(crate) mod page_element;
 use walkdir::WalkDir;
 
 use crate::book::chapter::Chapter;
-use crate::book::page_element::{ContentType, PageElement};
+use crate::book::page_element::{PageElement};
 use druid::im::HashSet;
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
@@ -116,7 +116,7 @@ impl Book {
         &mut (*self).nav
     }
 
-    pub fn get_ch(&self) -> usize {
+    pub fn _get_ch(&self) -> usize {
         self.nav.get_ch()
     }
     //pub fn _get_line(&self) -> f64 {self.nav.get_line()}
@@ -160,7 +160,7 @@ impl Book {
     /*
     Save new xml to a new version of the archive
     */
-
+    #[allow(deprecated)]
     pub fn save(&mut self, set: HashSet<usize>, target_path: String) {
         /*
         Get the ZipArchive from the original file

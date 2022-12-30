@@ -6,6 +6,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::{env, fs};
 use walkdir::WalkDir;
+use crate::ocr::OcrData;
 
 const FILE_NAME: &str = "meta.txt";
 
@@ -16,6 +17,7 @@ pub struct BookInfo {
     pub start_chapter: usize,
     pub start_element_number: usize,
     pub cover_path: String,
+    pub ocr: OcrData
 }
 
 impl BookInfo {
@@ -33,6 +35,7 @@ impl BookInfo {
             start_chapter,
             start_element_number: element_number,
             cover_path,
+            ocr: OcrData::new()
         }
     }
 

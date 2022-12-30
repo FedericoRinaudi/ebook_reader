@@ -1,86 +1,14 @@
-use druid::{FileDialogOptions, FileSpec, ImageBuf};
+use druid::{ExtEventSink, FileDialogOptions, FileSpec, ImageBuf, Target};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::io::Read;
 use std::path::PathBuf;
+use std::thread;
 use druid::im::Vector;
-use leptess::capi::TessPageIteratorLevel_RIL_TEXTLINE;
 use unicode_segmentation::UnicodeSegmentation;
+use crate::app::FINISH_LEPTO_LOAD;
 use crate::book::page_element::PageElement;
 use crate::ContentType;
 
-//CONTA LE RIGHE DA UNA FOTO CON LEPTESS; PROBABILMENTE ANDRA' IN UNA STRUCT APPOSITA
-//VALUTIAMO SE VA BEME GUARDARE LA WIDTH O SE CONVIENE RICAVARE E CONTARE I CARATERI
-pub fn page_num_lines(path: PathBuf) -> usize {
-    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
-    lt.set_image(path).unwrap();
-    lt.get_component_boxes(TessPageIteratorLevel_RIL_TEXTLINE, true)
-        .unwrap()
-        .into_iter()
-        .filter(|el| (*el).as_ref().w > 70)
-        .count()
-        as usize
-}
-
-pub fn page_num_lines_char_count(path: PathBuf) -> usize {
-    //TODO: INPUT LT
-    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
-    lt.set_image(path).unwrap();
-
-    lt.get_word_str_box_text(0).unwrap()
-        .split("WordStr")
-        .map(|s| {
-            s.chars()
-                .filter(|c| c.is_alphabetic())
-                .collect::<String>()
-        }).filter(|s| s.graphemes(true).count() > 3)
-        .count()
-}
-
-
-//Mi sembra che il valore della media sia abbastanza buono, ma dobbiamo verificare
-pub fn page_stats(path: PathBuf) -> (f64, usize) {
-    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
-    lt.set_image(path).unwrap();
-
-    //ARRAY CON UNA LINEA PER OGNI RIGA
-    let lines = lt.get_utf8_text().unwrap()
-        .split("\n")
-        .filter(|s| s.graphemes(true).count() > 4)
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>();
-    let sum_count = lines
-        .iter()
-        .filter(|s| {
-            let last = s.chars().last().unwrap();
-            last.is_alphabetic() || last == '-'
-        })
-        .map(|s| s.len())
-        .fold((0, 0), |(sum, count), value| {
-            (sum + value as i32, count + 1)
-        });
-    println!("AVERAGE CHARS PER LINE: {}\n NUMBER OF LINES: {}", sum_count.0 as f64 / sum_count.1 as f64, lines.len());
-    (sum_count.0 as f64 / sum_count.1 as f64, lines.len())
-
-    /*
-
-    //ALTERNATIVAMENTE ANZI CHE METTERE UN THRESHOLD CALCOLATO IN BASE ALLA MEDIA POSSO RICONOSCERE LE LINEE NON INTERE
-    //COME LE LINEE CHE FINISCONO CON . ? ! ecc... E RIMUOVERLE PRIMA DI CALCOLARE LA MEDIA
-    let threshold = (lines.iter().fold(0, |a, b|{a + b.graphemes(true).count() as i32}) as f64 / lines.len() as f64) * 4./5.;
-    println!("threshold for full line: {}", threshold);
-    
-    let sum_count = lines
-        .iter()
-        .fold((0, 0), |(sum, count), value| {
-            let grapheme_n = value.graphemes(true).count();
-            if grapheme_n as f64 > threshold {
-                (sum + grapheme_n as i32, count + 1)
-            } else {
-                (sum, count)
-            }
-        });
-    ((sum_count.0 as f64) / (sum_count.1 as f64), lines.len())
-    */
-}
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
@@ -255,9 +183,9 @@ pub fn is_part(vec: Vector<PageElement>) -> bool {
     let filtered = vec.iter().filter(|elem| {
         if let ContentType::Text(text) = (*elem).clone().content {
             if text.text.trim().len() > 0 {
-                return true
+                return true;
             }
-            return false
+            return false;
         }
         false
     }).map(|el| (*el).clone()).collect::<Vector<PageElement>>();
@@ -265,15 +193,45 @@ pub fn is_part(vec: Vector<PageElement>) -> bool {
     if filtered.clone().iter().any(|el| {
         if let ContentType::Text(text) = (*el).clone().content {
             if text.text.replace(" ", "").graphemes(true).count() > 80 {
-                return true
+                return true;
             }
         }
-        return false
-    }) { println!("any"); return false} ;
+        return false;
+    }) {
+        return false;
+    };
     /* Massimo 3 elementi */
     if filtered.len() > 0 && filtered.len() < 4 {
-        return true
+        return true;
     }
 
     false
+}
+
+
+pub fn th_lepto_load(sink: ExtEventSink, path: PathBuf) {
+    thread::spawn(move || {
+        lepto_load(sink, path)
+    });
+}
+
+
+fn lepto_load(sink: ExtEventSink, path:PathBuf) {
+    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
+    lt.set_image(path).unwrap();
+    match lt.get_utf8_text() {
+        Ok(text) => {
+            sink.submit_command(
+                FINISH_LEPTO_LOAD,
+                Option::Some(String::from(text)),
+                Target::Auto,
+            )
+                .expect("command failed to submit")
+        }
+        Err(_) => {
+            sink.submit_command(FINISH_LEPTO_LOAD, Option::None, Target::Auto)
+                .expect("command failed to submit");
+        }
+    }
+
 }

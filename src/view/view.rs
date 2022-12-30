@@ -1,9 +1,5 @@
 use crate::book::page_element::PageElement;
 use crate::{ApplicationState, ContentType};
-use azul_text_layout::text_layout::{split_text_into_words, words_to_scaled_words};
-use azul_text_layout::text_shaping::get_font_metrics_freetype;
-use druid::piet::TextStorage;
-use druid::widget::Axis;
 use druid::{im::Vector, Data, Lens, LocalizedString};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -112,14 +108,20 @@ impl View {
         page_element_number
     }
 
-    pub fn guess_lines(&mut self, max_chars: f64, lines_in_page: usize) {
+    pub fn guess_lines(&mut self, max_chars: f64, lines_in_page: (usize,usize)) {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
 
         for el in self.current_view.iter_mut() {
             if let ContentType::Text(text) = el.clone().content {
                 let element_lines = (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
-                let max_lines = if curr_page == 1 { 26 } else { lines_in_page };
+                let max_lines = if curr_page == 1 {
+                    if lines_in_page.0 != 0 {
+                        lines_in_page.0} else {lines_in_page.1 - 10}
+                } else {
+                    if lines_in_page.1 != 0 {
+                        lines_in_page.1} else {lines_in_page.0 + 10}
+                };
                 guessed_lines = if (guessed_lines + element_lines) <= max_lines
                 {
                     guessed_lines + element_lines

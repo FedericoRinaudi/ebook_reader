@@ -1,7 +1,7 @@
 use crate::book::epub_text::EpubText;
 use druid::piet::{PietTextLayoutBuilder, TextStorage as PietTextStorage};
-use druid::text::{EnvUpdateCtx, Link, RichText, TextStorage};
-use druid::{ArcStr, Data, Env, ImageBuf};
+use druid::text::{EnvUpdateCtx, RichText, TextStorage};
+use druid::{Data, Env, ImageBuf};
 
 #[derive(Clone, Data, Debug)]
 pub struct PageElement {
@@ -123,7 +123,7 @@ impl PartialEq for ContentType {
         match (self, other) {
             (ContentType::Text(s1), ContentType::Text(s2)) => s1.text == s2.text,
             (ContentType::Error(e1), ContentType::Error(e2)) => e1.text == e2.text,
-            (ContentType::Image(i1), ContentType::Image(i2)) => true,
+            (ContentType::Image(_i1), ContentType::Image(_i2)) => true, //TODO: IMPLEMENT IMG COMPARISON
             // Return false if the enums contain different types
             _ => false,
         }

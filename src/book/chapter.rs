@@ -1,7 +1,6 @@
-use std::num;
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
-use druid::text::{Attribute, RichText};
+use druid::text::{Attribute};
 use druid::{im::Vector, Data, FontFamily, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;

@@ -7,7 +7,7 @@ use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::{ApplicationState, ContentType};
 use druid::widget::{
-    BackgroundBrush, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label,
+    ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label,
     LineBreaking, List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
 };
 use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
@@ -17,7 +17,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
     Flex::column()
         .with_child(ViewSwitcher::new(
         |data: &ApplicationState, _| data.error_message.clone(), /* Ad ora non funziona... lo fixo */
-        |msg, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+        |msg, _data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
             let mut error_row = Flex::row().must_fill_main_axis(true);
             match msg {
                 None => {}
@@ -92,7 +92,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                 Box::new(window)
             } else {
                 let mut window = Flex::column();
-                let mut buttons: Flex<ApplicationState> = Flex::row()
+                let buttons: Flex<ApplicationState> = Flex::row()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_flex_child(Buttons::btn_prev(), 0.1)
                     .with_flex_spacer(0.3)
@@ -162,7 +162,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
             let chapter = List::new(|| {
                 ViewSwitcher::new(
                     |data: &PageElement, _| data.content.clone(),
-                    |ele, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                    |ele, _data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                         match &ele {
                             ContentType::Text(_) => Box::new(BetterLabel::new()),
                             ContentType::Image(img_buf) => Box::new(Flex::row().with_child(
