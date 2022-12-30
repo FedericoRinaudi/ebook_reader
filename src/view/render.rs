@@ -71,7 +71,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                     |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
                         Box::new(if *cond {
                             Flex::row()
-                                .with_child(Buttons::bnt_view())
+                                .with_child(Buttons::btn_view())
                                 .with_spacer(20.0)
                                 .with_child(Buttons::btn_save())
                         } else {
@@ -234,11 +234,13 @@ fn render_library() -> impl Widget<ApplicationState> {
                     .with_child(
                         Flex::row()
                             .cross_axis_alignment(CrossAxisAlignment::Start)
-                            .with_child(Buttons::btn_ocr(book_info.clone()))
+                            .with_child(Buttons::btn_read_book(book_info.clone()))
                             .with_spacer(10.0)
                             .with_child(Buttons::btn_remove_book(i))
                             .with_spacer(10.0)
-                            .with_child(Buttons::btn_read_book(book_info.clone())),
+                            .with_child(Buttons::btn_ocr(book_info.clone()))
+                            .with_spacer(10.0)
+                            .with_child(Buttons::btn_ocr_syn()) //HERE
                     );
 
                 pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.3);

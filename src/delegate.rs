@@ -1,4 +1,4 @@
-use crate::app::{FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION};
+use crate::app::{FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION, InputMode};
 use crate::book::Book;
 use crate::bookcase::{BookCase, BookInfo};
 use crate::utilities::{th_lepto_load};
@@ -58,26 +58,30 @@ impl AppDelegate<ApplicationState> for Delegate {
         }
 
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
-            if data.i_mode {
-                /* Qui stiamo prendendo un immagine per usare l'OCR */
-                data.i_mode = false;
+            match data.i_mode {
+                InputMode::OcrJump => {
+                    /* Qui stiamo prendendo un immagine per usare l'OCR */
+                    data.i_mode = InputMode::None;
 
-                th_lepto_load(ctx.get_external_handle(), file_info.path.clone())
-
-            } else {
-                if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
-                    data.is_loading = true;
-                    fs::copy(
-                        file_info.path.clone(),
-                        "./libri/".to_owned()
-                            + file_info.path.file_name().unwrap().to_str().unwrap(),
-                    )
-                    .expect("Failed to copy file");
-                    data.bookcase = BookCase::new();
-                    data.is_loading = false;
-                } else {
-                    data.error_message = Option::Some("Impossible to open selected Epub".to_string());
+                    th_lepto_load(ctx.get_external_handle(), file_info.path.clone())
                 }
+                InputMode::EbookAdd => {
+                    if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
+                        data.is_loading = true;
+                        fs::copy(
+                            file_info.path.clone(),
+                            "./libri/".to_owned()
+                                + file_info.path.file_name().unwrap().to_str().unwrap(),
+                        )
+                            .expect("Failed to copy file");
+                        data.bookcase = BookCase::new();
+                        data.is_loading = false;
+                    } else {
+                        data.error_message = Option::Some("Impossible to open selected Epub".to_string());
+                    }
+                    data.i_mode = InputMode::None;
+                }
+                _ => ()
             }
             return Handled::Yes;
         }
@@ -85,7 +89,6 @@ impl AppDelegate<ApplicationState> for Delegate {
         if let Some(res) = cmd.get(FINISH_SLOW_FUNCTION) {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
             if let Some((ch, off)) = res {
-
                 data.current_book.get_mut_nav().set_ch(*ch);
                 data.update_view();
 
@@ -103,7 +106,6 @@ impl AppDelegate<ApplicationState> for Delegate {
                     off,
                     data.view.ocr_offset_to_element(*off)
                 );
-
             } else {
                 data.error_message = Some("No matches were found, please try again with a better quality image.".to_string());
                 data.current_book = Book::empty_book();
@@ -115,13 +117,13 @@ impl AppDelegate<ApplicationState> for Delegate {
         if let Some(str) = cmd.get(FINISH_LEPTO_LOAD) {
             match str {
                 Some(str) => {
-                    match data.get_mut_current().unwrap().ocr.ocr_log(str.clone(), false){
+                    match data.get_mut_current().unwrap().ocr.ocr_log(str.clone(), false) {
                         Ok(map_id) => {
                             data.ocr_jump(ctx.get_external_handle(), map_id).clone()
-                        },
+                        }
                         Err(e) => eprintln!("{}", e)
                     }
-                },
+                }
                 None => {
                     data.error_message = Some("Couldn't load image".to_string());
                     data.current_book = Book::empty_book();
@@ -138,7 +140,7 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(..) = cmd.get(OPEN_PANEL_CANCELLED) {
             data.current_book = Book::empty_book();
-            data.i_mode = false;
+            data.i_mode = InputMode::None;
             data.is_loading = false;
             return Handled::Yes;
         }

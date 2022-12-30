@@ -17,20 +17,34 @@ pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize)>> =
 pub const FINISH_LEPTO_LOAD: Selector<Option<String>> =
     Selector::new("leptonica.finish_load");
 
+#[derive(Clone, Data, PartialEq)]
+pub enum InputMode {
+    OcrJump,
+    EbookAdd,
+    OcrSyn0,
+    OcrSyn1,
+    None
+}
+
+impl Default for InputMode {
+    fn default() -> Self {
+        InputMode::None
+    }
+}
+
+
+
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub error_message: Option<String>,
     pub current_book: Book,
-    pub edit: bool,
-    // Serve a switchare da view mode a edit mode
-    pub xml_backup: String,
-    // xml backup useful to discard changes done in edit mode
-    pub modified: HashSet<usize>,
-    //find better solution
+    pub edit: bool, // Serve a switchare da view mode a edit mode
+    pub xml_backup: String, // xml backup useful to discard changes done in edit mode
+    pub modified: HashSet<usize>, //find better solution
     pub view: View,
     pub bookcase: BookCase,
     pub is_loading: bool,
-    pub i_mode: bool, //use enum
+    pub i_mode: InputMode,
 }
 
 impl ApplicationState {
@@ -44,7 +58,7 @@ impl ApplicationState {
             view: View::new(),
             bookcase: BookCase::new(),
             is_loading: false,
-            i_mode: false,
+            i_mode: InputMode::None,
         };
         //app.update_view();
         app

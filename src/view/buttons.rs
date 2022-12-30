@@ -1,11 +1,11 @@
 use crate::bookcase::BookInfo;
 use crate::utilities::{open_epub, open_image, save_file};
 use crate::{ApplicationState, Book};
-use druid::widget::{
-    Align, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher,
-};
+use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
 use druid::{Widget, WidgetExt};
 use std::fs;
+use crate::app::InputMode;
+
 //use crate::controllers::ClickableOpacity;
 const LIBRARY_SVG_DIM: f64 = 30.;
 const LIBRARY_SVG_BIG: f64 = 35.;
@@ -82,7 +82,7 @@ impl Buttons {
             })
     }
 
-    pub fn bnt_view() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
+    pub fn btn_view() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
         let read_svg = match include_str!("../../icons/read.svg").parse::<SvgData>() {
             Ok(svg) => svg,
             Err(_) => SvgData::default(),
@@ -97,6 +97,16 @@ impl Buttons {
                 ctx.window().set_size(data.view.get_window_size_view());
                 ctx.window().set_title("VIEW MODE");
                 data.edit = !data.edit;
+            })
+    }
+
+    pub fn btn_ocr_syn() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+        Button::new("OCR SYNC")
+            .on_click(|ctx, data: &mut ApplicationState, _env| {
+                /*  SYNCH MODE */
+                //ctx.window().set_title("SYNCHING");
+                data.i_mode = InputMode::OcrSyn0;
+                println!("OCR SYNCH");
             })
     }
 
@@ -185,7 +195,7 @@ impl Buttons {
             .center()
             .on_click(move |ctx, data: &mut ApplicationState, _env| {
                 /* Tries to load image and find matching line in chapter */
-                data.i_mode = true;
+                data.i_mode = InputMode::OcrJump;
                 data.is_loading = true;
                 data.current_book = Book::new(
                     book_info.get_path(),
