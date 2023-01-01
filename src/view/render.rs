@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::book::page_element::PageElement;
 use crate::book::{chapter::Chapter, Book};
 use crate::controllers::Update;
@@ -208,7 +209,8 @@ fn render_library() -> impl Widget<ApplicationState> {
                 let uno = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_child(
-                        Image::new(ImageBuf::from_file(book_info.cover_path.clone()).unwrap()) //TODO: unwrap_or(default image)
+                        Image::new(ImageBuf::from_file(book_info.cover_path.clone())
+                            .unwrap_or(ImageBuf::from_file(PathBuf::from("./images/default.jpg")).unwrap())) //TODO: unwrap_or(default image)
                             .fix_width(300.0)
                             .fix_height(200.0),
                     );

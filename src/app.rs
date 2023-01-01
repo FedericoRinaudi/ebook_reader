@@ -3,7 +3,7 @@ use crate::bookcase::{BookCase, BookInfo};
 use crate::Book;
 use druid::{im::HashSet, im::Vector, Data, Lens, Selector, ExtEventSink, Target};
 use crate::book::chapter::Chapter;
-use crate::ocr::{Mapping, OcrData};
+use crate::ocr::{find_ch, Mapping, OcrData};
 
 use crate::view::view::View;
 
@@ -117,21 +117,21 @@ impl ApplicationState {
         None
     }
 
-    pub fn ocr_jump(&self, sink: ExtEventSink, id: usize) {
-        if let Some(map) = self.get_current().ocr.get_mapping(id) {
+    pub fn ocr_jump(&self, sink: ExtEventSink, str:String) {
+
             th_find(
-                map,
+                str,
                 sink,
                 self.current_book.chapters.clone(),
             )
-        }
+
     }
 }
 
 
-fn th_find(map: Mapping, sink: ExtEventSink, vec: Vector<Chapter>) {
+fn th_find(str: String, sink: ExtEventSink, vec: Vector<Chapter>) {
     thread::spawn(move || {
-        match map.find_ch(vec) {
+        match find_ch(str, vec) {
             Some((index, offset)) => {
                 sink.submit_command(
                     FINISH_SLOW_FUNCTION,

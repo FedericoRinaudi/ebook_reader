@@ -27,6 +27,7 @@ impl Mapping {
             text: str
         };
         let line = init.page_stats()?;
+        println!("{:?}", init);
         Ok((init,line))
     }
 
@@ -67,24 +68,6 @@ impl Mapping {
         self.tot_chars = fold_res.0;
         Ok(num_lines)
     }
-
-    pub(crate) fn find_ch(&self, chs: Vector<Chapter>) -> Option<(usize, usize)> {
-        for (index, ch) in chs.iter().enumerate() {
-            let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
-            let p_clone = plain_text.clone();
-            let t_clone = (&self).text.clone()
-                .replace("-\n", "")
-                .replace("\n", " ")
-                .replace(".", " ");
-            if let Some(offset) =
-            OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare)
-            {
-                return Some((index, offset));
-            }
-        }
-        None
-    }
-
 
 }
 
@@ -146,4 +129,22 @@ impl OcrData {
         self.lines
     }
 
+}
+
+
+pub(crate) fn find_ch(str:String, chs: Vector<Chapter>) -> Option<(usize, usize)> {
+    for (index, ch) in chs.iter().enumerate() {
+        let plain_text = xml_to_text(&ch.xml).replace("\n", " ").replace(".", " ");
+        let p_clone = plain_text.clone();
+        let t_clone = str.clone()
+            .replace("-\n", "")
+            .replace("\n", " ")
+            .replace(".", " ");
+        if let Some(offset) =
+        OcrAlgorithms::fuzzy_match(p_clone, t_clone, OcrAlgorithms::fuzzy_linear_compare)
+        {
+            return Some((index, offset));
+        }
+    }
+    None
 }

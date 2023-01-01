@@ -61,9 +61,8 @@ impl AppDelegate<ApplicationState> for Delegate {
             match data.i_mode {
                 InputMode::OcrJump => {
                     /* Qui stiamo prendendo un immagine per usare l'OCR */
+                    th_lepto_load(ctx.get_external_handle(), file_info.path.clone());
                     data.i_mode = InputMode::None;
-
-                    th_lepto_load(ctx.get_external_handle(), file_info.path.clone())
                 }
                 InputMode::EbookAdd => {
                     if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
@@ -117,12 +116,15 @@ impl AppDelegate<ApplicationState> for Delegate {
         if let Some(str) = cmd.get(FINISH_LEPTO_LOAD) {
             match str {
                 Some(str) => {
+                    data.ocr_jump(ctx.get_external_handle(), str.to_string());
+                    /*
                     match data.get_mut_current().unwrap().ocr.ocr_log(str.clone(), false) {
                         Ok(map_id) => {
                             data.ocr_jump(ctx.get_external_handle(), map_id).clone()
                         }
                         Err(e) => eprintln!("{}", e)
                     }
+                    */
                 }
                 None => {
                     data.error_message = Some("Couldn't load image".to_string());

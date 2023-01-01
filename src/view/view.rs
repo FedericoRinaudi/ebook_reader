@@ -115,6 +115,7 @@ impl View {
         for el in self.current_view.iter_mut() {
             if let ContentType::Text(text) = el.clone().content {
                 let element_lines = (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
+                /*
                 let max_lines = if curr_page == 1 {
                     if lines_in_page.0 != 0 {
                         lines_in_page.0} else {lines_in_page.1 - 10}
@@ -122,6 +123,8 @@ impl View {
                     if lines_in_page.1 != 0 {
                         lines_in_page.1} else {lines_in_page.0 + 10}
                 };
+                */
+                let max_lines = if curr_page == 1 {36} else {26};
                 guessed_lines = if (guessed_lines + element_lines) <= max_lines
                 {
                     guessed_lines + element_lines
