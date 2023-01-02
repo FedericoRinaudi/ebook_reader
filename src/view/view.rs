@@ -115,6 +115,9 @@ impl View {
         let mut curr_page = 1;
 
         for el in self.current_view.iter_mut() {
+            if el.not_in_html{
+                continue;
+            }
             if let ContentType::Text(text) = el.clone().content {
                 let element_lines = (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
                 /*

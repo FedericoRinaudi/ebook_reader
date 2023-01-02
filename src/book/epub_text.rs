@@ -40,7 +40,7 @@ impl RangeAttribute {
 #[derive(Debug, Clone, Data)]
 pub struct EpubText {
     pub attributes: HashMap<AttributeCase, Vector<RangeAttribute>>,
-    pub text: String,
+    pub text: String
 }
 
 impl EpubText {

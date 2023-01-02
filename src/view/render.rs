@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::thread;
 use crate::book::page_element::PageElement;
 use crate::book::{chapter::Chapter, Book};
 use crate::controllers::Update;
@@ -212,6 +213,13 @@ fn render_library() -> impl Widget<ApplicationState> {
                         .with_child(Buttons::btn_add_book().padding(20.0)),
                 );
             //TODO: provo con molti libri e valuto le tempistiche, valuto multithread
+            let mut images_threads = Vec::new();
+            for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
+                let cover_path = book_info.cover_path.clone();
+                images_threads.push(thread::spawn(move || {
+                    ImageBuf::from_file(cover_path)
+                }));
+            }
             for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                 let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
                 let uno = Flex::column()

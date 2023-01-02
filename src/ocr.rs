@@ -106,7 +106,7 @@ impl OcrData {
         }
             Err(e) => {
                 eprintln!("{:?}", e);
-                Err(e)
+                Err(())
             }
         }
     }
