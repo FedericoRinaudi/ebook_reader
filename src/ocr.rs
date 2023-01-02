@@ -13,31 +13,31 @@ pub struct Mapping {
     pub(crate) is_first: bool, //E' la prima pagina di un capitolo?
     pub(crate) tot_chars: usize, //Total sum of characters to get the average
     pub(crate) full_lines: usize, //Number of lines considered to get average characters
-    pub(crate) text: String
+    pub page_lines: usize
 }
 
 impl Mapping {
-    pub fn new(str:String, is_first: bool) -> Result<(Self, usize), Box<dyn Error>> {
+    pub fn new(str:String) -> Result<Self, Box<dyn Error>> {
 
         let mut init = Mapping {
             page: 0,
-            is_first,
+            is_first: false,
             tot_chars: 0,
             full_lines: 0,
-            text: str
+            page_lines: 0
         };
-        let line = init.page_stats()?;
-        println!("{:?}", init);
-        Ok((init,line))
+        init.page_stats(str)?;
+        //println!("{:?}", init);
+        Ok(init)
     }
 
-    fn page_stats(&mut self) -> Result<usize, Box<dyn Error>> {
+    fn page_stats(&mut self, str:String) -> Result<(), Box<dyn Error>> {
 
         //ARRAY CON UNA LINEA PER OGNI RIGA
-        let lines = self.text
+        let lines = str
             .split("\n")
             .filter(|s| {
-                if s.graphemes(true).count() < 4 {
+                if s.graphemes(true).count() < 4 { //TODO: Riconosci intestazioni al posto di controllare solo numero caratteri, hint: usa funzione di spaziatura (?)
                     if let Some(pg_num) = Regex::new(r"\d+").unwrap().captures(s){
                         self.page = pg_num[0].parse::<usize>().unwrap();
                         println!("Found page number: {}", self.page)
@@ -49,9 +49,10 @@ impl Mapping {
             })
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
-        //Lines adesso contiene solo le linee "vere" ossia con almeno 4 caratteri
+        // Lines adesso contiene solo le linee "vere" ossia con almeno 4 caratteri
+        // TODO: COnsidera linee con meno di 4 caratteri potenzialmente valide
 
-        let num_lines = lines.len(); //Salviamo il numero di linee trovate nella pagina
+        self.page_lines = lines.len(); //Salviamo il numero di linee trovate nella pagina
 
         let fold_res = lines
             .iter()
@@ -66,7 +67,7 @@ impl Mapping {
 
         self.full_lines = fold_res.1;
         self.tot_chars = fold_res.0;
-        Ok(num_lines)
+        Ok(())
     }
 
 }
@@ -74,7 +75,8 @@ impl Mapping {
 #[derive(Default, Clone, Data, Lens, PartialEq, Debug)]
 pub struct OcrData {
     pub mappings: Vector<Mapping>,
-    lines: (usize, usize)
+    pub first: Option<usize>,
+    pub other: Option<usize>
 }
 
 impl OcrData {
@@ -82,29 +84,76 @@ impl OcrData {
     pub fn new() -> Self {
         OcrData {
             mappings: Vector::new(),
-            lines: (0, 0)
+            first: None,
+            other: None
         }
     }
 
-    pub fn ocr_log(&mut self, str:String, is_first:bool) -> Result<usize, Box<dyn Error>> {
-        match Mapping::new(str, is_first) {
-            Ok((mapping,lines)) => {
-                // Se questa è la prima volta che inseriamo una pagina iniziale/altra salviamo il num di riga
-                if self.lines.0 == 0 && mapping.is_first {
-                    self.lines.0 = lines
-                } else if self.lines.1 == 0 && !mapping.is_first {
-                    self.lines.1 = lines
-                }
-
+    pub fn ocr_log(&mut self, str:String) -> Result<usize, ()> {
+        if self.first.is_none() || self.other.is_none(){
+            return Err(());
+        }
+        match Mapping::new(str) {
+            Ok(mut mapping) => {
+                let first_lines = self.mappings[self.first.unwrap()].page_lines;
+                let other_lines = self.mappings[self.other.unwrap()].page_lines;
+                let range =  first_lines-2..first_lines+3;
+                let other_range =  other_lines-2..other_lines+3;
+                if range.contains(&mapping.page_lines) {mapping.is_first = true }else if !other_range.contains(&mapping.page_lines) {return Err(())}
                 self.mappings.push_back(mapping);
 
-                return Ok(self.mappings.len() -1)
+                return Ok(&self.mappings.len() -1)
         }
             Err(e) => {
                 eprintln!("{:?}", e);
                 Err(e)
             }
         }
+    }
+
+    pub fn ocr_log_first(&mut self, str:String) -> Result<(), Box<dyn Error>> {
+        match Mapping::new(str) {
+            Ok(mut mapping) => {
+                mapping.is_first = true;
+                self.mappings.push_back(mapping);
+                self.first = Some(&self.mappings.len() -1);
+                return Ok(())
+            }
+            Err(e) => {
+                eprintln!("{:?}", e);
+                Err(e)
+            }
+        }
+    }
+
+    pub fn ocr_log_other(&mut self, str:String) -> Result<(), Box<dyn Error>> {
+        match Mapping::new(str) {
+            Ok(mapping) => {
+                self.mappings.push_back(mapping);
+                self.other = Some(&self.mappings.len() -1);
+                return Ok(())
+            }
+            Err(e) => {
+                eprintln!("{:?}", e);
+                Err(e)
+            }
+        }
+    }
+
+    pub fn is_aligned(&self) -> bool {
+        self.first.is_some() && self.other.is_some()
+    }
+
+    pub fn get_first_page_lines(&self) -> usize {
+        let fold = self.mappings.iter().filter(|m| m.is_first).fold((0, 0), |(sum, count), value| {
+            (value.page_lines + sum, count + 1)});
+        (fold.0 as f64/fold.1 as f64).ceil() as usize
+    }
+
+    pub fn get_other_page_lines(&self) -> usize {
+        let fold = self.mappings.iter().filter(|m| !m.is_first).fold((0, 0), |(sum, count), value| {
+            (value.page_lines + sum, count + 1)});
+        (fold.0 as f64/fold.1 as f64).ceil() as usize
     }
 
     pub fn get_mapping(&self, id:usize) -> Option<Mapping>{
@@ -125,12 +174,7 @@ impl OcrData {
         return sum as f64/count as f64
     }
 
-    pub fn get_lines(&self) -> (usize, usize) {
-        self.lines
-    }
-
 }
-
 
 pub(crate) fn find_ch(str:String, chs: Vector<Chapter>) -> Option<(usize, usize)> {
     for (index, ch) in chs.iter().enumerate() {

@@ -4,6 +4,7 @@ use crate::{ApplicationState, Book};
 use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
 use druid::{Widget, WidgetExt};
 use std::fs;
+use druid::commands::OPEN_FILE;
 use crate::app::InputMode;
 
 //use crate::controllers::ClickableOpacity;
@@ -100,11 +101,16 @@ impl Buttons {
             })
     }
 
-    pub fn btn_ocr_syn() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+    pub fn btn_ocr_syn(book_info:BookInfo) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("OCR SYNC")
-            .on_click(|ctx, data: &mut ApplicationState, _env| {
+            .on_click(move |ctx, data: &mut ApplicationState, _env| {
                 /*  SYNCH MODE */
                 //ctx.window().set_title("SYNCHING");
+                data.current_book = Book::new(
+                    book_info.get_path(),
+                    book_info.start_chapter,
+                    book_info.start_element_number,
+                ).unwrap();
                 data.i_mode = InputMode::OcrSyn0;
                 println!("OCR SYNCH");
             })
@@ -245,7 +251,8 @@ impl Buttons {
         Svg::new(add_svg.clone())
             .fix_width(LIBRARY_SVG_BIG)
             .center()
-            .on_click(|ctx, _, _| {
+            .on_click(|ctx, data: &mut ApplicationState, _| {
+                data.i_mode = InputMode::EbookAdd;
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_epub()));
             })
     }
@@ -269,4 +276,26 @@ impl Buttons {
                 data.update_view();
             })
     }
+
+    pub fn btn_close_ocr() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
+        Button::new("GO BACK").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            data.close_current_book();
+            data.i_mode = InputMode::None
+        })
+    }
+
+    pub fn btn_add_first_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
+        Button::new("ADD FIRST PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
+            data.i_mode = InputMode::OcrSyn0;
+            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+        })
+    }
+
+    pub fn btn_add_other_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
+        Button::new("ADD OTHER PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
+            data.i_mode = InputMode::OcrSyn1;
+            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+        })
+    }
+
 }

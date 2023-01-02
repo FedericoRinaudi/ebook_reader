@@ -17,13 +17,13 @@ pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize)>> =
 pub const FINISH_LEPTO_LOAD: Selector<Option<String>> =
     Selector::new("leptonica.finish_load");
 
-#[derive(Clone, Data, PartialEq)]
+#[derive(Clone, Data, PartialEq, Copy)]
 pub enum InputMode {
     OcrJump,
     EbookAdd,
     OcrSyn0,
     OcrSyn1,
-    None
+    None,
 }
 
 impl Default for InputMode {
@@ -33,14 +33,16 @@ impl Default for InputMode {
 }
 
 
-
 #[derive(Default, Clone, Data, Lens)]
 pub struct ApplicationState {
     pub error_message: Option<String>,
     pub current_book: Book,
-    pub edit: bool, // Serve a switchare da view mode a edit mode
-    pub xml_backup: String, // xml backup useful to discard changes done in edit mode
-    pub modified: HashSet<usize>, //find better solution
+    pub edit: bool,
+    // Serve a switchare da view mode a edit mode
+    pub xml_backup: String,
+    // xml backup useful to discard changes done in edit mode
+    pub modified: HashSet<usize>,
+    //find better solution
     pub view: View,
     pub bookcase: BookCase,
     pub is_loading: bool,
@@ -112,19 +114,20 @@ impl ApplicationState {
             .iter_mut()
             .find(|b| b.path == *(&self.current_book.get_path()))
         {
-            return Some(res)
+            return Some(res);
         }
         None
     }
 
-    pub fn ocr_jump(&self, sink: ExtEventSink, str:String) {
-
-            th_find(
-                str,
-                sink,
-                self.current_book.chapters.clone(),
-            )
-
+    pub fn ocr_jump(&mut self, sink: ExtEventSink, str: String, log:bool) {
+        th_find(
+            str.clone(),
+            sink,
+            self.current_book.chapters.clone(),
+        );
+        if log {
+            self.get_mut_current().unwrap().ocr.ocr_log(str.clone());
+        }
     }
 }
 

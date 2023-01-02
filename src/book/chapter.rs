@@ -133,12 +133,12 @@ impl Chapter {
                 new_line!();
             }
             "img" => {
-                new_line!();
+                new_line!("NO_HTML");
                 let image_path = PathBuf::from(node.attribute("src").unwrap());
                 elements.push_back(PageElement::new(ContentType::Image(
                     images_cache.get(&image_path).unwrap().clone(),
-                )));
-                new_line!();
+                ), false));
+                new_line!("NO_HTML");
             }
             "a" => {
                 /*match n.attribute("href") {
@@ -217,7 +217,7 @@ impl Chapter {
                 recur_on_children!();
                 current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
-                new_line!();
+                new_line!("HTML");
             }
             "h5" => {
                 //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?

@@ -59,10 +59,9 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
             match data.i_mode {
-                InputMode::OcrJump => {
+                InputMode::OcrJump | InputMode::OcrSyn0 | InputMode::OcrSyn1 => {
                     /* Qui stiamo prendendo un immagine per usare l'OCR */
                     th_lepto_load(ctx.get_external_handle(), file_info.path.clone());
-                    data.i_mode = InputMode::None;
                 }
                 InputMode::EbookAdd => {
                     if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
@@ -91,9 +90,8 @@ impl AppDelegate<ApplicationState> for Delegate {
                 data.current_book.get_mut_nav().set_ch(*ch);
                 data.update_view();
 
-                let ocr = data.get_current().ocr;
-                data.view.guess_lines(ocr.get_avg_ch(), ocr.get_lines());
-
+                // let ocr = data.get_current().ocr;
+                // data.view.guess_lines(ocr.get_avg_ch(), ocr.get_lines());
 
                 data.current_book
                     .get_mut_nav()
@@ -109,6 +107,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                 data.error_message = Some("No matches were found, please try again with a better quality image.".to_string());
                 data.current_book = Book::empty_book();
             }
+            data.i_mode = InputMode::None;
             data.is_loading = false;
             return Handled::Yes;
         }
@@ -116,15 +115,12 @@ impl AppDelegate<ApplicationState> for Delegate {
         if let Some(str) = cmd.get(FINISH_LEPTO_LOAD) {
             match str {
                 Some(str) => {
-                    data.ocr_jump(ctx.get_external_handle(), str.to_string());
-                    /*
-                    match data.get_mut_current().unwrap().ocr.ocr_log(str.clone(), false) {
-                        Ok(map_id) => {
-                            data.ocr_jump(ctx.get_external_handle(), map_id).clone()
-                        }
-                        Err(e) => eprintln!("{}", e)
+                    match data.i_mode {
+                        InputMode::OcrJump => data.ocr_jump(ctx.get_external_handle(), str.to_string(), data.get_current().ocr.is_aligned()),
+                        InputMode::OcrSyn0 => data.get_mut_current().unwrap().ocr.ocr_log_first(str.clone()).unwrap(),
+                        InputMode::OcrSyn1 => data.get_mut_current().unwrap().ocr.ocr_log_other(str.clone()).unwrap(),
+                        _ => {}
                     }
-                    */
                 }
                 None => {
                     data.error_message = Some("Couldn't load image".to_string());

@@ -12,48 +12,58 @@ use druid::widget::{
     LineBreaking, List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
 };
 use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
+use crate::app::InputMode;
+use crate::widgets::custom_img::BetterImage;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
     Flex::column()
         .with_child(ViewSwitcher::new(
-        |data: &ApplicationState, _| data.error_message.clone(), /* Ad ora non funziona... lo fixo */
-        |msg, _data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-            let mut error_row = Flex::row().must_fill_main_axis(true);
-            match msg {
-                None => {}
-                Some(msg) => {
-                    error_row.add_child(Padding::new(10.0,Label::new(msg.to_string()).with_text_color(Color::rgb(0.9, 0.05, 0.05)).with_text_size(14.)));
-                    error_row.add_flex_spacer(1.0);
-                    error_row.add_child(Padding::new(10.0,Buttons::btn_close_error()));
+            |data: &ApplicationState, _| data.error_message.clone(), /* Ad ora non funziona... lo fixo */
+            |msg, _data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                let mut error_row = Flex::row().must_fill_main_axis(true);
+                match msg {
+                    None => {}
+                    Some(msg) => {
+                        error_row.add_child(Padding::new(10.0, Label::new(msg.to_string()).with_text_color(Color::rgb(0.9, 0.05, 0.05)).with_text_size(14.)));
+                        error_row.add_flex_spacer(1.0);
+                        error_row.add_child(Padding::new(10.0, Buttons::btn_close_error()));
+                    }
                 }
-            }
-            Box::new(error_row.background(Color::rgb(0.247, 0.194, 0.182)))
-        },
-    )
+                Box::new(error_row.background(Color::rgb(0.247, 0.194, 0.182)))
+            },
+        )
         )
         .with_flex_child(ViewSwitcher::new(
-        |data: &ApplicationState, _| data.is_loading, /* Ad ora non funziona... lo fixo */
-        |_load, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-            if !data.is_loading {
-                Box::new(ViewSwitcher::new(
-                    |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
-                    |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-                        if data.current_book.is_empty() {
-                            /* Renderizziamo la libreria di libri disponibili */
-                            Box::new(render_library())
-                            //Box::new(render_book())
-                        } else {
-                            /* Renderizziamo il libro scelto */
-                            Box::new(Padding::new((0.0,0.0,0.0,18.0), render_book()))
-                        }
-                    },
-                ))
-            } else {
-                Box::new(Spinner::new().fix_height(40.0).center())
-            }
-        },
-    ), 1.)
+            |data: &ApplicationState, _| data.is_loading, /* Ad ora non funziona... lo fixo */
+            |_load, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                if !data.is_loading {
+                    Box::new(
+                        ViewSwitcher::new(
+                            |data: &ApplicationState, _| data.i_mode, /* Condizione della useEffect (?) */
+                            |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                                match data.i_mode {
+                                    InputMode::None => Box::new(ViewSwitcher::new(
+                                        |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
+                                        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                                            if data.current_book.is_empty() {
+                                                /* Renderizziamo la libreria di libri disponibili */
+                                                Box::new(render_library())
+                                                //Box::new(render_book())
+                                            } else {
+                                                /* Renderizziamo il libro scelto */
+                                                Box::new(Padding::new((0.0, 0.0, 0.0, 18.0), render_book()))
+                                            }
+                                        },
+                                    )),
+                                    _ => Box::new(render_ocr_syn())
+                                }
+                            }))
+                } else {
+                    Box::new(Spinner::new().fix_height(40.0).center())
+                }
+            },
+        ), 1.)
 }
 
 //FUNZIONE CHE CREA I BOTTONI E FA VISUALIZZARE TESTO E IMMAGINI
@@ -107,7 +117,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                 window.add_child(Flex::row().fix_height(7.0));
                 window.add_flex_child(buttons, FlexParams::new(0.07, CrossAxisAlignment::Center));
                 window.add_child(Flex::row().fix_height(7.0));
-                window.add_flex_child(Padding::new((0.0,0.0,0.0,7.0),screen), 0.9);
+                window.add_flex_child(Padding::new((0.0, 0.0, 0.0, 7.0), screen), 0.9);
                 Box::new(window)
             }
         },
@@ -166,9 +176,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     |ele, _data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                         match &ele {
                             ContentType::Text(_) => Box::new(BetterLabel::new()),
-                            ContentType::Image(img_buf) => Box::new(Flex::row().with_child(
-                                Image::new(img_buf.clone()).fill_mode(FillStrat::ScaleDown),
-                            )),
+                            ContentType::Image(img_buf) => Box::new(BetterImage::new(img_buf.clone())),
                             ContentType::Error(_e) => {
                                 let mut label = RawLabel::new();
                                 label.set_line_break_mode(LineBreaking::WordWrap);
@@ -178,7 +186,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     },
                 )
             })
-            .lens(lens);
+                .lens(lens);
             viewport.add_child(chapter);
             Box::new(Padding::new((30.0, 0.0, 30.0, 0.0), viewport))
         },
@@ -209,11 +217,11 @@ fn render_library() -> impl Widget<ApplicationState> {
                 let uno = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_child(
-                        Image::new(ImageBuf::from_file(book_info.cover_path.clone())
-                            .unwrap_or(ImageBuf::from_file(PathBuf::from("./images/default.jpg")).unwrap())) //TODO: unwrap_or(default image)
+                        Image::new(images_threads.remove(0).join().unwrap()
+                            .unwrap_or(ImageBuf::from_file(PathBuf::from("./images/default.jpg")).unwrap()))
                             .fix_width(300.0)
-                            .fix_height(200.0),
-                    );
+                            .fix_height(200.0)
+                            );
                 let due = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_spacer(15.0)
@@ -242,7 +250,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .with_spacer(10.0)
                             .with_child(Buttons::btn_ocr(book_info.clone()))
                             .with_spacer(10.0)
-                            .with_child(Buttons::btn_ocr_syn()) //HERE
+                            .with_child(Buttons::btn_ocr_syn(book_info.clone())) //HERE
                     );
 
                 pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.3);
@@ -259,12 +267,48 @@ fn render_library() -> impl Widget<ApplicationState> {
                             let size = ctx.size().to_rect();
                             ctx.fill(size, &Color::WHITE)
                         })
-                        .fix_height(1.0)
-                        .padding(20.0),
+                            .fix_height(1.0)
+                            .padding(20.0),
                     );
                 }
             }
             Box::new(col.scroll().vertical())
         },
     )
+}
+
+fn render_ocr_syn() -> impl Widget<ApplicationState> {
+    ViewSwitcher::new(
+        |data: &ApplicationState, _| data.get_current().ocr, /* Ad ora non funziona... lo fixo */
+        |ocr, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+            let mut col = Flex::column();
+            let mut row = Flex::row();
+            let mut col_first = Flex::column().cross_axis_alignment(CrossAxisAlignment::Center);
+            let mut col_sec = Flex::column().cross_axis_alignment(CrossAxisAlignment::Center);
+
+            if let Some(id) = ocr.first {
+                col_first.add_child(Label::new(String::from("Page: ") + &*ocr.get_mapping(id).unwrap().page.to_string() ));
+                col_first.add_spacer(5.0);
+                col_first.add_child(Label::new(String::from("Lines: ") + &*ocr.get_mapping(id).unwrap().page_lines.to_string() ));
+            }else {
+                col.add_child(Buttons::btn_add_first_page());
+            }
+
+            if let Some(id) = ocr.other {
+                col_sec.add_child(Label::new(String::from("Page: ") + &*ocr.get_mapping(id).unwrap().page.to_string() ));
+                col_sec.add_spacer(5.0);
+                col_sec.add_child(Label::new(String::from("Lines: ") + &*ocr.get_mapping(id).unwrap().page_lines.to_string() ));
+            }else {
+                col.add_child(Buttons::btn_add_other_page());
+            }
+
+
+            row.add_flex_child(col_first, 0.5);
+            row.add_flex_child(col_sec, 0.5);
+
+            col.add_child(Padding::new(10.0, row));
+            col.add_spacer(10.0);
+            col.add_child(Buttons::btn_close_ocr());
+            Box::new(col)
+        })
 }

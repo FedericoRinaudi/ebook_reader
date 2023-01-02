@@ -221,6 +221,7 @@ fn lepto_load(sink: ExtEventSink, path:PathBuf) {
     lt.set_image(path).unwrap();
     match lt.get_utf8_text() {
         Ok(text) => {
+            // println!("{:?}", text);
             sink.submit_command(
                 FINISH_LEPTO_LOAD,
                 Option::Some(String::from(text)),

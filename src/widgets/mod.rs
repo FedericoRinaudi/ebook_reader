@@ -1,2 +1,3 @@
 pub(crate) mod custom_label;
 pub(crate) mod custom_scrolls;
+pub(crate) mod custom_img;

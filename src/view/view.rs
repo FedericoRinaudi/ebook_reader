@@ -87,9 +87,10 @@ impl View {
         element_number
     }
 
-    pub fn ocr_offset_to_element(&self, mut offset: usize) -> usize {
+    pub fn ocr_offset_to_element(&self, mut offset: usize) -> usize { // A partire da un offset di words>5 trova il page element
         let mut page_element_number = 0;
         for page_element in &self.current_view {
+
             if let ContentType::Text(text) = page_element.content.clone() {
                 let long_words = text
                     .text
@@ -104,11 +105,12 @@ impl View {
                 }
             }
             page_element_number += 1;
+            //println!("pen: {} : {:?}", page_element_number, page_element.content);
         }
         page_element_number
     }
 
-    pub fn guess_lines(&mut self, max_chars: f64, lines_in_page: (usize,usize)) {
+    pub fn guess_lines(&mut self, max_chars: f64, first:usize, second:usize) {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
 
@@ -124,7 +126,7 @@ impl View {
                         lines_in_page.1} else {lines_in_page.0 + 10}
                 };
                 */
-                let max_lines = if curr_page == 1 {36} else {26};
+                let max_lines = if curr_page == 1 {first} else {second};
                 guessed_lines = if (guessed_lines + element_lines) <= max_lines
                 {
                     guessed_lines + element_lines
@@ -133,13 +135,13 @@ impl View {
                     //println!(" NEW PAGE DURING : {} with {} lines", text.text, guessed_lines + element_lines - max_lines);
                     guessed_lines + element_lines - max_lines
                 };
-                // println!("guessed_lines_current: {} of {}", guessed_lines, text.text);
+                //println!("guessed_lines_current: {} of {}", guessed_lines, text.text);
             }
             el.pg_offset = curr_page;
         }
 
-        println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
-        println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
+        //println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
+        //println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
     }
 
 
