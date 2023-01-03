@@ -8,6 +8,7 @@ mod utilities;
 mod view;
 mod widgets;
 mod ocr;
+mod formatters;
 
 use druid::{AppLauncher, WindowDesc};
 use view::view::WINDOW_TITLE;

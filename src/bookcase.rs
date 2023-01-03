@@ -17,7 +17,8 @@ pub struct BookInfo {
     pub start_chapter: usize,
     pub start_element_number: usize,
     pub cover_path: String,
-    pub ocr: OcrData
+    pub ocr: OcrData,
+    pub mapped_pages: Vector<usize>
 }
 
 impl BookInfo {
@@ -35,7 +36,8 @@ impl BookInfo {
             start_chapter,
             start_element_number: element_number,
             cover_path,
-            ocr: OcrData::new()
+            ocr: OcrData::new(),
+            mapped_pages: Vector::new()
         }
     }
 

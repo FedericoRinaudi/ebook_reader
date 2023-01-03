@@ -8,13 +8,13 @@ use crate::view::view::View;
 use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::{ApplicationState, ContentType};
-use druid::widget::{
-    ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label,
-    LineBreaking, List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
-};
-use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
+use druid::widget::{Container, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, TextBoxEvent, ValidationDelegate, ValueTextBox, ViewSwitcher};
+use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt, EventCtx};
 use crate::app::InputMode;
+use crate::bookcase::{BookCase, BookInfo};
+use crate::ocr::{Mapping, OcrData};
 use crate::widgets::custom_img::BetterImage;
+use crate::formatters::CustomFormatter;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -258,7 +258,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .with_spacer(10.0)
                             .with_child(Buttons::btn_ocr(book_info.clone()))
                             .with_spacer(10.0)
-                            .with_child(Buttons::btn_ocr_syn(book_info.clone())) //HERE
+                            .with_child(Buttons::btn_ocr_syn(i)) //HERE
                     );
 
                 pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.3);
@@ -287,36 +287,63 @@ fn render_library() -> impl Widget<ApplicationState> {
 
 fn render_ocr_syn() -> impl Widget<ApplicationState> {
     ViewSwitcher::new(
-        |data: &ApplicationState, _| data.get_current().ocr, /* Ad ora non funziona... lo fixo */
-        |ocr, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-            let mut col = Flex::column();
-            let mut row = Flex::row();
-            let mut col_first = Flex::column().cross_axis_alignment(CrossAxisAlignment::Center);
-            let mut col_sec = Flex::column().cross_axis_alignment(CrossAxisAlignment::Center);
+        |data: &ApplicationState, _| (data.get_current().ocr.first, data.get_current().ocr.other), /* Ad ora non funziona... lo fixo */
+        |_ocr_values, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+
+            let mut col = Flex::column()
+                .cross_axis_alignment(CrossAxisAlignment::Center)
+                .main_axis_alignment(MainAxisAlignment::Center);
+            let mut row = Flex::row()
+                .main_axis_alignment(MainAxisAlignment::Center)
+                .cross_axis_alignment(CrossAxisAlignment::Center)
+                .must_fill_main_axis(true);
+            let ocr = data.get_current().ocr.clone();
 
             if let Some(id) = ocr.first {
-                col_first.add_child(Label::new(String::from("Page: ") + &*ocr.get_mapping(id).unwrap().page.to_string() ));
-                col_first.add_spacer(5.0);
-                col_first.add_child(Label::new(String::from("Lines: ") + &*ocr.get_mapping(id).unwrap().page_lines.to_string() ));
+                row.add_flex_child(render_ocr_image_form(id, data), 0.5);
             }else {
-                col.add_child(Buttons::btn_add_first_page());
+                row.add_child(Buttons::btn_add_first_page());
             }
 
             if let Some(id) = ocr.other {
-                col_sec.add_child(Label::new(String::from("Page: ") + &*ocr.get_mapping(id).unwrap().page.to_string() ));
-                col_sec.add_spacer(5.0);
-                col_sec.add_child(Label::new(String::from("Lines: ") + &*ocr.get_mapping(id).unwrap().page_lines.to_string() ));
+                row.add_flex_child(render_ocr_image_form(id, data), 0.5);
             }else {
-                col.add_child(Buttons::btn_add_other_page());
+                row.add_child(Buttons::btn_add_other_page());
             }
-
-
-            row.add_flex_child(col_first, 0.5);
-            row.add_flex_child(col_sec, 0.5);
-
-            col.add_child(Padding::new(10.0, row));
+            col.add_flex_child(Padding::new(10.0, row), 1.);
             col.add_spacer(10.0);
-            col.add_child(Buttons::btn_close_ocr());
+            col.add_flex_child(Buttons::btn_close_ocr(), 1.);
             Box::new(col)
         })
+}
+
+fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<ApplicationState> {
+    macro_rules! mapping_lens {
+            () => {
+                lens!(ApplicationState, bookcase)
+                    .then(lens!(BookCase, library))
+                    .index(match data.i_mode {
+                                InputMode::OcrSyn0(id) | InputMode::OcrSyn1(id) => id,
+                                _ => panic!()
+                            })
+                    .then(lens!(BookInfo, ocr))
+                    .then(lens!(OcrData, mappings))
+                    .index(id)
+            };
+        }
+    let mut page = TextBox::new()
+        .with_formatter(CustomFormatter::new())
+        .update_data_while_editing(true)
+        .lens(mapping_lens!().then(lens!(Mapping, page)));
+    let mut num_lines = TextBox::new()
+        .with_formatter(CustomFormatter::new())
+        .update_data_while_editing(true)
+        .lens(mapping_lens!().then(lens!(Mapping, page_lines)));
+
+    Flex::column()
+        .must_fill_main_axis(true)
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .with_child(Container::new(page))
+        .with_child(Container::new(num_lines))
+        .with_spacer(5.0)
 }

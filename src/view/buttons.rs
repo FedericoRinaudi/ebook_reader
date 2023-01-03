@@ -2,7 +2,7 @@ use crate::bookcase::BookInfo;
 use crate::utilities::{open_epub, open_image, save_file};
 use crate::{ApplicationState, Book};
 use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
-use druid::{Widget, WidgetExt};
+use druid::{Color, Widget, WidgetExt};
 use std::fs;
 use druid::commands::OPEN_FILE;
 use crate::app::InputMode;
@@ -101,18 +101,10 @@ impl Buttons {
             })
     }
 
-    pub fn btn_ocr_syn(book_info:BookInfo) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+    pub fn btn_ocr_syn(book_info_id: usize) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("OCR SYNC")
             .on_click(move |ctx, data: &mut ApplicationState, _env| {
-                /*  SYNCH MODE */
-                //ctx.window().set_title("SYNCHING");
-                data.current_book = Book::new(
-                    book_info.get_path(),
-                    book_info.start_chapter,
-                    book_info.start_element_number,
-                ).unwrap();
-                data.i_mode = InputMode::OcrSyn0;
-                println!("OCR SYNCH");
+                data.i_mode = InputMode::OcrSyn0(book_info_id);
             })
     }
 
@@ -203,12 +195,11 @@ impl Buttons {
                 /* Tries to load image and find matching line in chapter */
                 data.i_mode = InputMode::OcrJump;
                 data.is_loading = true;
-                data.current_book = Book::new(
+                data.set_book(Book::new(
                     book_info.get_path(),
                     book_info.start_chapter,
                     book_info.start_element_number,
-                )
-                .unwrap();
+                ).unwrap());
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
             })
     }
@@ -266,35 +257,43 @@ impl Buttons {
             .fix_width(LIBRARY_SVG_DIM)
             .center()
             .on_click(move |_ctx, data: &mut ApplicationState, _env| {
-                println!("{}", book_info.path.clone());
-                data.current_book = Book::new(
+                data.set_book(Book::new(
                     book_info.get_path(),
                     book_info.start_chapter,
                     book_info.start_element_number,
-                )
-                .unwrap();
+                ).unwrap());
                 data.update_view();
             })
     }
 
     pub fn btn_close_ocr() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
-        Button::new("GO BACK").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            data.close_current_book();
+        Button::new("SUBMIT").on_click(|_ctx, data: &mut ApplicationState, _env| {
+
+            println!("FUNZIONE OCR SUL LIBRO");
+
             data.i_mode = InputMode::None
         })
     }
 
     pub fn btn_add_first_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
         Button::new("ADD FIRST PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
-            data.i_mode = InputMode::OcrSyn0;
-            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+            if let InputMode::OcrSyn1(id) = data.i_mode {
+                data.i_mode = InputMode::OcrSyn0(id);
+            }
+            if let InputMode::OcrSyn0(_) = data.i_mode {
+                ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+            }
         })
     }
 
     pub fn btn_add_other_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
         Button::new("ADD OTHER PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
-            data.i_mode = InputMode::OcrSyn1;
-            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+            if let InputMode::OcrSyn0(id) = data.i_mode {
+                data.i_mode = InputMode::OcrSyn1(id);
+            }
+            if let InputMode::OcrSyn1(_) = data.i_mode {
+                ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+            }
         })
     }
 

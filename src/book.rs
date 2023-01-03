@@ -64,7 +64,7 @@ impl Book {
     pub fn new<P: AsRef<Path>>(
         path: P,
         init_chapter: usize,
-        init_element_number: usize,
+        init_element_number: usize
     ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
@@ -123,6 +123,10 @@ impl Book {
 
     pub fn format_current_chapter(&mut self) -> Vector<PageElement> {
         (*self).chapters[self.nav.get_ch()].format()
+    }
+
+    pub fn format_chapter(&mut self, chapter_n: usize) -> Vector<PageElement> {
+        (*self).chapters[chapter_n].format()
     }
 
     pub fn go_on(&mut self, n: usize) {

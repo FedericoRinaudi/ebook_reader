@@ -75,6 +75,7 @@ impl Mapping {
 #[derive(Default, Clone, Data, Lens, PartialEq, Debug)]
 pub struct OcrData {
     pub mappings: Vector<Mapping>,
+    pub first_chap: Option<usize>,
     pub first: Option<usize>,
     pub other: Option<usize>
 }
@@ -84,6 +85,7 @@ impl OcrData {
     pub fn new() -> Self {
         OcrData {
             mappings: Vector::new(),
+            first_chap: Some(8), //TODO: NOT HARDCODED VALUE
             first: None,
             other: None
         }
@@ -144,6 +146,10 @@ impl OcrData {
         self.first.is_some() && self.other.is_some()
     }
 
+    pub fn desync(&mut self) {
+        *self = Self::new();
+    }
+
     pub fn get_first_page_lines(&self) -> usize {
         let fold = self.mappings.iter().filter(|m| m.is_first).fold((0, 0), |(sum, count), value| {
             (value.page_lines + sum, count + 1)});
@@ -170,7 +176,7 @@ impl OcrData {
             sum += map.tot_chars;
             count += map.full_lines;
         }
-        println!("AVERAGE CHARS PER LINE: {}\n", sum as f64/count as f64);
+        //println!("AVERAGE CHARS PER LINE: {}\n", sum as f64/count as f64);
         return sum as f64/count as f64
     }
 

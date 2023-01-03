@@ -59,7 +59,7 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
             match data.i_mode {
-                InputMode::OcrJump | InputMode::OcrSyn0 | InputMode::OcrSyn1 => {
+                InputMode::OcrJump | InputMode::OcrSyn0(_) | InputMode::OcrSyn1(_) => {
                     /* Qui stiamo prendendo un immagine per usare l'OCR */
                     th_lepto_load(ctx.get_external_handle(), file_info.path.clone());
                 }
@@ -117,8 +117,8 @@ impl AppDelegate<ApplicationState> for Delegate {
                 Some(str) => {
                     match data.i_mode {
                         InputMode::OcrJump => data.ocr_jump(ctx.get_external_handle(), str.to_string(), data.get_current().ocr.is_aligned()),
-                        InputMode::OcrSyn0 => data.get_mut_current().unwrap().ocr.ocr_log_first(str.clone()).unwrap(),
-                        InputMode::OcrSyn1 => data.get_mut_current().unwrap().ocr.ocr_log_other(str.clone()).unwrap(),
+                        InputMode::OcrSyn0(_) => data.get_mut_current().unwrap().ocr.ocr_log_first(str.clone()).unwrap(),
+                        InputMode::OcrSyn1(_) => data.get_mut_current().unwrap().ocr.ocr_log_other(str.clone()).unwrap(),
                         _ => {}
                     }
                 }
@@ -138,7 +138,14 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(..) = cmd.get(OPEN_PANEL_CANCELLED) {
             data.current_book = Book::empty_book();
-            data.i_mode = InputMode::None;
+            match data.i_mode{
+                InputMode::EbookAdd => {
+                    data.current_book = Book::empty_book();
+                    data.i_mode = InputMode::None;
+                },
+                InputMode::OcrJump => data.i_mode = InputMode::None,
+                _ => {}
+            }
             data.is_loading = false;
             return Handled::Yes;
         }

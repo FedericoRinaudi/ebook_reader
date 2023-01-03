@@ -110,7 +110,7 @@ impl View {
         page_element_number
     }
 
-    pub fn guess_lines(&mut self, max_chars: f64, first:usize, second:usize) {
+    pub fn guess_lines(&mut self, max_chars: f64, first:usize, second:usize) -> usize {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
 
@@ -144,7 +144,8 @@ impl View {
         }
 
         //println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
-        //println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
+        println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
+        curr_page
     }
 
 
