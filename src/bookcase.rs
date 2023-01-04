@@ -1,3 +1,4 @@
+use crate::ocr::OcrData;
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
@@ -6,7 +7,6 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::{env, fs};
 use walkdir::WalkDir;
-use crate::ocr::OcrData;
 
 const FILE_NAME: &str = "meta.txt";
 
@@ -18,7 +18,7 @@ pub struct BookInfo {
     pub start_element_number: usize,
     pub cover_path: String,
     pub ocr: OcrData,
-    pub mapped_pages: Vector<usize>
+    pub mapped_pages: Vector<usize>,
 }
 
 impl BookInfo {
@@ -37,7 +37,7 @@ impl BookInfo {
             start_element_number: element_number,
             cover_path,
             ocr: OcrData::new(),
-            mapped_pages: Vector::new()
+            mapped_pages: Vector::new(),
         }
     }
 

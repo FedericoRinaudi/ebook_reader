@@ -25,7 +25,7 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
                 if data.modified.len() > 0 || data.edit {
                     println!("Window close not implemented for unsaved edits/edit mode")
                 } else {
-                    data.current_book.get_mut_nav().set_element_number(
+                    data.book_to_view.get_mut_nav().set_element_number(
                         data.view
                             .get_element_from_offset(self.child.offset_for_axis(Axis::Vertical)),
                     );
@@ -38,12 +38,12 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
                     self.child.scroll_to_on_axis(
                         Axis::Vertical,
                         data.view
-                            .get_element_offset(data.current_book.get_nav().get_element_numer()),
+                            .get_element_offset(data.book_to_view.get_nav().get_element_numer()),
                     );
                     ctx.request_paint();
                 } else if cmd.get(TRIGGER_OFF).is_some() {
                     //println!("Triggered off to {} out of {}", self.child.offset_for_axis(Axis::Vertical), self.child.child_size().height);
-                    data.current_book.get_mut_nav().set_element_number(
+                    data.book_to_view.get_mut_nav().set_element_number(
                         data.view
                             .get_element_from_offset(self.child.offset_for_axis(Axis::Vertical)),
                     );
@@ -53,7 +53,7 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
                     self.child.scroll_to_on_axis(
                         Axis::Vertical,
                         data.view
-                            .get_element_offset(data.current_book.get_nav().get_element_numer()),
+                            .get_element_offset(data.book_to_view.get_nav().get_element_numer()),
                     );
                     ctx.request_paint();
                 }
@@ -92,7 +92,7 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
             self.child.scroll_to_on_axis(
                 Axis::Vertical,
                 data.view
-                    .get_element_offset(data.current_book.get_nav().get_element_numer()),
+                    .get_element_offset(data.book_to_view.get_nav().get_element_numer()),
             );
             ctx.request_paint();
         }
@@ -184,7 +184,7 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
             self.child.scroll_to_on_axis(
                 Axis::Vertical,
                 data.view
-                    .get_element_offset(data.current_book.get_nav().get_element_numer())
+                    .get_element_offset(data.book_to_view.get_nav().get_element_numer())
                     * rate
                     + 15.0,
             );

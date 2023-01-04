@@ -1,11 +1,11 @@
+use crate::app::InputMode;
 use crate::bookcase::BookInfo;
 use crate::utilities::{open_epub, open_image, save_file};
 use crate::{ApplicationState, Book};
+use druid::commands::OPEN_FILE;
 use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
 use druid::{Color, Widget, WidgetExt};
 use std::fs;
-use druid::commands::OPEN_FILE;
-use crate::app::InputMode;
 
 //use crate::controllers::ClickableOpacity;
 const LIBRARY_SVG_DIM: f64 = 30.;
@@ -23,7 +23,7 @@ impl Buttons {
             .fix_width(LIBRARY_SVG_BIG)
             .center()
             .on_click(|_ctx, data: &mut ApplicationState, _env| {
-                data.current_book.go_on(1);
+                data.book_to_view.go_on(1);
                 data.update_view()
             })
     }
@@ -37,7 +37,7 @@ impl Buttons {
             .fix_width(LIBRARY_SVG_BIG)
             .center()
             .on_click(|_ctx, data: &mut ApplicationState, _env| {
-                data.current_book.go_back(1);
+                data.book_to_view.go_back(1);
                 data.update_view()
             })
     }
@@ -56,8 +56,8 @@ impl Buttons {
             .on_click(|_ctx, data: &mut ApplicationState, _env| {
                 /* EDIT MODE -> EDIT MODE, CONFIRM CHANGES */
                 // data.current_book.save();
-                data.xml_backup = data.current_book.chapters[data.current_book.get_nav().get_ch()].xml.clone();
-                data.modified.insert(data.current_book.get_nav().get_ch()); /* Inserisco se non è già presente il capitolo corrente in quelli modificati */
+                data.xml_backup = data.book_to_view.chapters[data.book_to_view.get_nav().get_ch()].xml.clone();
+                data.modified.insert(data.book_to_view.get_nav().get_ch()); /* Inserisco se non è già presente il capitolo corrente in quelli modificati */
             }).disabled_if(|data: &ApplicationState, _| data.view.current_view.len()==0 || data.view.current_view[0].content.is_err())
     }
 
@@ -71,7 +71,7 @@ impl Buttons {
             .center()
             .on_click(|ctx, data: &mut ApplicationState, _env| {
                 /*  VIEW MODE -> EDIT MODE */
-                data.xml_backup = data.current_book.chapters[data.current_book.get_nav().get_ch()]
+                data.xml_backup = data.book_to_view.chapters[data.book_to_view.get_nav().get_ch()]
                     .xml
                     .clone();
                 data.view
@@ -101,11 +101,19 @@ impl Buttons {
             })
     }
 
-    pub fn btn_ocr_syn(book_info_id: usize) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("OCR SYNC")
-            .on_click(move |ctx, data: &mut ApplicationState, _env| {
-                data.i_mode = InputMode::OcrSyn0(book_info_id);
-            })
+    pub fn btn_ocr_syn(
+        book_info: BookInfo,
+    ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+        Button::new("OCR SYNC").on_click(move |ctx, data: &mut ApplicationState, _env| {
+            data.set_book_to_align(
+                Book::new(
+                    book_info.get_path(),
+                    book_info.start_chapter,
+                    book_info.start_element_number,
+                )
+                .unwrap(),
+            );
+        })
     }
 
     pub fn btn_discard() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
@@ -118,7 +126,7 @@ impl Buttons {
             .center()
             .on_click(|_ctx, data: &mut ApplicationState, _env| {
                 /* EDIT MODE -> EDIT MODE, Discard Changes */
-                data.current_book.update_xml(data.xml_backup.clone());
+                data.book_to_view.update_xml(data.xml_backup.clone());
                 data.update_view();
             })
     }
@@ -158,7 +166,7 @@ impl Buttons {
                                     /* SAVE CHANGES ON NEW FILE */
                                     ctx.submit_command(druid::commands::SHOW_SAVE_PANEL.with(
                                         save_file(
-                                            data.get_current().name.clone()
+                                            data.get_current_book_info().name.clone()
                                                 + &*String::from(".epub"),
                                         ),
                                     ));
@@ -195,11 +203,14 @@ impl Buttons {
                 /* Tries to load image and find matching line in chapter */
                 data.i_mode = InputMode::OcrJump;
                 data.is_loading = true;
-                data.set_book(Book::new(
-                    book_info.get_path(),
-                    book_info.start_chapter,
-                    book_info.start_element_number,
-                ).unwrap());
+                data.set_book_to_read(
+                    Book::new(
+                        book_info.get_path(),
+                        book_info.start_chapter,
+                        book_info.start_element_number,
+                    )
+                    .unwrap(),
+                );
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
             })
     }
@@ -257,44 +268,39 @@ impl Buttons {
             .fix_width(LIBRARY_SVG_DIM)
             .center()
             .on_click(move |_ctx, data: &mut ApplicationState, _env| {
-                data.set_book(Book::new(
-                    book_info.get_path(),
-                    book_info.start_chapter,
-                    book_info.start_element_number,
-                ).unwrap());
+                data.set_book_to_read(
+                    Book::new(
+                        book_info.get_path(),
+                        book_info.start_chapter,
+                        book_info.start_element_number,
+                    )
+                    .unwrap(),
+                );
                 data.update_view();
             })
     }
 
-    pub fn btn_close_ocr() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
+    pub fn btn_close_ocr() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("SUBMIT").on_click(|_ctx, data: &mut ApplicationState, _env| {
-
-            println!("FUNZIONE OCR SUL LIBRO");
-
+            data.map_pages();
+            data.book_to_align = Book::empty_book();
             data.i_mode = InputMode::None
         })
     }
 
-    pub fn btn_add_first_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
+    pub fn btn_add_first_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
+    {
         Button::new("ADD FIRST PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
-            if let InputMode::OcrSyn1(id) = data.i_mode {
-                data.i_mode = InputMode::OcrSyn0(id);
-            }
-            if let InputMode::OcrSyn0(_) = data.i_mode {
-                ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
-            }
+            data.i_mode = InputMode::OcrSyn0;
+            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
         })
     }
 
-    pub fn btn_add_other_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>{
+    pub fn btn_add_other_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
+    {
         Button::new("ADD OTHER PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
-            if let InputMode::OcrSyn0(id) = data.i_mode {
-                data.i_mode = InputMode::OcrSyn1(id);
-            }
-            if let InputMode::OcrSyn1(_) = data.i_mode {
-                ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
-            }
+            data.i_mode = InputMode::OcrSyn1;
+            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
         })
     }
-
 }

@@ -1,14 +1,13 @@
-use crate::app::{FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION, InputMode};
+use crate::app::{InputMode, FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION};
 use crate::book::Book;
 use crate::bookcase::{BookCase, BookInfo};
-use crate::utilities::{th_lepto_load};
+use crate::utilities::th_lepto_load;
 use crate::ApplicationState;
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target};
 use epub::doc::EpubDoc;
 use std::path::PathBuf;
 use std::{env, fs};
-
 
 extern crate num_cpus;
 
@@ -36,13 +35,13 @@ impl AppDelegate<ApplicationState> for Delegate {
                 }
             };
 
-            data.current_book
+            data.book_to_view
                 .save(data.modified.clone(), target_path.clone());
             data.modified.clear();
 
             //Il currentpath diventa quello del nuovo libro
-            if data.current_book.get_path() != target_path {
-                let mut copy_info: BookInfo = data.get_current();
+            if data.book_to_view.get_path() != target_path {
+                let mut copy_info: BookInfo = data.get_current_book_info();
                 copy_info.path = target_path.clone();
                 copy_info.name = PathBuf::from(target_path.clone())
                     .file_stem()
@@ -50,7 +49,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                     .to_str()
                     .unwrap()
                     .to_string();
-                data.current_book.path = target_path;
+                data.book_to_view.path = target_path;
                 data.bookcase.library.push_back(copy_info);
                 data.bookcase.update();
             }
@@ -59,7 +58,7 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
             match data.i_mode {
-                InputMode::OcrJump | InputMode::OcrSyn0(_) | InputMode::OcrSyn1(_) => {
+                InputMode::OcrJump | InputMode::OcrSyn0 | InputMode::OcrSyn1 => {
                     /* Qui stiamo prendendo un immagine per usare l'OCR */
                     th_lepto_load(ctx.get_external_handle(), file_info.path.clone());
                 }
@@ -71,15 +70,16 @@ impl AppDelegate<ApplicationState> for Delegate {
                             "./libri/".to_owned()
                                 + file_info.path.file_name().unwrap().to_str().unwrap(),
                         )
-                            .expect("Failed to copy file");
+                        .expect("Failed to copy file");
                         data.bookcase = BookCase::new();
                         data.is_loading = false;
                     } else {
-                        data.error_message = Option::Some("Impossible to open selected Epub".to_string());
+                        data.error_message =
+                            Option::Some("Impossible to open selected Epub".to_string());
                     }
                     data.i_mode = InputMode::None;
                 }
-                _ => ()
+                _ => (),
             }
             return Handled::Yes;
         }
@@ -87,13 +87,13 @@ impl AppDelegate<ApplicationState> for Delegate {
         if let Some(res) = cmd.get(FINISH_SLOW_FUNCTION) {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
             if let Some((ch, off)) = res {
-                data.current_book.get_mut_nav().set_ch(*ch);
+                data.book_to_view.get_mut_nav().set_ch(*ch);
                 data.update_view();
 
                 // let ocr = data.get_current().ocr;
                 // data.view.guess_lines(ocr.get_avg_ch(), ocr.get_lines());
 
-                data.current_book
+                data.book_to_view
                     .get_mut_nav()
                     .set_element_number(data.view.ocr_offset_to_element(*off));
 
@@ -104,8 +104,11 @@ impl AppDelegate<ApplicationState> for Delegate {
                     data.view.ocr_offset_to_element(*off)
                 );
             } else {
-                data.error_message = Some("No matches were found, please try again with a better quality image.".to_string());
-                data.current_book = Book::empty_book();
+                data.error_message = Some(
+                    "No matches were found, please try again with a better quality image."
+                        .to_string(),
+                );
+                data.book_to_view = Book::empty_book();
             }
             data.i_mode = InputMode::None;
             data.is_loading = false;
@@ -114,22 +117,34 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(str) = cmd.get(FINISH_LEPTO_LOAD) {
             match str {
-                Some(str) => {
-                    match data.i_mode {
-                        InputMode::OcrJump => data.ocr_jump(ctx.get_external_handle(), str.to_string(), data.get_current().ocr.is_aligned()),
-                        InputMode::OcrSyn0(_) => data.get_mut_current().unwrap().ocr.ocr_log_first(str.clone()).unwrap(),
-                        InputMode::OcrSyn1(_) => data.get_mut_current().unwrap().ocr.ocr_log_other(str.clone()).unwrap(),
-                        _ => {}
-                    }
-                }
+                Some(str) => match data.i_mode {
+                    InputMode::OcrJump => data.ocr_jump(
+                        ctx.get_external_handle(),
+                        str.to_string(),
+                        data.get_current_book_info().ocr.is_aligned(),
+                    ),
+                    InputMode::OcrSyn0 => data
+                        .get_mut_current_book_info()
+                        .unwrap()
+                        .ocr
+                        .ocr_log_first(str.clone())
+                        .unwrap(),
+                    InputMode::OcrSyn1 => data
+                        .get_mut_current_book_info()
+                        .unwrap()
+                        .ocr
+                        .ocr_log_other(str.clone())
+                        .unwrap(),
+                    _ => {}
+                },
                 None => {
                     data.error_message = Some("Couldn't load image".to_string());
-                    data.current_book = Book::empty_book();
+                    data.book_to_view = Book::empty_book();
                 }
             }
+            data.i_mode = InputMode::None;
             return Handled::Yes;
         }
-
 
         if let Some(..) = cmd.get(SAVE_PANEL_CANCELLED) {
             data.is_loading = false;
@@ -137,12 +152,12 @@ impl AppDelegate<ApplicationState> for Delegate {
         }
 
         if let Some(..) = cmd.get(OPEN_PANEL_CANCELLED) {
-            data.current_book = Book::empty_book();
-            match data.i_mode{
+            data.book_to_view = Book::empty_book();
+            match data.i_mode {
                 InputMode::EbookAdd => {
-                    data.current_book = Book::empty_book();
+                    data.book_to_view = Book::empty_book();
                     data.i_mode = InputMode::None;
-                },
+                }
                 InputMode::OcrJump => data.i_mode = InputMode::None,
                 _ => {}
             }

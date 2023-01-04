@@ -59,11 +59,7 @@ impl View {
 
     pub fn get_element_offset(&self, n: usize) -> f64 {
         let mut sum = 0.0;
-        for el in self
-            .current_view
-            .iter()
-            .take(if n == 0 { 0 } else { n })
-        {
+        for el in self.current_view.iter().take(if n == 0 { 0 } else { n }) {
             sum += el.size.unwrap_or((0.0, 0.0)).1;
         }
         //println!("sum: {}", sum);
@@ -87,10 +83,10 @@ impl View {
         element_number
     }
 
-    pub fn ocr_offset_to_element(&self, mut offset: usize) -> usize { // A partire da un offset di words>5 trova il page element
+    pub fn ocr_offset_to_element(&self, mut offset: usize) -> usize {
+        // A partire da un offset di words>5 trova il page element
         let mut page_element_number = 0;
         for page_element in &self.current_view {
-
             if let ContentType::Text(text) = page_element.content.clone() {
                 let long_words = text
                     .text
@@ -110,16 +106,17 @@ impl View {
         page_element_number
     }
 
-    pub fn guess_lines(&mut self, max_chars: f64, first:usize, second:usize) -> usize {
+    pub fn guess_lines(&mut self, max_chars: f64, first: usize, second: usize) -> usize {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
 
         for el in self.current_view.iter_mut() {
-            if el.not_in_html{
+            if el.not_in_html {
                 continue;
             }
             if let ContentType::Text(text) = el.clone().content {
-                let element_lines = (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
+                let element_lines =
+                    (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
                 /*
                 let max_lines = if curr_page == 1 {
                     if lines_in_page.0 != 0 {
@@ -129,9 +126,8 @@ impl View {
                         lines_in_page.1} else {lines_in_page.0 + 10}
                 };
                 */
-                let max_lines = if curr_page == 1 {first} else {second};
-                guessed_lines = if (guessed_lines + element_lines) <= max_lines
-                {
+                let max_lines = if curr_page == 1 { first } else { second };
+                guessed_lines = if (guessed_lines + element_lines) <= max_lines {
                     guessed_lines + element_lines
                 } else {
                     curr_page += 1;
@@ -147,7 +143,6 @@ impl View {
         println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
         curr_page
     }
-
 
     /*
     pub fn get_view_size(&self, width:f32, h:f32) -> usize {

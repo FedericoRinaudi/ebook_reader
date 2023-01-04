@@ -1,14 +1,13 @@
+use crate::app::FINISH_LEPTO_LOAD;
+use crate::book::page_element::PageElement;
+use crate::ContentType;
+use druid::im::Vector;
 use druid::{ExtEventSink, FileDialogOptions, FileSpec, ImageBuf, Target};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::io::Read;
 use std::path::PathBuf;
 use std::thread;
-use druid::im::Vector;
 use unicode_segmentation::UnicodeSegmentation;
-use crate::app::FINISH_LEPTO_LOAD;
-use crate::book::page_element::PageElement;
-use crate::ContentType;
-
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
@@ -180,15 +179,19 @@ fn xml_to_plain(node: Node, current_text: &mut String) {
 
 pub fn is_part(vec: Vector<PageElement>) -> bool {
     /* Elementi non vuoti */
-    let filtered = vec.iter().filter(|elem| {
-        if let ContentType::Text(text) = (*elem).clone().content {
-            if text.text.trim().len() > 0 {
-                return true;
+    let filtered = vec
+        .iter()
+        .filter(|elem| {
+            if let ContentType::Text(text) = (*elem).clone().content {
+                if text.text.trim().len() > 0 {
+                    return true;
+                }
+                return false;
             }
-            return false;
-        }
-        false
-    }).map(|el| (*el).clone()).collect::<Vector<PageElement>>();
+            false
+        })
+        .map(|el| (*el).clone())
+        .collect::<Vector<PageElement>>();
     /* Elementi non vuoti non maggiori di 80 char*/
     if filtered.clone().iter().any(|el| {
         if let ContentType::Text(text) = (*el).clone().content {
@@ -208,15 +211,11 @@ pub fn is_part(vec: Vector<PageElement>) -> bool {
     false
 }
 
-
 pub fn th_lepto_load(sink: ExtEventSink, path: PathBuf) {
-    thread::spawn(move || {
-        lepto_load(sink, path)
-    });
+    thread::spawn(move || lepto_load(sink, path));
 }
 
-
-fn lepto_load(sink: ExtEventSink, path:PathBuf) {
+fn lepto_load(sink: ExtEventSink, path: PathBuf) {
     let mut lt = leptess::LepTess::new(None, "ita").unwrap();
     lt.set_image(path).unwrap();
     match lt.get_utf8_text() {
@@ -227,13 +226,11 @@ fn lepto_load(sink: ExtEventSink, path:PathBuf) {
                 Option::Some(String::from(text)),
                 Target::Auto,
             )
-                .expect("command failed to submit")
+            .expect("command failed to submit")
         }
         Err(_) => {
             sink.submit_command(FINISH_LEPTO_LOAD, Option::None, Target::Auto)
                 .expect("command failed to submit");
         }
     }
-
 }
-

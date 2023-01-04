@@ -1,10 +1,10 @@
 use druid::text::{Formatter, Selection, Validation, ValidationError};
 use leptess::capi::Sel;
 
-pub struct CustomFormatter{}
-impl CustomFormatter{
+pub struct CustomFormatter {}
+impl CustomFormatter {
     pub fn new() -> Self {
-        Self{}
+        Self {}
     }
 }
 impl Formatter<usize> for CustomFormatter {
@@ -13,7 +13,7 @@ impl Formatter<usize> for CustomFormatter {
             String::new()
         } else {
             (*value).to_string()
-        }
+        };
     }
 
     fn validate_partial_input(&self, input: &str, sel: &Selection) -> Validation {

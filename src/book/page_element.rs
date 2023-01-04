@@ -9,7 +9,7 @@ pub struct PageElement {
     pub size: Option<(f64, f64)>,
     //#[data(ignore)]
     pub pg_offset: usize,
-    pub not_in_html: bool
+    pub not_in_html: bool,
 }
 
 impl PageElement {
@@ -18,7 +18,7 @@ impl PageElement {
             content: con,
             size: Option::None,
             pg_offset: 0,
-            not_in_html
+            not_in_html,
         }
     }
 }

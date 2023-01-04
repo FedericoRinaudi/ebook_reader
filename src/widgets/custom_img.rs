@@ -1,7 +1,10 @@
-use druid::{BoxConstraints, Env, Event, EventCtx, ImageBuf, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget};
-use druid::widget::{FillStrat, Flex, Image};
 use crate::book::page_element::PageElement;
 use crate::widgets::custom_label::UPDATE_SIZE;
+use druid::widget::{FillStrat, Flex, Image};
+use druid::{
+    BoxConstraints, Env, Event, EventCtx, ImageBuf, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
+    Size, UpdateCtx, Widget,
+};
 
 pub struct BetterImage {
     child: Flex<PageElement>,
@@ -9,12 +12,13 @@ pub struct BetterImage {
 
 impl BetterImage {
     /*TODO: FAI CASO PER IMMAGINE*/
-    pub fn new(buf:ImageBuf) -> BetterImage {
-
+    pub fn new(buf: ImageBuf) -> BetterImage {
         let img = Image::new(buf).fill_mode(FillStrat::ScaleDown);
         let row = Flex::row();
 
-        BetterImage { child: row.with_child(img) }
+        BetterImage {
+            child: row.with_child(img),
+        }
     }
 }
 
@@ -30,7 +34,7 @@ impl Widget<PageElement> for BetterImage {
             }
             Event::MouseDown(_) => {
                 println!("OFFSET FROM START CHAPTER: {}", data.pg_offset);
-            },
+            }
             _ => {}
         }
     }

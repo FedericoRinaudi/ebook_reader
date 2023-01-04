@@ -1,6 +1,6 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
-use druid::text::{Attribute};
+use druid::text::Attribute;
 use druid::{im::Vector, Data, FontFamily, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
@@ -15,7 +15,7 @@ pub struct Chapter {
     path: String,
     pub xml: String,
     imgs: HashMap<PathBuf, ImageBuf>,
-    pub is_part: bool
+    pub is_part: bool,
 }
 
 impl Chapter {
@@ -26,7 +26,12 @@ impl Chapter {
         let doc = Document::parse_with_options(&xml, opt).unwrap();
         let node = doc.root_element().last_element_child().unwrap();
         Self::fetch_ch_imgs(node, &path, ebook_path, &mut imgs);
-        Chapter { path, xml, imgs, is_part:false }
+        Chapter {
+            path,
+            xml,
+            imgs,
+            is_part: false,
+        }
     }
 
     pub fn format(&mut self) -> Vector<PageElement> {
@@ -35,9 +40,10 @@ impl Chapter {
             Result::Ok(doc) => doc,
             Err(e) => {
                 let mut v = Vector::new();
-                v.push_back(PageElement::new(ContentType::Error(EpubText::from(
-                    e.to_string(),
-                )), true));
+                v.push_back(PageElement::new(
+                    ContentType::Error(EpubText::from(e.to_string())),
+                    true,
+                ));
                 return v;
             }
         };
@@ -49,7 +55,6 @@ impl Chapter {
             elements.push_back(PageElement::new(ContentType::Text(cur_text.clone())));
         }*/
 
-
         if is_part(elements.clone()) {
             self.is_part = true;
         }
@@ -57,7 +62,6 @@ impl Chapter {
 
         elements
     }
-
 
     //TODO: SISTEMO L'IMMAGINE
     fn fetch_ch_imgs(
@@ -95,7 +99,10 @@ impl Chapter {
 
         macro_rules! new_line {
             ($html: literal) => {
-                elements.push_back(PageElement::new(ContentType::Text(current_text.clone()), $html != "HTML"));
+                elements.push_back(PageElement::new(
+                    ContentType::Text(current_text.clone()),
+                    $html != "HTML",
+                ));
                 current_text.reset();
             };
         }
@@ -147,9 +154,10 @@ impl Chapter {
             "img" => {
                 new_line!("NO_HTML");
                 let image_path = PathBuf::from(node.attribute("src").unwrap());
-                elements.push_back(PageElement::new(ContentType::Image(
-                    images_cache.get(&image_path).unwrap().clone(),
-                ), false));
+                elements.push_back(PageElement::new(
+                    ContentType::Image(images_cache.get(&image_path).unwrap().clone()),
+                    false,
+                ));
                 new_line!("NO_HTML");
             }
             "a" => {
@@ -272,7 +280,6 @@ impl Chapter {
                 current_text.push_str("    - ");
                 recur_on_children!();
                 new_line!("HTML");
-
             }
             //TODO: implementare tag pre
             /*"pre" => {
@@ -291,5 +298,4 @@ impl Chapter {
     pub fn get_path(&self) -> String {
         (&self).path.clone()
     }
-
 }

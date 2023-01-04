@@ -1,20 +1,24 @@
-use std::path::PathBuf;
-use std::thread;
+use crate::app::InputMode;
 use crate::book::page_element::PageElement;
 use crate::book::{chapter::Chapter, Book};
+use crate::bookcase::{BookCase, BookInfo};
 use crate::controllers::Update;
+use crate::formatters::CustomFormatter;
+use crate::ocr::{Mapping, OcrData};
 use crate::view::buttons::Buttons;
 use crate::view::view::View;
+use crate::widgets::custom_img::BetterImage;
 use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::{ApplicationState, ContentType};
-use druid::widget::{Container, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, TextBoxEvent, ValidationDelegate, ValueTextBox, ViewSwitcher};
-use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt, EventCtx};
-use crate::app::InputMode;
-use crate::bookcase::{BookCase, BookInfo};
-use crate::ocr::{Mapping, OcrData};
-use crate::widgets::custom_img::BetterImage;
-use crate::formatters::CustomFormatter;
+use druid::widget::{
+    Container, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label,
+    LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
+    TextBoxEvent, ValidationDelegate, ValueTextBox, ViewSwitcher,
+};
+use druid::{lens, Color, EventCtx, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
+use std::path::PathBuf;
+use std::thread;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -41,13 +45,13 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                 if !data.is_loading {
                     Box::new(
                         ViewSwitcher::new(
-                            |data: &ApplicationState, _| data.i_mode, /* Condizione della useEffect (?) */
-                            |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-                                match data.i_mode {
-                                    InputMode::None => Box::new(ViewSwitcher::new(
-                                        |data: &ApplicationState, _| data.current_book.is_empty(), /* Condizione della useEffect (?) */
+                            |data: &ApplicationState, _| data.book_to_align.is_empty(), /* Condizione della useEffect (?) */
+                            |cond, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                                return if *cond {
+                                    Box::new(ViewSwitcher::new(
+                                        |data: &ApplicationState, _| data.book_to_view.is_empty(), /* Condizione della useEffect (?) */
                                         |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-                                            if data.current_book.is_empty() {
+                                            if data.book_to_view.is_empty() {
                                                 /* Renderizziamo la libreria di libri disponibili */
                                                 Box::new(render_library())
                                                 //Box::new(render_book())
@@ -56,8 +60,9 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                                                 Box::new(Padding::new((0.0, 0.0, 0.0, 18.0), render_book()))
                                             }
                                         },
-                                    )),
-                                    _ => Box::new(render_ocr_syn())
+                                    ))
+                                } else {
+                                    Box::new(render_ocr_syn())
                                 }
                             }))
                 } else {
@@ -78,7 +83,7 @@ fn render_book() -> impl Widget<ApplicationState> {
                 let buttons = ViewSwitcher::new(
                     |data: &ApplicationState, _| {
                         data.xml_backup
-                            == data.current_book.chapters[data.current_book.get_nav().get_ch()].xml
+                            == data.book_to_view.chapters[data.book_to_view.get_nav().get_ch()].xml
                     },
                     |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
                         Box::new(if *cond {
@@ -129,7 +134,7 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
     let mut viewport = Flex::row();
     let view = ViewSwitcher::new(
         |data: &ApplicationState, _env| {
-            data.current_book.chapters[data.current_book.get_nav().get_ch()]
+            data.book_to_view.chapters[data.book_to_view.get_nav().get_ch()]
                 .xml
                 .clone()
         },
@@ -138,11 +143,11 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
         },
     );
     let edit = ViewSwitcher::new(
-        |data: &ApplicationState, _| data.current_book.get_nav().get_ch(),
+        |data: &ApplicationState, _| data.book_to_view.get_nav().get_ch(),
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            let xml_lens = lens!(ApplicationState, current_book)
+            let xml_lens = lens!(ApplicationState, book_to_view)
                 .then(lens!(Book, chapters))
-                .index(data.current_book.get_nav().get_ch())
+                .index(data.book_to_view.get_nav().get_ch())
                 .then(lens!(Chapter, xml));
 
             let editable_xml = TextBox::new().with_line_wrapping(true).lens(xml_lens);
@@ -177,7 +182,9 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     |ele, _data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                         match &ele {
                             ContentType::Text(_) => Box::new(BetterLabel::new()),
-                            ContentType::Image(img_buf) => Box::new(BetterImage::new(img_buf.clone())),
+                            ContentType::Image(img_buf) => {
+                                Box::new(BetterImage::new(img_buf.clone()))
+                            }
                             ContentType::Error(_e) => {
                                 let mut label = RawLabel::new();
                                 label.set_line_break_mode(LineBreaking::WordWrap);
@@ -187,7 +194,7 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     },
                 )
             })
-                .lens(lens);
+            .lens(lens);
             viewport.add_child(chapter);
             Box::new(Padding::new((30.0, 0.0, 30.0, 0.0), viewport))
         },
@@ -216,20 +223,19 @@ fn render_library() -> impl Widget<ApplicationState> {
             let mut images_threads = Vec::new();
             for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                 let cover_path = book_info.cover_path.clone();
-                images_threads.push(thread::spawn(move || {
-                    ImageBuf::from_file(cover_path)
-                }));
+                images_threads.push(thread::spawn(move || ImageBuf::from_file(cover_path)));
             }
             for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                 let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
                 let uno = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_child(
-                        Image::new(images_threads.remove(0).join().unwrap()
-                            .unwrap_or(ImageBuf::from_file(PathBuf::from("./images/default.jpg")).unwrap()))
-                            .fix_width(300.0)
-                            .fix_height(200.0)
-                            );
+                        Image::new(images_threads.remove(0).join().unwrap().unwrap_or(
+                            ImageBuf::from_file(PathBuf::from("./images/default.jpg")).unwrap(),
+                        ))
+                        .fix_width(300.0)
+                        .fix_height(200.0),
+                    );
                 let due = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_spacer(15.0)
@@ -258,7 +264,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .with_spacer(10.0)
                             .with_child(Buttons::btn_ocr(book_info.clone()))
                             .with_spacer(10.0)
-                            .with_child(Buttons::btn_ocr_syn(i)) //HERE
+                            .with_child(Buttons::btn_ocr_syn(book_info.clone())), //HERE
                     );
 
                 pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.3);
@@ -275,8 +281,8 @@ fn render_library() -> impl Widget<ApplicationState> {
                             let size = ctx.size().to_rect();
                             ctx.fill(size, &Color::WHITE)
                         })
-                            .fix_height(1.0)
-                            .padding(20.0),
+                        .fix_height(1.0)
+                        .padding(20.0),
                     );
                 }
             }
@@ -287,9 +293,13 @@ fn render_library() -> impl Widget<ApplicationState> {
 
 fn render_ocr_syn() -> impl Widget<ApplicationState> {
     ViewSwitcher::new(
-        |data: &ApplicationState, _| (data.get_current().ocr.first, data.get_current().ocr.other), /* Ad ora non funziona... lo fixo */
+        |data: &ApplicationState, _| {
+            (
+                data.get_current_book_info().ocr.first,
+                data.get_current_book_info().ocr.other,
+            )
+        }, /* Ad ora non funziona... lo fixo */
         |_ocr_values, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-
             let mut col = Flex::column()
                 .cross_axis_alignment(CrossAxisAlignment::Center)
                 .main_axis_alignment(MainAxisAlignment::Center);
@@ -297,40 +307,44 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                 .main_axis_alignment(MainAxisAlignment::Center)
                 .cross_axis_alignment(CrossAxisAlignment::Center)
                 .must_fill_main_axis(true);
-            let ocr = data.get_current().ocr.clone();
+            let ocr = data.get_current_book_info().ocr.clone();
 
             if let Some(id) = ocr.first {
                 row.add_flex_child(render_ocr_image_form(id, data), 0.5);
-            }else {
+            } else {
                 row.add_child(Buttons::btn_add_first_page());
             }
 
             if let Some(id) = ocr.other {
                 row.add_flex_child(render_ocr_image_form(id, data), 0.5);
-            }else {
+            } else {
                 row.add_child(Buttons::btn_add_other_page());
             }
             col.add_flex_child(Padding::new(10.0, row), 1.);
             col.add_spacer(10.0);
             col.add_flex_child(Buttons::btn_close_ocr(), 1.);
             Box::new(col)
-        })
+        },
+    )
 }
 
 fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<ApplicationState> {
     macro_rules! mapping_lens {
-            () => {
-                lens!(ApplicationState, bookcase)
-                    .then(lens!(BookCase, library))
-                    .index(match data.i_mode {
-                                InputMode::OcrSyn0(id) | InputMode::OcrSyn1(id) => id,
-                                _ => panic!()
-                            })
-                    .then(lens!(BookInfo, ocr))
-                    .then(lens!(OcrData, mappings))
-                    .index(id)
-            };
-        }
+        () => {
+            lens!(ApplicationState, bookcase)
+                .then(lens!(BookCase, library))
+                .index(
+                    data.bookcase
+                        .library
+                        .iter()
+                        .position(|b| *b.path == data.book_to_align.get_path())
+                        .unwrap(),
+                )
+                .then(lens!(BookInfo, ocr))
+                .then(lens!(OcrData, mappings))
+                .index(id)
+        };
+    }
     let mut page = TextBox::new()
         .with_formatter(CustomFormatter::new())
         .update_data_while_editing(true)

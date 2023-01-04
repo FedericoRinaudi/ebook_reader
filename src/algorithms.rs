@@ -45,7 +45,9 @@ impl OcrAlgorithms {
             .filter(|w| w.len() >= 5)
             .collect();
         let mut offset = 0;
-        if page.len() == 0 {return None};
+        if page.len() == 0 {
+            return None;
+        };
         for w in chapter.windows(page.len()) {
             if algorithm(w, &page, 0.5) {
                 println!("Finito con offset: {}", offset);
