@@ -282,7 +282,7 @@ impl Buttons {
 
     pub fn btn_close_ocr() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("SUBMIT").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            data.map_pages();
+            data.map_pages(true);
             data.book_to_align = Book::empty_book();
             data.i_mode = InputMode::None
         })

@@ -14,8 +14,7 @@ const MAX_SIZE: f64 = 35.0;
 pub struct Chapter {
     path: String,
     pub xml: String,
-    imgs: HashMap<PathBuf, ImageBuf>,
-    pub is_part: bool,
+    imgs: HashMap<PathBuf, ImageBuf>
 }
 
 impl Chapter {
@@ -29,12 +28,11 @@ impl Chapter {
         Chapter {
             path,
             xml,
-            imgs,
-            is_part: false,
+            imgs
         }
     }
 
-    pub fn format(&mut self) -> Vector<PageElement> {
+    pub fn format(&self) -> Vector<PageElement> {
         let opt = ParsingOptions { allow_dtd: true };
         let doc = match Document::parse_with_options(&self.xml, opt) {
             Result::Ok(doc) => doc,
@@ -54,10 +52,6 @@ impl Chapter {
         /*if !cur_text.text.is_empty() {
             elements.push_back(PageElement::new(ContentType::Text(cur_text.clone())));
         }*/
-
-        if is_part(elements.clone()) {
-            self.is_part = true;
-        }
         // println!("IS PART: {}", self.is_part);
 
         elements

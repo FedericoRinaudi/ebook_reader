@@ -32,7 +32,7 @@ impl Mapping {
 
     fn page_stats(&mut self, str: String) -> Result<(), Box<dyn Error>> {
         //ARRAY CON UNA LINEA PER OGNI RIGA
-        let lines = str
+        let mut lines = str
             .split("\n")
             .filter(|s| {
                 if s.graphemes(true).count() < 4 {
@@ -53,17 +53,33 @@ impl Mapping {
 
         self.page_lines = lines.len(); //Salviamo il numero di linee trovate nella pagina
 
-        let fold_res = lines
+        lines = lines
             .iter()
             .filter(|s| {
                 let last = s.chars().last().unwrap();
-                last.is_alphabetic() || last == '-'
+                (last.is_alphabetic() || last == '-')
             })
-            .map(|s| s.len())
+            .map(|s|s.clone())
+            .collect::<Vec<String>>();
+
+        let (mut sum,mut count) = lines.iter().map(|s| s.graphemes(true).count()).fold((0, 0), |(sum, count), value| (sum + value, count + 1));
+
+        let first_avg = sum as f64 / count as f64;
+
+        (sum, count) = lines
+            .iter()
+            .filter(|s|{
+                if s.graphemes(true).count() as f64 > first_avg - 5. {
+                    println!("{}", s);
+                }
+                s.trim().graphemes(true).count() as f64 > first_avg - 5.
+            })
+            .map(|s| s.graphemes(true).count())
             .fold((0, 0), |(sum, count), value| (sum + value, count + 1));
 
-        self.full_lines = fold_res.1;
-        self.tot_chars = fold_res.0;
+
+        self.full_lines = count;
+        self.tot_chars = sum;
         Ok(())
     }
 }
@@ -157,7 +173,7 @@ impl OcrData {
             .fold((0, 0), |(sum, count), value| {
                 (value.page_lines + sum, count + 1)
             });
-        (fold.0 as f64 / fold.1 as f64).ceil() as usize
+        (fold.0 as f64 / fold.1 as f64).round() as usize
     }
 
     pub fn get_other_page_lines(&self) -> usize {
@@ -168,7 +184,7 @@ impl OcrData {
             .fold((0, 0), |(sum, count), value| {
                 (value.page_lines + sum, count + 1)
             });
-        (fold.0 as f64 / fold.1 as f64).ceil() as usize
+        (fold.0 as f64 / fold.1 as f64).round() as usize
     }
 
     pub fn get_mapping(&self, id: usize) -> Option<Mapping> {
@@ -186,7 +202,8 @@ impl OcrData {
             count += map.full_lines;
         }
         //println!("AVERAGE CHARS PER LINE: {}\n", sum as f64/count as f64);
-        return sum as f64 / count as f64;
+        // CON CEIL ARROTONDO SEMPRE PER ECCESSO, PERCHE'
+        sum as f64 / count as f64
     }
 }
 

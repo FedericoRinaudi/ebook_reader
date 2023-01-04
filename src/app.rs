@@ -4,6 +4,7 @@ use crate::ocr::{find_ch, Mapping, OcrData};
 use crate::Book;
 use druid::{im::HashSet, im::Vector, Data, ExtEventSink, Lens, Selector, Target};
 use std::thread;
+use crate::utilities::is_part;
 
 use crate::view::view::View;
 
@@ -95,39 +96,46 @@ impl ApplicationState {
         self.book_to_align = book;
     }
 
-    pub fn map_pages(&mut self) {
-        let ocr = self.get_current_book_info().ocr;
+    pub fn map_pages(&mut self, overwrite: bool) -> Result<(), usize> {
 
-        let mut v = Vector::new();
+        let chapters = self.book_to_align.chapters.clone();
+        let book_info = self.get_mut_current_book_info().unwrap();
+        let ocr = book_info.ocr.clone();
+        if overwrite {
+            book_info.mapped_pages = Vector::new();
+        }
         let mut page = ocr.get_mapping(ocr.first.unwrap()).unwrap().page;
         let mut temp_view = View::new();
-        for (id, ch) in self.book_to_align.chapters.iter_mut().enumerate() {
+        for (id, ch) in chapters.iter().enumerate() {
+            if id +1 <= book_info.mapped_pages.len() {
+                continue;
+            }
             if ocr.first_chap.unwrap() <= id {
                 temp_view.update_view(ch.format().clone());
-                if ch.is_part {
+                if is_part(temp_view.current_view.clone()) {
                     if page % 2 == 0 {
                         page += 1;
-                        v.push_back(page);
+                        book_info.mapped_pages.push_back(page);
                         page += 2;
                     } else {
-                        v.push_back(page);
+                        book_info.mapped_pages.push_back(page);
                         page += 2;
                     }
                 } else {
-                    v.push_back(page);
+                    book_info.mapped_pages.push_back(page);
                     page += temp_view.guess_lines(
                         ocr.get_avg_ch(),
                         ocr.get_first_page_lines(),
                         ocr.get_other_page_lines(),
-                    );
+                    ).unwrap();
                 }
             } else {
-                v.push_back(0);
+                book_info.mapped_pages.push_back(0);
             }
         }
 
-        println!("VETTORE DI FIRST_PAGES: {:?}", v.clone());
-        self.get_mut_current_book_info().unwrap().mapped_pages = v;
+        println!("VETTORE DI FIRST_PAGES: {:?}", book_info.mapped_pages.clone());
+        return Ok(())
     }
 
     pub fn get_current_book_info(&self) -> BookInfo {

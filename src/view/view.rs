@@ -1,3 +1,4 @@
+use std::cmp::min;
 use crate::book::page_element::PageElement;
 use crate::{ApplicationState, ContentType};
 use druid::{im::Vector, Data, Lens, LocalizedString};
@@ -106,7 +107,7 @@ impl View {
         page_element_number
     }
 
-    pub fn guess_lines(&mut self, max_chars: f64, first: usize, second: usize) -> usize {
+    pub fn guess_lines(&mut self, max_chars: f64, first: usize, second: usize) -> Result<usize, ()>  {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
 
@@ -115,8 +116,31 @@ impl View {
                 continue;
             }
             if let ContentType::Text(text) = el.clone().content {
-                let element_lines =
-                    (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
+                /*let mut element_lines = 0;
+                let mut count = 0;
+                for (i, gr) in text.text.trim().graphemes(true).enumerate(){
+                    if count == 0 {
+                        if gr == " "{
+                            continue;
+                        } else {
+                            count = 1;
+                        }
+                    }
+                    count += 1;
+                    if count == max_chars.round() as usize {
+                        element_lines += 1;
+                        count = 0;
+                    }
+                }
+                if count > min(element_lines, 10) {
+                    element_lines += 1
+                }*/
+                let mut element_lines =  (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
+                if element_lines == 0 {
+                    element_lines = 1;
+                } else if text.text.trim().graphemes(true).count() % (max_chars as usize) <=3 {
+                    element_lines -= 1;
+                }
                 /*
                 let max_lines = if curr_page == 1 {
                     if lines_in_page.0 != 0 {
@@ -139,9 +163,9 @@ impl View {
             el.pg_offset = curr_page;
         }
 
-        //println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
+        println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
         println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
-        curr_page
+        Ok(curr_page)
     }
 
     /*
