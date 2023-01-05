@@ -213,12 +213,16 @@ impl Book {
             let mut target_path = dir.clone(); // current_dir/tmp
             target_path.push_str(&self.chapters[ch_n].get_path()); // current_dir/temp/pathdelcapitolodamodificare
                                                                    // println!("{}", dir);
+            //Svuotiamo il file prima di sovrascriverlo altrimenti malfunziona
+            fs::write(target_path.clone(), "").expect("Failed to write to output.txt");
             let mut target = OpenOptions::new()
                 .read(true)
                 .write(true)
                 .create(true)
-                .open(target_path)
-                .unwrap();
+                //.open(target_path)
+                //.unwrap();
+                .open(target_path.clone())
+                .expect(target_path.as_str());
             target
                 .write_all(&self.chapters[ch_n].xml.clone().as_bytes())
                 .expect("Unable to write data");

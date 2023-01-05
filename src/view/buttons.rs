@@ -260,13 +260,15 @@ impl Buttons {
             .fix_width(LIBRARY_SVG_DIM)
             .center()
             .on_click(move |_, data: &mut ApplicationState, _| {
-                let removed_book_info = data.bookcase.library.remove(index);
+                let _ = data.bookcase.library.remove(index);
                 data.bookcase.update_meta();
                 //TODO: anzi che le print metto poi un pop-up o comunque do un feedback all'utente
+                /*
                 match fs::remove_file(removed_book_info.path.clone()) {
                     Ok(()) => println!("Successfully removed file"),
                     Err(e) => println!("Error deleting file: {}", e),
                 }
+                */
             })
     }
 

@@ -8,6 +8,7 @@ use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target};
 use epub::doc::EpubDoc;
 use std::path::PathBuf;
 use std::{env, fs};
+use crate::ocr::OcrData;
 
 extern crate num_cpus;
 
@@ -23,6 +24,8 @@ impl AppDelegate<ApplicationState> for Delegate {
         _env: &Env,
     ) -> Handled {
         if let Some(file_info) = cmd.get(commands::SAVE_FILE_AS) {
+
+            /*
             let cwd = env::current_dir().unwrap();
             let absolute_path = file_info.path.clone();
 
@@ -34,13 +37,17 @@ impl AppDelegate<ApplicationState> for Delegate {
                     absolute_path.clone().to_str().unwrap().to_string()
                 }
             };
+            */
+            let target_path = file_info.path.clone().to_str().unwrap().to_string();
 
             data.book_to_view
                 .save(data.modified.clone(), target_path.clone());
             data.modified.clear();
 
             //Il currentpath diventa quello del nuovo libro
-            if data.book_to_view.get_path() != target_path {
+            if data.bookcase.library.iter().find(|el | el.path == target_path.clone()).is_none() {
+                println!("BOOK PATH: {} TARGET PATH: {}", data.book_to_view.get_path(), target_path);
+
                 let mut copy_info: BookInfo = data.get_current_book_info();
                 copy_info.path = target_path.clone();
                 copy_info.name = PathBuf::from(target_path.clone())
@@ -49,10 +56,13 @@ impl AppDelegate<ApplicationState> for Delegate {
                     .to_str()
                     .unwrap()
                     .to_string();
-                data.book_to_view.path = target_path;
+                copy_info.ocr = OcrData::new();
+                // data.book_to_view.path = target_path;
                 data.bookcase.library.push_back(copy_info);
                 data.bookcase.update_meta();
-            }
+            } //TODO: Se troviamo invece updatiamo il punto a cui è arrivato
+            data.set_book_to_read(Book::empty_book());
+            data.edit = false;
             return Handled::Yes;
         }
 
@@ -65,13 +75,19 @@ impl AppDelegate<ApplicationState> for Delegate {
                 InputMode::EbookAdd => {
                     if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
                         data.is_loading = true;
-                        fs::copy(
-                            file_info.path.clone(),
-                            "./libri/".to_owned()
-                                + file_info.path.file_name().unwrap().to_str().unwrap(),
-                        )
-                        .expect("Failed to copy file");
-                        data.bookcase = BookCase::new();
+                        //TODO: Controlla che il libro non sia già presente
+                        if data.bookcase.library.iter().find(|el | el.path == file_info.path.clone().to_str().unwrap().to_string()).is_some(){
+                            data.error_message= Some("Book already in library".to_string());
+                        } else {
+                            data.bookcase.library.push_back(
+                                BookInfo::new(
+                                    file_info.path.clone().to_str().unwrap().to_string(),
+                                    0,
+                                    0,
+                                    BookCase::get_image(file_info.path.to_str().unwrap())
+                                ));
+                            data.bookcase.update_meta();
+                        }
                         data.is_loading = false;
                     } else {
                         data.error_message =

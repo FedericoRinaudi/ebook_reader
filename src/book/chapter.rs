@@ -24,7 +24,10 @@ impl Chapter {
         xml = xml.replace("&nbsp;", " ");
         let mut imgs = HashMap::new();
         let opt = ParsingOptions { allow_dtd: true };
-        let doc = Document::parse_with_options(&xml, opt).unwrap();
+        let doc = match Document::parse_with_options(&xml, opt){
+            Ok(d) => d,
+            Err(e) => {println!("FAULTY XML: {}\n AAAAA\n {}", e, xml); panic!()}
+        };
         let node = doc.root_element().last_element_child().unwrap();
         Self::fetch_ch_imgs(node, &path, ebook_path, &mut imgs);
         Chapter {
