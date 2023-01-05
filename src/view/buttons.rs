@@ -4,7 +4,6 @@ use crate::utilities::{open_epub, open_image, save_file};
 use crate::{ApplicationState, Book};
 use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
 use druid::{Widget, WidgetExt};
-use std::fs;
 use druid::im::Vector;
 use crate::ocr::OcrData;
 

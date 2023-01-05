@@ -27,11 +27,12 @@ impl Widget<PageElement> for BetterLabel {
             Event::Command(cmd) => {
                 if cmd.get(UPDATE_SIZE).is_some() {
                     data.size = Some(<(f64, f64)>::from(ctx.size()));
+
                     //ctx.submit_command(SCROLL_REQUEST);
                 }
             }
             Event::MouseDown(_) => {
-                println!("OFFSET FROM START CHAPTER: {}", data.pg_offset);
+                println!("PAGE FROM BOOK: {}", data.pg_offset);
             }
             _ => {}
         }
@@ -57,7 +58,12 @@ impl Widget<PageElement> for BetterLabel {
         data: &PageElement,
         env: &Env,
     ) {
-        self.child.update(ctx, old_data, data, env);
+        /*
+        let mut data_m = data.clone();
+        data_m.size = Some(<(f64, f64)>::from(ctx.size()));
+        println!("UPDATED");
+        */
+        self.child.update(ctx, old_data, &data, env);
     }
 
     fn layout(
@@ -68,9 +74,7 @@ impl Widget<PageElement> for BetterLabel {
         env: &Env,
     ) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
-        //data.size = *size;
-        ctx.submit_command(UPDATE_SIZE);
-        //
+        //ctx.submit_command(UPDATE_SIZE);
         size
     }
 

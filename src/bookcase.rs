@@ -3,12 +3,10 @@ use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::{env, fs};
-use walkdir::WalkDir;
 use serde::{Serialize, Deserialize};
-use std::io::prelude::*;
 
 const FILE_NAME: &str = "meta.txt";
 //const FILE_NAME: &str = "meta.bin";

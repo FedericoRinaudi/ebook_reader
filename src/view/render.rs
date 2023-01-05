@@ -220,7 +220,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                 );
             //TODO: provo con molti libri e valuto le tempistiche, valuto multithread
             let mut images_threads = Vec::new();
-            for (i, book_info) in data.get_library().clone().into_iter().enumerate(){
+            for book_info in data.get_library().clone().into_iter(){
                 let cover_path = book_info.cover_path.clone();
                 images_threads.push(thread::spawn(move || ImageBuf::from_file(cover_path)));
             }
@@ -245,6 +245,10 @@ fn render_library() -> impl Widget<ApplicationState> {
                     )
                     .with_spacer(4.0)
                     //TODO: Salvo su file e aggiungo le informazioni corrette
+                    .with_child(Label::new(
+                        String::from("Path: ") + &*book_info.get_path().to_str().unwrap().to_string(),
+                    ))
+                    .with_spacer(1.0)
                     .with_child(Label::new(
                         String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string(),
                     ))
@@ -299,8 +303,19 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
             )
         }, /* Ad ora non funziona... lo fixo */
         |_ocr_values, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+
+            let intro = Label::new(
+                String::from("Lorem Ipsum è un testo segnaposto utilizzato nel settore della tipografia e \
+                della stampa. Lorem Ipsum è considerato il testo segnaposto standard sin dal sedicesimo secolo, \
+                quando un anonimo tipografo prese una cassetta di caratteri e li assemblò per preparare un testo campione. \
+                È sopravvissuto non solo a più di cinque secoli, ma anche al passaggio alla videoimpaginazione, \
+                pervenendoci sostanzialmente inalterato. Fu reso popolare, negli anni ’60, con la diffusione dei \
+                fogli di caratteri trasferibili “Letraset”, che contenevano passaggi del Lorem Ipsum, e più recentemente da software di \
+                impaginazione come Aldus PageMaker, che includeva versioni del Lorem Ipsum."))
+                .with_line_break_mode(LineBreaking::WordWrap);
+
             let mut col = Flex::column()
-                .cross_axis_alignment(CrossAxisAlignment::Center)
+                .cross_axis_alignment(CrossAxisAlignment::Start)
                 .main_axis_alignment(MainAxisAlignment::Center);
             let mut row = Flex::row()
                 .main_axis_alignment(MainAxisAlignment::Center)
@@ -309,23 +324,38 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
             let ocr = data.get_current_book_info().ocr.clone();
 
             if let Some(id) = ocr.first {
-                row.add_flex_child(render_ocr_image_form(id, data), 0.5);
-                row.add_child(Buttons::btn_remove_first_page());
+                row.add_flex_child(Padding::new((10.,0.,10.,0.),
+                    Flex::column()
+                        .with_child(render_ocr_image_form(id, data))
+                        .with_child(Buttons::btn_remove_first_page())),
+                    0.5
+                    );
             } else {
                 row.add_child(Buttons::btn_add_first_page());
             }
+            row.add_spacer(20.);
 
             if let Some(id) = ocr.other {
-                row.add_flex_child(render_ocr_image_form(id, data), 0.5);
-                row.add_child(Buttons::btn_remove_other_page())
+                row.add_flex_child(Padding::new((10.,0.,10.,0.),
+                    Flex::column()
+                        .with_child(render_ocr_image_form(id, data))
+                        .with_child(Buttons::btn_remove_other_page())),
+                    0.5
+                );
             } else {
                 row.add_child(Buttons::btn_add_other_page());
             }
-            col.add_flex_child(Padding::new(10.0, row), 1.);
-            col.add_spacer(10.0);
-            col.add_flex_child(Buttons::btn_submit_ocr_form(), 1.);
-            col.add_spacer(10.0);
-            col.add_flex_child(Buttons::btn_close_ocr_form(), 1.);
+
+            let btn_row = Flex::row()
+                .must_fill_main_axis(true)
+                .main_axis_alignment(MainAxisAlignment::End)
+                .with_child(Padding::new((10.,0.,10.,0.),Buttons::btn_close_ocr_form()))
+                .with_child(Padding::new((10.,0.,10.,0.),Buttons::btn_submit_ocr_form()));
+
+
+            col.add_child(Padding::new((10.,15.,10.,40.), intro));
+            col.add_flex_child(Padding::new((0., 0., 0., 40.), row), 1.);
+            col.add_child(btn_row);
             Box::new(col)
         },
     )
@@ -348,19 +378,34 @@ fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<Appl
                 .index(id)
         };
     }
-    let page = TextBox::new()
+    let page_num_box = TextBox::new()
         .with_formatter(CustomFormatter::new())
         .update_data_while_editing(true)
         .lens(mapping_lens!().then(lens!(Mapping, page)));
-    let num_lines = TextBox::new()
+    let num_lines_box = TextBox::new()
         .with_formatter(CustomFormatter::new())
         .update_data_while_editing(true)
         .lens(mapping_lens!().then(lens!(Mapping, page_lines)));
 
+    let page_num_label = Label::new(
+        String::from("Page number:  "));
+    let num_lines_label = Label::new(
+        String::from("Number of lines in page:  "));
+
+    let mut row1 = Flex::row();
+    let mut row2 = Flex::row();
+    row1.add_child(page_num_label);
+    row1.add_spacer(5.);
+    row1.add_child(page_num_box);
+    row2.add_child(num_lines_label);
+    row2.add_spacer(5.);
+    row2.add_child(num_lines_box);
+
+
     Flex::column()
         .must_fill_main_axis(true)
-        .cross_axis_alignment(CrossAxisAlignment::Center)
-        .with_child(Container::new(page))
-        .with_child(Container::new(num_lines))
+        .cross_axis_alignment(CrossAxisAlignment::End)
+        .with_child(row1)
+        .with_child(row2)
         .with_spacer(5.0)
 }

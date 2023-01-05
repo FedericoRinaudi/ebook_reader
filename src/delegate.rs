@@ -7,7 +7,7 @@ use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target};
 use epub::doc::EpubDoc;
 use std::path::PathBuf;
-use std::{env, fs};
+use druid::im::Vector;
 use crate::ocr::OcrData;
 
 extern crate num_cpus;
@@ -25,42 +25,45 @@ impl AppDelegate<ApplicationState> for Delegate {
     ) -> Handled {
         if let Some(file_info) = cmd.get(commands::SAVE_FILE_AS) {
 
-            /*
-            let cwd = env::current_dir().unwrap();
-            let absolute_path = file_info.path.clone();
-
-            // "Normalizziamo" la path: Se fa riferimento a qualcosa nella nostra cartella la teniamo relativa
-            let target_path = match absolute_path.clone().strip_prefix(cwd.clone()) {
-                Ok(path) => "./".to_string() + path.to_str().unwrap(),
-                Err(_e) => {
-                    //eprintln!("Error stripping prefix from path {}", e);
-                    absolute_path.clone().to_str().unwrap().to_string()
-                }
-            };
-            */
             let target_path = file_info.path.clone().to_str().unwrap().to_string();
 
             data.book_to_view
                 .save(data.modified.clone(), target_path.clone());
             data.modified.clear();
 
+            let mut current = data.get_current_book_info().clone();
             //Il currentpath diventa quello del nuovo libro
-            if data.bookcase.library.iter().find(|el | el.path == target_path.clone()).is_none() {
-                println!("BOOK PATH: {} TARGET PATH: {}", data.book_to_view.get_path(), target_path);
+            match data.bookcase.library.iter_mut().find(|el | el.path == target_path.clone()) {
+                Some(b_info) => {
+                    //TODO: Known Bug sovrascrivere libri diversi da una copia del corrente crea qualcosa di rotto
+                    b_info.start_chapter = current.start_chapter;
+                    b_info.start_element_number = current.start_element_number;
+                    b_info.ocr = OcrData::new();
+                    b_info.mapped_pages = Vector::new();
+                    b_info.name = PathBuf::from(target_path.clone())
+                        .file_stem()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string();
+                    b_info.cover_path = BookCase::get_image(&target_path);
+                    data.bookcase.update_meta();
+                },
+                None => {
+                    current.path = target_path.clone();
+                    current.name = PathBuf::from(target_path.clone())
+                        .file_stem()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string();
+                    current.ocr = OcrData::new();
+                    current.mapped_pages = Vector::new();
 
-                let mut copy_info: BookInfo = data.get_current_book_info();
-                copy_info.path = target_path.clone();
-                copy_info.name = PathBuf::from(target_path.clone())
-                    .file_stem()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string();
-                copy_info.ocr = OcrData::new();
-                // data.book_to_view.path = target_path;
-                data.bookcase.library.push_back(copy_info);
-                data.bookcase.update_meta();
-            } //TODO: Se troviamo invece updatiamo il punto a cui è arrivato
+                    data.bookcase.library.push_back(current);
+                    data.bookcase.update_meta();
+                }
+            }
             data.set_book_to_read(Book::empty_book());
             data.edit = false;
             return Handled::Yes;
@@ -135,7 +138,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                 }
                     }
              else {
-                 println!("CIAOOOO {:?}", res);
+                 // println!("CIAOOOO {:?}", res);
                 data.error_message = Some(
                     "No matches were found, please try again with a better quality image."
                         .to_string(),

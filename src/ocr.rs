@@ -74,7 +74,7 @@ impl Mapping {
             .iter()
             .filter(|s|{
                 if s.graphemes(true).count() as f64 > first_avg - 5. {
-                    println!("{}", s);
+                    // println!("{}", s);
                 }
                 s.trim().graphemes(true).count() as f64 > first_avg - 5.
             })

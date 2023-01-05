@@ -4,6 +4,7 @@ use druid::{
     BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
     UpdateCtx, Widget,
 };
+use crate::widgets::custom_label::UPDATE_SIZE;
 
 pub struct BetterScroll<W: Widget<ApplicationState>> {
     child: Scroll<ApplicationState, W>,
@@ -120,6 +121,7 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
                                          data.current_book.get_nav().get_element_numer()
                                      )
         );*/
+        ctx.submit_command(UPDATE_SIZE);
         size
     }
 
