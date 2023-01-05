@@ -90,7 +90,7 @@ impl ApplicationState {
                 break;
             }
         }
-        self.bookcase.update();
+        self.bookcase.update_meta();
         self.book_to_view = Book::empty_book();
     }
 

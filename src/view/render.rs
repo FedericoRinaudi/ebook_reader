@@ -220,7 +220,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                 );
             //TODO: provo con molti libri e valuto le tempistiche, valuto multithread
             let mut images_threads = Vec::new();
-            for book_info in data.get_library().clone().into_iter(){
+            for (i, book_info) in data.get_library().clone().into_iter().enumerate(){
                 let cover_path = book_info.cover_path.clone();
                 images_threads.push(thread::spawn(move || ImageBuf::from_file(cover_path)));
             }
@@ -263,7 +263,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .with_spacer(10.0)
                             .with_child(Buttons::btn_ocr(book_info.clone()))
                             .with_spacer(10.0)
-                            .with_child(Buttons::btn_ocr_syn(book_info.clone())), //HERE
+                            .with_child(Buttons::btn_ocr_syn(i)), //HERE
                     );
 
                 pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.3);

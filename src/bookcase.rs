@@ -1,14 +1,18 @@
-use crate::ocr::OcrData;
+use crate::ocr::{OcrData, SerializableOcrData};
 use druid::{im::Vector, Data, Lens};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::{env, fs};
 use walkdir::WalkDir;
+use serde::{Serialize, Deserialize};
+use std::io::prelude::*;
 
 const FILE_NAME: &str = "meta.txt";
+//const FILE_NAME: &str = "meta.bin";
+
 
 #[derive(Default, Clone, Data, Lens, Debug, PartialEq)]
 pub struct BookInfo {
@@ -19,6 +23,45 @@ pub struct BookInfo {
     pub cover_path: String,
     pub ocr: OcrData,
     pub mapped_pages: Vector<usize>,
+}
+
+#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SerializableBookInfo {
+    pub name: String,
+    pub path: String,
+    pub start_chapter: usize,
+    pub start_element_number: usize,
+    pub cover_path: String,
+    pub ocr: SerializableOcrData,
+    pub mapped_pages: Vec<usize>,
+}
+
+impl From<BookInfo> for SerializableBookInfo {
+    fn from(b: BookInfo) -> Self {
+        SerializableBookInfo{
+            name: b.name,
+            path: b.path,
+            start_chapter: b.start_chapter,
+            start_element_number: b.start_element_number,
+            cover_path: b.cover_path,
+            ocr: b.ocr.into(),
+            mapped_pages: b.mapped_pages.iter().map(|m|*m).collect()
+        }
+    }
+}
+
+impl From<SerializableBookInfo> for BookInfo {
+    fn from(b: SerializableBookInfo) -> Self {
+        BookInfo{
+            name: b.name,
+            path: b.path,
+            start_chapter: b.start_chapter,
+            start_element_number: b.start_element_number,
+            cover_path: b.cover_path,
+            ocr: b.ocr.into(),
+            mapped_pages: b.mapped_pages.iter().map(|m|*m).collect()
+        }
+    }
 }
 
 impl BookInfo {
@@ -51,6 +94,31 @@ pub struct BookCase {
     pub(crate) library: Vector<BookInfo>,
 }
 
+#[derive(Default, Clone, Serialize, Deserialize)] //TODO: Cleanup
+pub struct SerializableBookCase {
+    pub(crate) library: Vec<SerializableBookInfo>,
+}
+
+impl From<BookCase> for SerializableBookCase {
+    fn from(b: BookCase) -> Self {
+        SerializableBookCase{
+            library: b.library.iter()
+                .map(|el|el.clone().into())
+                .collect()
+        }
+    }
+}
+
+impl From<SerializableBookCase> for BookCase {
+    fn from(b: SerializableBookCase) -> Self {
+        BookCase{
+            library: b.library.iter()
+                .map(|el|(*el).clone().into())
+                .collect()
+        }
+    }
+}
+
 impl BookCase {
     pub fn new() -> Self {
         /*
@@ -74,12 +142,49 @@ impl BookCase {
         let mut saved_books: HashMap<String, BookInfo> = Self::fetch_saved(); //contiene tutti i libri letti dal file
                                                                               //println!("saved books: {:?}", saved_books.clone());
         if instance.populate(&folder_books, &mut saved_books) {
-            instance.update()
+            instance.update_meta()
         }
         instance
     }
 
     fn fetch_saved() -> HashMap<String, BookInfo> {
+        let mut library: HashMap<String, BookInfo> = HashMap::new();
+        match File::open(FILE_NAME) {
+            Ok(mut file) => {
+                let mut buf = String::new();
+                let cwd = env::current_dir().unwrap();
+                file.read_to_string(&mut buf).unwrap();
+                let ser_l :SerializableBookCase = match serde_json::from_str(&buf){
+                    Ok(r) => r,
+                    Err(e) => {
+                        eprintln!("{}", e);
+                        panic!();
+                    }
+                };
+                let l :BookCase = ser_l.into();
+                for book_info in l.library{
+                    let absolute_path = PathBuf::from(book_info.path.clone());
+                    let relative_path = match absolute_path.clone().strip_prefix(cwd.clone()) {
+                        Ok(path) => ".".to_string() + path.to_str().unwrap(),
+                        Err(_e) => {
+                            //eprintln!("Error stripping prefix from path {}", e);
+                            absolute_path.clone().to_str().unwrap().to_string()
+                        }
+                    };
+                    library
+                        .entry(relative_path) /* In caso di duplicati */
+                        .or_insert(book_info);
+
+                }
+                library
+            }
+            Err(_) => {
+                eprintln!("No meta file found");
+                return library;
+            }
+        }
+    }
+    /*fn fetch_saved() -> HashMap<String, BookInfo> {
         let mut library: HashMap<String, BookInfo> = HashMap::new();
         match File::open(FILE_NAME) {
             Ok(file) => {
@@ -127,7 +232,7 @@ impl BookCase {
                 return library;
             }
         }
-    }
+    }*/
 
     fn populate(
         &mut self,
@@ -164,7 +269,22 @@ impl BookCase {
         file_need_update
     }
 
-    pub fn update(&self) {
+    pub fn update_meta(&self) {
+        /* Write file containing our BookInfos */
+        fs::write(FILE_NAME, "").expect("Failed to write to output.txt");
+        let mut output = match OpenOptions::new().write(true).open(FILE_NAME) {
+            Ok(out) => out,
+            Err(_) => OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(FILE_NAME)
+                .unwrap(),
+        };
+        let ser_book_case: SerializableBookCase = self.clone().into();
+        serde_json::to_writer(&mut output, &ser_book_case).unwrap();
+    }
+
+    /*pub fn update(&self) {
         /* Write file containing our BookInfos */
         let mut output = match OpenOptions::new().write(true).open(FILE_NAME) {
             Ok(out) => out,
@@ -190,7 +310,7 @@ impl BookCase {
                 )
                 .expect("write failed");
         }
-    }
+    }*/
 
     fn get_image(book_path: &str) -> String {
         //TODO: gestisco il caso di errore nell'apertura del libro

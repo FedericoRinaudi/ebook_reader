@@ -5,6 +5,7 @@ use crate::{ApplicationState, Book};
 use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
 use druid::{Widget, WidgetExt};
 use std::fs;
+use druid::im::Vector;
 use crate::ocr::OcrData;
 
 //use crate::controllers::ClickableOpacity;
@@ -102,19 +103,41 @@ impl Buttons {
     }
 
     pub fn btn_ocr_syn(
-        book_info: BookInfo,
-    ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("OCR SYNC").on_click(move |_ctx, data: &mut ApplicationState, _env| {
-            data.set_book_to_align(
-                Book::new(
-                    book_info.get_path(),
-                    book_info.start_chapter,
-                    book_info.start_element_number,
-                    &book_info.mapped_pages
-                )
-                .unwrap(),
-            );
-        })
+        book_info_id: usize,
+    ) -> ViewSwitcher<ApplicationState, bool> {
+        ViewSwitcher::new(
+            move |data: &ApplicationState, _| data.bookcase.library[book_info_id].mapped_pages.is_empty(),
+            move |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
+                match cond {
+                    true => {
+                        Box::new(
+                            Button::new("ALIGN WITH BOOK").on_click(move |_ctx, data: &mut ApplicationState, _env| {
+                                let book_info = data.bookcase.library[book_info_id].clone();
+                                data.set_book_to_align(
+                                    Book::new(
+                                        book_info.get_path(),
+                                        book_info.start_chapter,
+                                        book_info.start_element_number,
+                                        &book_info.mapped_pages
+                                    )
+                                        .unwrap(),
+                                );
+                            })
+                        )
+                    }
+                    false => {
+                        Box::new(
+                            Button::new("REMOVE ALIGNMENT").on_click(move |_ctx, data: &mut ApplicationState, _env| {
+                                let mut book_info = &mut data.bookcase.library[book_info_id];
+                                book_info.ocr = OcrData::new();
+                                book_info.mapped_pages = Vector::new();
+                                data.bookcase.update_meta();
+                            })
+                        )
+                    }
+                }
+            },
+        )
     }
 
     pub fn btn_discard() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
@@ -238,7 +261,7 @@ impl Buttons {
             .center()
             .on_click(move |_, data: &mut ApplicationState, _| {
                 let removed_book_info = data.bookcase.library.remove(index);
-                data.bookcase.update();
+                data.bookcase.update_meta();
                 //TODO: anzi che le print metto poi un pop-up o comunque do un feedback all'utente
                 match fs::remove_file(removed_book_info.path.clone()) {
                     Ok(()) => println!("Successfully removed file"),
@@ -293,8 +316,9 @@ impl Buttons {
                 let other = &(*ocr).mappings[(*ocr).other.unwrap()];
                 if (*first).page_lines != 0 && (*first).page != 0 && (*other).page_lines != 0 && (*other).page != 0 {
                     let _ = data.map_pages(true);
+                    data.i_mode = InputMode::None; //SERVE ANCORA?
+                    data.bookcase.update_meta();
                     data.book_to_align = Book::empty_book();
-                    data.i_mode = InputMode::None
                 } else {
                     data.error_message = Option::Some("You have to fill all felds.".to_string());
                 }

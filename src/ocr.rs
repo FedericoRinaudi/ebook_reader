@@ -1,13 +1,14 @@
 use regex::Regex;
 use std::error::Error;
 use unicode_segmentation::UnicodeSegmentation;
-extern crate regex;
+use regex;
 use crate::algorithms::OcrAlgorithms;
 use crate::book::chapter::Chapter;
 use crate::utilities::xml_to_text;
 use druid::{im::Vector, Data, Lens};
+use serde::{Serialize, Deserialize};
 
-#[derive(Default, Clone, Data, Lens, Debug, PartialEq)]
+#[derive(Copy, Clone, Default, Data, Lens, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Mapping {
     pub page: usize,              //Page number
     pub(crate) is_first: bool,    //E' la prima pagina di un capitolo?
@@ -93,6 +94,36 @@ pub struct OcrData {
     pub first_chap: Option<usize>,
     pub first: Option<usize>,
     pub other: Option<usize>,
+}
+
+#[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SerializableOcrData {
+    pub mappings: Vec<Mapping>,
+    pub first_chap: Option<usize>,
+    pub first: Option<usize>,
+    pub other: Option<usize>,
+}
+
+impl From<OcrData> for SerializableOcrData {
+    fn from(ocr_data: OcrData) -> Self {
+        SerializableOcrData{
+            mappings: ocr_data.mappings.iter().map(|m|*m).collect(),
+            first_chap: ocr_data.first_chap,
+            first: ocr_data.first,
+            other: ocr_data.other
+        }
+    }
+}
+
+impl From<SerializableOcrData> for OcrData {
+    fn from(s_ocr_data: SerializableOcrData) -> Self {
+        OcrData{
+            mappings: s_ocr_data.mappings.iter().map(|m|*m).collect(),
+            first_chap: s_ocr_data.first_chap,
+            first: s_ocr_data.first,
+            other: s_ocr_data.other
+        }
+    }
 }
 
 impl OcrData {

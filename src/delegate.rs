@@ -51,7 +51,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                     .to_string();
                 data.book_to_view.path = target_path;
                 data.bookcase.library.push_back(copy_info);
-                data.bookcase.update();
+                data.bookcase.update_meta();
             }
             return Handled::Yes;
         }
