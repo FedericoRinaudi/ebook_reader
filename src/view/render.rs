@@ -1,4 +1,3 @@
-use crate::app::InputMode;
 use crate::book::page_element::PageElement;
 use crate::book::{chapter::Chapter, Book};
 use crate::bookcase::{BookCase, BookInfo};
@@ -12,11 +11,11 @@ use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::{ApplicationState, ContentType};
 use druid::widget::{
-    Container, ControllerHost, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label,
+    Container, ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
     LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
-    TextBoxEvent, ValidationDelegate, ValueTextBox, ViewSwitcher,
+    ViewSwitcher,
 };
-use druid::{lens, Color, EventCtx, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
+use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
 use std::path::PathBuf;
 use std::thread;
 
@@ -45,8 +44,8 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                 if !data.is_loading {
                     Box::new(
                         ViewSwitcher::new(
-                            |data: &ApplicationState, _| data.book_to_align.is_empty(), /* Condizione della useEffect (?) */
-                            |cond, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                            |data: &ApplicationState, _| data.book_to_align.is_empty(),
+                            |cond, _data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
                                 return if *cond {
                                     Box::new(ViewSwitcher::new(
                                         |data: &ApplicationState, _| data.book_to_view.is_empty(), /* Condizione della useEffect (?) */
@@ -221,7 +220,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                 );
             //TODO: provo con molti libri e valuto le tempistiche, valuto multithread
             let mut images_threads = Vec::new();
-            for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
+            for book_info in data.get_library().clone().into_iter(){
                 let cover_path = book_info.cover_path.clone();
                 images_threads.push(thread::spawn(move || ImageBuf::from_file(cover_path)));
             }
@@ -311,18 +310,22 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
 
             if let Some(id) = ocr.first {
                 row.add_flex_child(render_ocr_image_form(id, data), 0.5);
+                row.add_child(Buttons::btn_remove_first_page());
             } else {
                 row.add_child(Buttons::btn_add_first_page());
             }
 
             if let Some(id) = ocr.other {
                 row.add_flex_child(render_ocr_image_form(id, data), 0.5);
+                row.add_child(Buttons::btn_remove_other_page())
             } else {
                 row.add_child(Buttons::btn_add_other_page());
             }
             col.add_flex_child(Padding::new(10.0, row), 1.);
             col.add_spacer(10.0);
-            col.add_flex_child(Buttons::btn_close_ocr(), 1.);
+            col.add_flex_child(Buttons::btn_submit_ocr_form(), 1.);
+            col.add_spacer(10.0);
+            col.add_flex_child(Buttons::btn_close_ocr_form(), 1.);
             Box::new(col)
         },
     )
@@ -345,11 +348,11 @@ fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<Appl
                 .index(id)
         };
     }
-    let mut page = TextBox::new()
+    let page = TextBox::new()
         .with_formatter(CustomFormatter::new())
         .update_data_while_editing(true)
         .lens(mapping_lens!().then(lens!(Mapping, page)));
-    let mut num_lines = TextBox::new()
+    let num_lines = TextBox::new()
         .with_formatter(CustomFormatter::new())
         .update_data_while_editing(true)
         .lens(mapping_lens!().then(lens!(Mapping, page_lines)));

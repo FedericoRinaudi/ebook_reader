@@ -1,4 +1,3 @@
-use std::cmp::min;
 use crate::book::page_element::PageElement;
 use crate::{ApplicationState, ContentType};
 use druid::{im::Vector, Data, Lens, LocalizedString};
@@ -31,7 +30,7 @@ impl View {
     }
 
     pub fn update_view(&mut self, vec: Vector<PageElement>) {
-        self.current_view = vec
+        self.current_view = vec;
     }
 
     pub fn get_window_size_view(&self) -> (f64, f64) {
@@ -107,7 +106,7 @@ impl View {
         page_element_number
     }
 
-    pub fn guess_lines(&mut self, max_chars: f64, first: usize, second: usize) -> Result<usize, ()>  {
+    pub fn guess_lines(&mut self, max_chars: f64, first: usize, second: usize, starting_page:usize) -> Result<usize, ()>  {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
 
@@ -160,10 +159,28 @@ impl View {
                 };
                 //println!("guessed_lines_current: {} of {}", guessed_lines, text.text);
             }
-            el.pg_offset = curr_page;
+            else if let ContentType::Image(img_buf) = el.clone().content {
+
+                //TODO: SPERIMENTAL MIGHT REMOVE
+                let element_lines = img_buf.height() / 20;
+                let max_lines = if curr_page == 1 { first } else { second };
+                guessed_lines = if (guessed_lines + element_lines) <= max_lines {
+                    guessed_lines + element_lines
+                } else {
+                    curr_page += 1;
+                    //println!(" NEW PAGE DURING : {} with {} lines", text.text, guessed_lines + element_lines - max_lines);
+                    element_lines
+                };
+
+            }
+            el.pg_offset = if starting_page == 0 {
+                0
+            } else {
+                curr_page + starting_page - 1
+            }
         }
 
-        println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
+        //println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
         println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
         Ok(curr_page)
     }

@@ -57,12 +57,15 @@ impl Mapping {
             .iter()
             .filter(|s| {
                 let last = s.chars().last().unwrap();
-                (last.is_alphabetic() || last == '-')
+                last.is_alphabetic() || last == '-'
             })
             .map(|s|s.clone())
             .collect::<Vec<String>>();
 
-        let (mut sum,mut count) = lines.iter().map(|s| s.graphemes(true).count()).fold((0, 0), |(sum, count), value| (sum + value, count + 1));
+        let (mut sum,mut count) = lines
+            .iter()
+            .map(|s| s.graphemes(true).count())
+            .fold((0, 0), |(sum, count), value| (sum + value, count + 1));
 
         let first_avg = sum as f64 / count as f64;
 
@@ -161,7 +164,7 @@ impl OcrData {
         self.first.is_some() && self.other.is_some()
     }
 
-    pub fn desync(&mut self) {
+    pub fn _desync(&mut self) {
         *self = Self::new();
     }
 

@@ -65,6 +65,7 @@ impl Book {
         path: P,
         init_chapter: usize,
         init_element_number: usize,
+        page_chapter: &Vector<usize>
     ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
@@ -79,6 +80,7 @@ impl Book {
         };
 
         let mut ch_vec = Vector::new();
+        let mut id = 0;
         while {
             //La libreria che fa il parsing fallisce quando incontra &nbsp; quindi lo sostiusco a priori con uno spazio
             let ch_xml = epub_doc.get_current_str().unwrap(); //TODO: match for errors
@@ -90,10 +92,17 @@ impl Book {
                 .unwrap();
 
             //Creiamo un nuovo capitolo
-            let ch = Chapter::new(ch_path, ch_xml, &book_path);
+            let starting_page = match page_chapter.get(id){
+                Some(page) => *page,
+                None => 0
+            };
+
+            let ch = Chapter::new(ch_path, ch_xml, &book_path, starting_page);
 
             ch_vec.push_back(ch);
+            id += 1;
             epub_doc.go_next().is_ok()
+
         } {}
 
         let nav_new = Navigation::new(init_chapter, init_element_number);
@@ -116,7 +125,7 @@ impl Book {
         &mut (*self).nav
     }
 
-    pub fn _get_ch(&self) -> usize {
+    pub fn get_ch(&self) -> usize {
         self.nav.get_ch()
     }
     //pub fn _get_line(&self) -> f64 {self.nav.get_line()}
@@ -125,7 +134,7 @@ impl Book {
         (*self).chapters[self.nav.get_ch()].format()
     }
 
-    pub fn format_chapter(&mut self, chapter_n: usize) -> Vector<PageElement> {
+    pub fn _format_chapter(&mut self, chapter_n: usize) -> Vector<PageElement> { //TODO: Remove if unneeded
         (*self).chapters[chapter_n].format()
     }
 

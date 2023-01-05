@@ -1,5 +1,4 @@
 use druid::text::{Formatter, Selection, Validation, ValidationError};
-use leptess::capi::Sel;
 
 pub struct CustomFormatter {}
 impl CustomFormatter {
@@ -16,9 +15,9 @@ impl Formatter<usize> for CustomFormatter {
         };
     }
 
-    fn validate_partial_input(&self, input: &str, sel: &Selection) -> Validation {
+    fn validate_partial_input(&self, input: &str, _sel: &Selection) -> Validation {
         match input.parse::<usize>() {
-            Ok(val) => Validation::success(),
+            Ok(_) => Validation::success(),
             Err(e) => {
                 if input == "" {
                     Validation::success()

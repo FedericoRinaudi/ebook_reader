@@ -6,7 +6,7 @@ use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
 
 use crate::book::page_element::{ContentType, PageElement};
-use crate::utilities::{get_image_buf, is_part};
+use crate::utilities::get_image_buf;
 
 const MAX_SIZE: f64 = 35.0;
 
@@ -14,11 +14,13 @@ const MAX_SIZE: f64 = 35.0;
 pub struct Chapter {
     path: String,
     pub xml: String,
-    imgs: HashMap<PathBuf, ImageBuf>
+    imgs: HashMap<PathBuf, ImageBuf>,
+    pub initial_page:usize
 }
 
 impl Chapter {
-    pub fn new(path: String, mut xml: String, ebook_path: &str) -> Self {
+    pub fn new(path: String, mut xml: String, ebook_path: &str, initial_page: usize
+    ) -> Self {
         xml = xml.replace("&nbsp;", " ");
         let mut imgs = HashMap::new();
         let opt = ParsingOptions { allow_dtd: true };
@@ -28,7 +30,8 @@ impl Chapter {
         Chapter {
             path,
             xml,
-            imgs
+            imgs,
+            initial_page
         }
     }
 

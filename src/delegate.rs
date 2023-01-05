@@ -86,24 +86,40 @@ impl AppDelegate<ApplicationState> for Delegate {
 
         if let Some(res) = cmd.get(FINISH_SLOW_FUNCTION) {
             // If the command we received is `FINISH_SLOW_FUNCTION` handle the payload.
-            if let Some((ch, off)) = res {
-                data.book_to_view.get_mut_nav().set_ch(*ch);
-                data.update_view();
+            if let Some((ch, off, str)) = res {
+                match data.i_mode {
+                    InputMode::OcrJump => {
+                        data.book_to_view.get_mut_nav().set_ch(*ch);
+                        data.update_view();
 
-                // let ocr = data.get_current().ocr;
-                // data.view.guess_lines(ocr.get_avg_ch(), ocr.get_lines());
+                        data.book_to_view
+                            .get_mut_nav()
+                            .set_element_number(data.view.ocr_offset_to_element(*off));
 
-                data.book_to_view
-                    .get_mut_nav()
-                    .set_element_number(data.view.ocr_offset_to_element(*off));
-
-                println!(
-                    "OCR Done, ch: {}, offset di words with len()>5: {}, page element n. {}",
-                    ch,
-                    off,
-                    data.view.ocr_offset_to_element(*off)
-                );
-            } else {
+                        if data.get_current_book_info().ocr.is_aligned() {
+                            let _ = data.get_mut_current_book_info()
+                                .unwrap()
+                                .ocr
+                                .ocr_log(str.clone());
+                        }
+                    },
+                    InputMode::OcrSyn0 => {
+                        let _ = data.get_mut_current_book_info()
+                            .unwrap()
+                            .ocr
+                            .ocr_log_first(str.clone());
+                    },
+                    InputMode::OcrSyn1 => {
+                        let _ = data.get_mut_current_book_info()
+                            .unwrap()
+                            .ocr
+                            .ocr_log_other(str.clone());
+                    },
+                    _=> {}
+                }
+                    }
+             else {
+                 println!("CIAOOOO {:?}", res);
                 data.error_message = Some(
                     "No matches were found, please try again with a better quality image."
                         .to_string(),
@@ -121,20 +137,13 @@ impl AppDelegate<ApplicationState> for Delegate {
                     InputMode::OcrJump => data.ocr_jump(
                         ctx.get_external_handle(),
                         str.to_string(),
-                        data.get_current_book_info().ocr.is_aligned(),
                     ),
-                    InputMode::OcrSyn0 => data
-                        .get_mut_current_book_info()
-                        .unwrap()
-                        .ocr
-                        .ocr_log_first(str.clone())
-                        .unwrap(),
-                    InputMode::OcrSyn1 => data
-                        .get_mut_current_book_info()
-                        .unwrap()
-                        .ocr
-                        .ocr_log_other(str.clone())
-                        .unwrap(),
+                    InputMode::OcrSyn0 => data.ocr_jump(
+                        ctx.get_external_handle(),
+                        str.to_string()),
+                    InputMode::OcrSyn1 => data.ocr_jump(
+                        ctx.get_external_handle(),
+                        str.to_string()),
                     _ => {}
                 },
                 None => {
@@ -142,8 +151,8 @@ impl AppDelegate<ApplicationState> for Delegate {
                     data.book_to_view = Book::empty_book();
                 }
             }
-            data.i_mode = InputMode::None;
             return Handled::Yes;
+
         }
 
         if let Some(..) = cmd.get(SAVE_PANEL_CANCELLED) {
@@ -159,7 +168,8 @@ impl AppDelegate<ApplicationState> for Delegate {
                     data.i_mode = InputMode::None;
                 }
                 InputMode::OcrJump => data.i_mode = InputMode::None,
-                _ => {}
+                InputMode::OcrSyn1 | InputMode::OcrSyn0 => data.i_mode = InputMode::None,
+                _ => {},
             }
             data.is_loading = false;
             return Handled::Yes;

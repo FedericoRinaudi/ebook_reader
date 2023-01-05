@@ -1,6 +1,6 @@
 use crate::book::chapter::Chapter;
 use crate::bookcase::{BookCase, BookInfo};
-use crate::ocr::{find_ch, Mapping, OcrData};
+use crate::ocr::find_ch;
 use crate::Book;
 use druid::{im::HashSet, im::Vector, Data, ExtEventSink, Lens, Selector, Target};
 use std::thread;
@@ -8,12 +8,10 @@ use crate::utilities::is_part;
 
 use crate::view::view::View;
 
-//pub const TRIGGER_A: Selector<()> = Selector::new("monitor.update_status");
 pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
 pub const TRIGGER_OFF: Selector<()> = Selector::new("wrapper.focus_off");
 pub const SCROLL_REQUEST: Selector<()> = Selector::new("wrapper.scroll");
-//pub const TRIGGER_SYN: Selector<()> = Selector::new("wrapper.focus_syn");
-pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize)>> =
+pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize, String)>> =
     Selector::new("finish_slow_function");
 pub const FINISH_LEPTO_LOAD: Selector<Option<String>> = Selector::new("leptonica.finish_load");
 
@@ -70,6 +68,14 @@ impl ApplicationState {
     pub fn update_view(&mut self) {
         self.view
             .update_view(self.book_to_view.format_current_chapter());
+        let ocr = self.get_current_book_info().ocr;
+        if ocr.is_aligned(){
+            let _ = self.view.guess_lines(
+                ocr.get_avg_ch(),
+                ocr.get_first_page_lines(), ocr.get_other_page_lines(),
+                self.book_to_view.chapters.get(self.book_to_view.get_ch()).unwrap_or(&Chapter::default()).initial_page
+            );
+        }
     }
 
     pub fn get_library(&self) -> &Vector<BookInfo> {
@@ -97,6 +103,7 @@ impl ApplicationState {
     }
 
     pub fn map_pages(&mut self, overwrite: bool) -> Result<(), usize> {
+        //Return number of uncertain page as Err to ask for additional user input, lowprio TODO
 
         let chapters = self.book_to_align.chapters.clone();
         let book_info = self.get_mut_current_book_info().unwrap();
@@ -127,6 +134,7 @@ impl ApplicationState {
                         ocr.get_avg_ch(),
                         ocr.get_first_page_lines(),
                         ocr.get_other_page_lines(),
+                        0
                     ).unwrap();
                 }
             } else {
@@ -169,23 +177,21 @@ impl ApplicationState {
         None
     }
 
-    pub fn ocr_jump(&mut self, sink: ExtEventSink, str: String, log: bool) {
-        th_find(str.clone(), sink, self.book_to_view.chapters.clone());
-        if log {
-            self.get_mut_current_book_info()
-                .unwrap()
-                .ocr
-                .ocr_log(str.clone());
+    pub fn ocr_jump(&mut self, sink: ExtEventSink, str: String) {
+        match self.i_mode {
+            InputMode::OcrJump => th_find(str.clone(), sink, self.book_to_view.chapters.clone()),
+            InputMode::OcrSyn1 | InputMode::OcrSyn0 => th_find(str.clone(), sink, self.book_to_align.chapters.clone()),
+            _ => (),
         }
     }
 }
 
 fn th_find(str: String, sink: ExtEventSink, vec: Vector<Chapter>) {
-    thread::spawn(move || match find_ch(str, vec) {
+    thread::spawn(move || match find_ch(str.clone(), vec) {
         Some((index, offset)) => sink
             .submit_command(
                 FINISH_SLOW_FUNCTION,
-                Option::Some((index, offset)),
+                Option::Some((index, offset, str)),
                 Target::Auto,
             )
             .expect("command failed to submit"),

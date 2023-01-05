@@ -2,10 +2,10 @@ use crate::app::InputMode;
 use crate::bookcase::BookInfo;
 use crate::utilities::{open_epub, open_image, save_file};
 use crate::{ApplicationState, Book};
-use druid::commands::OPEN_FILE;
 use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
-use druid::{Color, Widget, WidgetExt};
+use druid::{Widget, WidgetExt};
 use std::fs;
+use crate::ocr::OcrData;
 
 //use crate::controllers::ClickableOpacity;
 const LIBRARY_SVG_DIM: f64 = 30.;
@@ -104,12 +104,13 @@ impl Buttons {
     pub fn btn_ocr_syn(
         book_info: BookInfo,
     ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("OCR SYNC").on_click(move |ctx, data: &mut ApplicationState, _env| {
+        Button::new("OCR SYNC").on_click(move |_ctx, data: &mut ApplicationState, _env| {
             data.set_book_to_align(
                 Book::new(
                     book_info.get_path(),
                     book_info.start_chapter,
                     book_info.start_element_number,
+                    &book_info.mapped_pages
                 )
                 .unwrap(),
             );
@@ -208,6 +209,7 @@ impl Buttons {
                         book_info.get_path(),
                         book_info.start_chapter,
                         book_info.start_element_number,
+                        &book_info.mapped_pages
                     )
                     .unwrap(),
                 );
@@ -273,6 +275,7 @@ impl Buttons {
                         book_info.get_path(),
                         book_info.start_chapter,
                         book_info.start_element_number,
+                        &book_info.mapped_pages
                     )
                     .unwrap(),
                 );
@@ -280,11 +283,30 @@ impl Buttons {
             })
     }
 
-    pub fn btn_close_ocr() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+    pub fn btn_submit_ocr_form() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("SUBMIT").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            data.map_pages(true);
+            let ocr = &data.get_current_book_info().ocr;
+            if (*ocr).first.is_none() || (*ocr).other.is_none(){
+                data.error_message = Option::Some("You have to fill all felds.".to_string());
+            } else {
+                let first = &(*ocr).mappings[(*ocr).first.unwrap()];
+                let other = &(*ocr).mappings[(*ocr).other.unwrap()];
+                if (*first).page_lines != 0 && (*first).page != 0 && (*other).page_lines != 0 && (*other).page != 0 {
+                    let _ = data.map_pages(true);
+                    data.book_to_align = Book::empty_book();
+                    data.i_mode = InputMode::None
+                } else {
+                    data.error_message = Option::Some("You have to fill all felds.".to_string());
+                }
+            }
+        })
+    }
+
+    pub fn btn_close_ocr_form() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+        Button::new("GO BACK").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
+            *ocr = OcrData::new();
             data.book_to_align = Book::empty_book();
-            data.i_mode = InputMode::None
         })
     }
 
@@ -303,4 +325,33 @@ impl Buttons {
             ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
         })
     }
+
+    pub fn btn_remove_first_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
+    {
+        Button::new("REMOVE").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
+            ocr.mappings.remove((*ocr).first.unwrap());
+            if let Some(other_id) = ocr.other {
+                if other_id > (*ocr).first.unwrap(){
+                    ocr.other = Some(other_id -1)
+                }
+            }
+            ocr.first = None;
+        })
+    }
+
+    pub fn btn_remove_other_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
+    {
+        Button::new("REMOVE").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
+            ocr.mappings.remove((*ocr).other.unwrap());
+            if let Some(first_id) = ocr.first {
+                if first_id > (*ocr).other.unwrap(){
+                    ocr.first = Some(first_id -1)
+                }
+            }
+            ocr.other = None;
+        })
+    }
+
 }
