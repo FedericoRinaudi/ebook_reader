@@ -1,10 +1,9 @@
 use crate::app::{ApplicationState, SCROLL_REQUEST, TRIGGER_OFF, TRIGGER_ON};
 use druid::widget::{Axis, Scroll};
 use druid::{
-    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
-    UpdateCtx, Widget,
+    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle,
+    LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget,
 };
-use druid::commands::CLOSE_WINDOW;
 use crate::widgets::custom_label::UPDATE_SIZE;
 
 pub struct BetterScroll<W: Widget<ApplicationState>> {
@@ -74,7 +73,6 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
         match event {
             LifeCycle::HotChanged(false) => {
                 ctx.submit_command(TRIGGER_OFF);
-                //ctx.submit_command(TRIGGER_SYN)
             }
             _ => {}
         }
@@ -117,11 +115,6 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
         env: &Env,
     ) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
-        /*self.child.scroll_to_on_axis(Axis::Vertical,
-                                     data.view.get_element_offset(
-                                         data.current_book.get_nav().get_element_numer()
-                                     )
-        );*/
         ctx.submit_command(UPDATE_SIZE);
         size
     }
@@ -133,14 +126,12 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
 
 pub struct SyncScroll<W: Widget<ApplicationState>> {
     child: Scroll<ApplicationState, W>,
-    flag: bool,
 }
 
 impl<W: Widget<ApplicationState>> SyncScroll<W> {
     pub fn new(widget: W) -> Self {
         SyncScroll {
             child: Scroll::new(widget).vertical(),
-            flag: true,
         }
     }
 }
@@ -181,18 +172,6 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for SyncScroll<W> {
         env: &Env,
     ) -> Size {
         let size = self.child.layout(ctx, bc, data, env);
-
-        if self.flag {
-            let rate = data.view.scroll_height / self.child.child_size().height;
-            self.child.scroll_to_on_axis(
-                Axis::Vertical,
-                data.view
-                    .get_element_offset(data.book_to_view.get_nav().get_element_numer())
-                    * rate
-                    + 15.0,
-            );
-            self.flag = false
-        }
         size
     }
 

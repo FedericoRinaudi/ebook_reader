@@ -11,13 +11,12 @@ use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::{ApplicationState, ContentType};
 use druid::widget::{
-    Container, ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
+    ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
     LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
     ViewSwitcher,
 };
-use druid::{lens, Color, ImageBuf, LensExt, RenderContext, Widget, WidgetExt};
-use std::path::PathBuf;
-use std::thread;
+use druid::{lens, Color, LensExt, RenderContext, Widget, WidgetExt, Env};
+use crate::widgets::custom_tooltip::TipExt;
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -178,11 +177,39 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
             let chapter = List::new(|| {
                 ViewSwitcher::new(
                     |data: &PageElement, _| data.content.clone(),
-                    |ele, _data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
+                    |ele, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                         match &ele {
-                            ContentType::Text(_) => Box::new(BetterLabel::new()),
+                            ContentType::Text(_) => {
+                                return if data.pg_offset.0 !=0 {
+                                    Box::new(
+                                        BetterLabel::new().tooltip(|data: &PageElement, _env: &Env| {
+                                            let mut po = "Page ".to_string();
+                                            if (*data).pg_offset.1 == true {
+                                                po.push_str(&((*data).pg_offset.0 - 1).to_string());
+                                                po.push_str("-");
+                                            };
+                                            po.push_str(&data.pg_offset.0.to_string());
+                                            String::from(po)
+                                        }, true))
+                                } else {
+                                    Box::new(
+                                        BetterLabel::new()
+                                    )
+                                }
+                            }
                             ContentType::Image(img_buf) => {
-                                Box::new(BetterImage::new(img_buf.clone()))
+                                if data.pg_offset.0!=0 {
+                                    Box::new(BetterImage::new(img_buf.clone())
+                                        .tooltip(|data: &PageElement, _env: &Env| {
+                                            let mut str = String::from("Page ".to_owned() + &data.pg_offset.0.to_string());
+                                            let str2 = String::from("-".to_owned() + &(data.pg_offset.0 - 1).to_string());
+                                            str.push_str(if data.pg_offset.1 { &str2 } else { "" });
+                                            str
+                                        }, true)
+                                    )}
+                                else {
+                                    Box::new(BetterImage::new(img_buf.clone()))
+                                }
                             }
                             ContentType::Error(_e) => {
                                 let mut label = RawLabel::new();
@@ -219,7 +246,10 @@ fn render_library() -> impl Widget<ApplicationState> {
                         .with_child(Buttons::btn_add_book().padding(20.0)),
                 );
             for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
-                let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
+                let mut pill = Flex::row()
+                    .cross_axis_alignment(CrossAxisAlignment::Start)
+                    .must_fill_main_axis(true);
+
                 let uno = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_child(
@@ -227,34 +257,10 @@ fn render_library() -> impl Widget<ApplicationState> {
                         .fix_width(300.0)
                         .fix_height(200.0),
                     );
+
                 let due = Flex::column()
-                    .cross_axis_alignment(CrossAxisAlignment::Start)
-                    .with_spacer(15.0)
                     .with_child(
-                        Label::new(&*book_info.title.clone())
-                            .with_text_size(20.0)
-                            .with_line_break_mode(LineBreaking::WordWrap),
-                    )
-                    .with_spacer(4.0)
-                    .with_child(Label::new(
-                        String::from("Path: ") + &*book_info.get_path().to_str().unwrap().to_string()
-                    ).with_line_break_mode(LineBreaking::WordWrap),
-                    )
-                    .with_spacer(1.0)
-                    .with_child(Label::new(
-                        String::from("Author: ") + &*book_info.creator.clone().to_string(),
-                    ))
-                    /*.with_child(Label::new(
-                        String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string(),
-                    ))*/
-                    .with_spacer(1.0)
-                    /*.with_child(Label::new(
-                        String::from("Offset: ")
-                            + &*book_info.start_element_number.clone().to_string(),
-                    ))*/
-                    .with_spacer(10.0)
-                    .with_child(
-                        Flex::row()
+                        Flex::row().must_fill_main_axis(true)
                             .cross_axis_alignment(CrossAxisAlignment::Start)
                             .with_child(Buttons::btn_read_book(book_info.clone()))
                             .with_spacer(10.0)
@@ -263,10 +269,37 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .with_child(Buttons::btn_ocr(book_info.clone()))
                             .with_spacer(10.0)
                             .with_child(Buttons::btn_ocr_syn(i)), //HERE
+                    )
+                    .with_spacer(15.0)
+                    .cross_axis_alignment(CrossAxisAlignment::Start)
+                    .with_child(
+                        Label::new(&*book_info.title.clone())
+                            .with_text_size(25.0)
+                            .with_line_break_mode(LineBreaking::WordWrap),
+                    )
+                    .with_spacer(4.0)
+                    .with_child(
+                        print_card_element("By", &book_info.creator)
+                    )
+                    .with_spacer(3.0)
+                    .with_child(
+                        print_card_element("Language", &book_info.language)
+                    )
+                    .with_spacer(3.0)
+                    .with_child(
+                        print_card_element("Directory", &book_info.path)
                     );
 
-                pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.3);
-                pill.add_flex_child(Padding::new((0.0, 0.0, 0.0, 10.0), due), 0.7);
+                    /*.with_child(Label::new(
+                        String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string(),
+                    ))*/
+                    /*.with_child(Label::new(
+                        String::from("Offset: ")
+                            + &*book_info.start_element_number.clone().to_string(),
+                    ))*/
+
+                pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.2);
+                pill.add_flex_child(Padding::new((0.0, 0.0, 0.0, 10.0), due), 0.8);
 
                 /*let wrap = Container::new(pill)
                 .border(Color::WHITE, 1.0)
@@ -289,6 +322,26 @@ fn render_library() -> impl Widget<ApplicationState> {
     )
 }
 
+fn print_card_element(label: &str, value: &str) -> impl Widget<ApplicationState> {
+    return if value != "" {
+        Flex::row()
+            .with_flex_child(
+                Label::new(
+                    String::from(label.to_owned() + ":   "),
+                ), 1.
+            )
+            .with_flex_child(
+                Label::new(
+                    value.to_string(),
+                ).with_text_color(Color::grey(0.5)).with_line_break_mode(LineBreaking::WordWrap), 4.
+            )
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .must_fill_main_axis(true)
+    } else {
+        Flex::row()
+    }
+}
+
 fn render_ocr_syn() -> impl Widget<ApplicationState> {
     ViewSwitcher::new(
         |data: &ApplicationState, _| {
@@ -300,13 +353,16 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
         |_ocr_values, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
 
             let intro = Label::new(
-                String::from("Lorem Ipsum è un testo segnaposto utilizzato nel settore della tipografia e \
-                della stampa. Lorem Ipsum è considerato il testo segnaposto standard sin dal sedicesimo secolo, \
-                quando un anonimo tipografo prese una cassetta di caratteri e li assemblò per preparare un testo campione. \
-                È sopravvissuto non solo a più di cinque secoli, ma anche al passaggio alla videoimpaginazione, \
-                pervenendoci sostanzialmente inalterato. Fu reso popolare, negli anni ’60, con la diffusione dei \
-                fogli di caratteri trasferibili “Letraset”, che contenevano passaggi del Lorem Ipsum, e più recentemente da software di \
-                impaginazione come Aldus PageMaker, che includeva versioni del Lorem Ipsum."))
+                String::from("Con questa funzione è possibile 'allineare' un libro cartaceo con un epub.\
+                E' necessario inserire la foto della prima pagina del primo capitolo. \
+                La seconda foto richiesta è di una pagina 'normale' ossia le quali righe sono tutte\
+                 occupate. Nel caso in cui il numero di righe e il numero della pagina siano errati perfavore\
+                 aggiustarli nei moduli presentati sotto. \
+                 L'allineamento è ottenuto distribuendo il testo formattato dell'epub in righe in funzione del numero stimato\
+                 di caratteri rilevati dalle foto. Essendo una media statistica questo puo' portare a imprecisioni che andranno a ridursi\
+                 con l'inserimento di ulteriori foto attraverso la funzione di ocr jump nel corso del tempo\
+                 Una volta effettuato un OCR Synch è possibile cliccare sul testo del libro per ottenere una stima\
+                 della pagina del libro cartaceo in cui trovare una corrispondenza"))
                 .with_line_break_mode(LineBreaking::WordWrap);
 
             let mut col = Flex::column()

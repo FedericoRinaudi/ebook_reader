@@ -5,7 +5,6 @@ use crate::Book;
 use druid::{im::HashSet, im::Vector, Data, ExtEventSink, Lens, Selector, Target};
 use std::thread;
 use crate::utilities::is_part;
-
 use crate::view::view::View;
 
 pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
@@ -14,6 +13,7 @@ pub const SCROLL_REQUEST: Selector<()> = Selector::new("wrapper.scroll");
 pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize, String)>> =
     Selector::new("finish_slow_function");
 pub const FINISH_LEPTO_LOAD: Selector<Option<String>> = Selector::new("leptonica.finish_load");
+pub const FINISH_BOOK_LOAD: Selector<Option<Book>> = Selector::new("book.finish_load");
 
 #[derive(Clone, Data, PartialEq, Copy)]
 pub enum InputMode {
@@ -73,7 +73,8 @@ impl ApplicationState {
             let _ = self.view.guess_lines(
                 ocr.get_avg_ch(),
                 ocr.get_first_page_lines(), ocr.get_other_page_lines(),
-                self.book_to_view.chapters.get(self.book_to_view.get_ch()).unwrap_or(&Chapter::default()).initial_page
+                self.book_to_view.chapters.get(self.book_to_view.get_ch())
+                    .unwrap_or(&Chapter::default()).initial_page
             );
         }
     }
@@ -96,6 +97,7 @@ impl ApplicationState {
 
     pub fn set_book_to_read(&mut self, book: Book) {
         self.book_to_view = book;
+        //self.is_loading = false;
     }
 
     pub fn set_book_to_align(&mut self, book: Book) {

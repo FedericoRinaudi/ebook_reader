@@ -45,7 +45,6 @@ impl Navigation {
 
 #[derive(Default, Debug, Clone, Data, Lens)]
 pub struct Book {
-    // -------------------- > pub chapters_xml_and_path: Vector<(String, String)>,
     // Nella Book:new dobbiamo inizializzare i vari chapters
     nav: Navigation,
     pub path: String, // Nel file system
@@ -157,15 +156,6 @@ impl Book {
         })
     }
 
-    /*
-    pub fn is_at_chapter(&self) -> bool {
-        if self.chapters[self.get_ch()] {
-            true
-        }
-        false
-    }
-     */
-
     pub fn update_xml(&mut self, xml: String) {
         (*self).chapters[self.nav.get_ch()].xml = xml;
     }
@@ -175,16 +165,7 @@ impl Book {
     */
     #[allow(deprecated)]
     pub fn save(&mut self, set: HashSet<usize>, target_path: String) {
-        /*
-        Get the ZipArchive from the original file
-         */
-        /*
-        let file_path = if modified {
-            (&self).path.clone().replace(".epub", "-new.epub")
-        } else {
-            (&self).path.clone()
-        };
-        */
+
         let file_path = (&self).path.clone();
         let file = fs::File::open(file_path).unwrap();
 
@@ -219,8 +200,6 @@ impl Book {
                 .read(true)
                 .write(true)
                 .create(true)
-                //.open(target_path)
-                //.unwrap();
                 .open(target_path.clone())
                 .expect(target_path.as_str());
             target
@@ -234,10 +213,6 @@ impl Book {
 
         let walkdir = WalkDir::new(dir.to_string());
         let it = walkdir.into_iter();
-
-        // let newpath = self.path.clone().replace(".epub", "-new.epub");
-        // fs::rename(&self.path, newpath).unwrap(); OLD WAY
-        println!("211: {:?}", PathBuf::from(target_path.clone()));
 
         let writer = match OpenOptions::new()
             .write(true)
@@ -276,26 +251,3 @@ impl Book {
         fs::remove_dir_all(&dir).unwrap(); // Cancella tmp dir
     }
 }
-
-/*
-pub(crate) fn get_image(&self, book_path: String) -> String
-{
-    let doc = EpubDoc::new(book_path);
-    assert!(doc.is_ok());
-    let mut doc = doc.unwrap();
-    let title = doc.mdata("title").unwrap().replace(" ", "_").split('/').into_iter().next().unwrap().to_string();
-
-    let cover_data = doc.get_cover().unwrap();
-
-    let mut path = String::from("./images/");
-    path.push_str(title.as_str());
-    path.push_str(".jpeg");
-
-    let f = fs::File::create(path.clone());
-    assert!(f.is_ok());
-    let mut f = f.unwrap();
-    let _ = f.write_all(&cover_data);
-
-    return path;
-}
-*/

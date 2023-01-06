@@ -1,9 +1,8 @@
 use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
 use druid::widget::{Controller, ControllerHost, Label, LabelText};
-use druid::{Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel, WindowSizePolicy, WindowHandle, Selector};
+use druid::{Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel, WindowSizePolicy, WindowHandle};
 use std::time::{Duration, Instant};
-use druid::widget::prelude::*;
 use druid::{InternalLifeCycle, Rect, Scalable, Screen};
 
 const TOOLTIP_DELAY: Duration = Duration::from_millis(150);
@@ -29,15 +28,10 @@ pub(crate) enum TooltipState {
     },
 }
 
-/// A [`Controller`] responsible for listening to mouse hovers and launching tooltip windows.
-///
-/// Instead of constructing this widget explicitly, you probably want to use
-/// [`TooltipExt::tooltip`].
-///
-/// [`Controller`]: druid::widget::Controller
 pub struct TooltipCtrl<T> {
     pub(crate) text: LabelText<T>,
     pub(crate) state: TooltipState,
+    pub(crate) show_if_click: bool,
 }
 
 impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
@@ -53,7 +47,7 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
                     last_mouse_move: Instant::now(),
                     last_mouse_pos: ev.window_pos,
                 },
-                Event::MouseDown(_) | Event::MouseUp(_) | Event::MouseMove(_) | Event::Wheel(_) => {
+                Event::MouseUp(_) | Event::MouseMove(_) | Event::Wheel(_) => {
                     TooltipState::Off
                 },
                 Event::Timer(tok) if tok == &timer => {
@@ -92,10 +86,19 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
                 _ => self.state.clone(),
             },
             TooltipState::Off => match ev {
-                Event::MouseMove(ev) if ctx.is_hot() => TooltipState::Waiting {
-                    timer: ctx.request_timer(TOOLTIP_DELAY),
-                    last_mouse_move: Instant::now(),
-                    last_mouse_pos: ev.window_pos,
+                Event::MouseMove(ev) if ctx.is_hot() && !self.show_if_click => {
+                    TooltipState::Waiting {
+                        timer: ctx.request_timer(TOOLTIP_DELAY),
+                        last_mouse_move: Instant::now(),
+                        last_mouse_pos: ev.window_pos,
+                    }
+                },
+                Event::MouseDown(ev) if self.show_if_click => {
+                    TooltipState::Waiting {
+                        timer: ctx.request_timer(TOOLTIP_DELAY),
+                        last_mouse_move: Instant::now(),
+                        last_mouse_pos: ev.window_pos,
+                    }
                 },
                 _ => TooltipState::Off,
             },
@@ -116,9 +119,17 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
                         self.state.clone()
                     }
                 }
-                Event::MouseMove(_) | Event::MouseUp(_) | Event::MouseDown(_) | Event::Wheel(_) => {
+                Event::MouseMove(_) |  Event::Wheel(_) => {
                     ctx.submit_command(CLOSE_WINDOW.to(id));
                     self.state.clone()
+                }
+                Event::MouseDown(_) if !self.show_if_click => {
+                    ctx.submit_command(CLOSE_WINDOW.to(id));
+                    self.state.clone()
+                }
+                Event::MouseUp(_) if self.show_if_click => {
+                    ctx.submit_command(CLOSE_WINDOW.to(id));
+                    TooltipState::Off
                 }
                 _ => self.state.clone(),
             },
@@ -218,10 +229,12 @@ pub trait TipExt<T: Data>: Widget<T> + Sized + 'static {
     fn tooltip<LT: Into<LabelText<T>>>(
         self,
         text: LT,
+        show_if_click: bool
     ) -> ControllerHost<Self, TooltipCtrl<T>> {
         self.controller(TooltipCtrl {
             text: text.into(),
             state: TooltipState::Off,
+            show_if_click
         })
     }
 

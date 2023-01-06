@@ -32,9 +32,6 @@ impl Widget<PageElement> for BetterImage {
                     //ctx.submit_command(SCROLL_REQUEST);
                 }
             }
-            Event::MouseDown(_) => {
-                println!("OFFSET FROM START CHAPTER: {}", data.pg_offset);
-            }
             _ => {}
         }
     }

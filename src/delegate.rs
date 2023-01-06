@@ -1,11 +1,10 @@
-use crate::app::{InputMode, FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION};
+use crate::app::{InputMode, FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION, FINISH_BOOK_LOAD};
 use crate::book::Book;
-use crate::bookcase::{BookCase, BookInfo};
+use crate::bookcase::BookInfo;
 use crate::utilities::th_lepto_load;
 use crate::ApplicationState;
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target};
-use epub::doc::EpubDoc;
 use std::path::PathBuf;
 use druid::im::Vector;
 use crate::ocr::OcrData;
@@ -120,7 +119,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                         let _ = data.get_mut_current_book_info()
                             .unwrap()
                             .ocr
-                            .ocr_log_first(str.clone());
+                            .ocr_log_first(str.clone(), *ch);
                     },
                     InputMode::OcrSyn1 => {
                         let _ = data.get_mut_current_book_info()
@@ -166,6 +165,21 @@ impl AppDelegate<ApplicationState> for Delegate {
             }
             return Handled::Yes;
 
+        }
+
+        if let Some(book) = cmd.get(FINISH_BOOK_LOAD) {
+            match book {
+                Some(book) => {
+                    data.set_book_to_read(book.clone());
+                    data.update_view();
+                },
+                None => {
+                    data.error_message = Some("Couldn't load book".to_string());
+                    data.book_to_view = Book::empty_book();
+                }
+            }
+            data.is_loading = false;
+            return Handled::Yes;
         }
 
         if let Some(..) = cmd.get(SAVE_PANEL_CANCELLED) {

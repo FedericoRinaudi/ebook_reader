@@ -1,22 +1,18 @@
 use crate::book::page_element::PageElement;
-use druid::widget::{ControllerHost, LineBreaking, RawLabel};
-use druid::{
-    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector,
-    Size, UpdateCtx, Widget,
-};
-use crate::widgets::custom_tooltip::{TooltipCtrl, TipExt};
+use druid::widget::{LineBreaking, RawLabel};
+use druid::{BoxConstraints, Color, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector, Size, UpdateCtx, Widget};
 
 pub const UPDATE_SIZE: Selector<()> = Selector::new("label.size_changed");
 
 pub struct BetterLabel {
-    child: ControllerHost<RawLabel<PageElement>, TooltipCtrl<PageElement>>,
+    child: RawLabel<PageElement>,
 }
 
 impl BetterLabel {
     pub fn new() -> BetterLabel {
         let mut rawlab = RawLabel::new();
         rawlab.set_line_break_mode(LineBreaking::WordWrap);
-        BetterLabel { child: rawlab.tooltip(|data: &PageElement, _env: &Env| data.pg_offset.to_string()) }
+        BetterLabel { child: rawlab }
     }
 }
 
@@ -27,12 +23,18 @@ impl Widget<PageElement> for BetterLabel {
             Event::Command(cmd) => {
                 if cmd.get(UPDATE_SIZE).is_some() {
                     data.size = Some(<(f64, f64)>::from(ctx.size()));
-
                     //ctx.submit_command(SCROLL_REQUEST);
                 }
             }
-            Event::MouseDown(_) => {
-                println!("PAGE FROM BOOK: {}", data.pg_offset);
+            Event::MouseDown(_e) => {
+                self.child.set_text_color(Color::GRAY);
+                ctx.request_layout();
+                ctx.request_paint();
+            }
+            Event::MouseUp(_e) => {
+                self.child.set_text_color(Color::WHITE);
+                ctx.request_layout();
+                ctx.request_paint();
             }
             _ => {}
         }
@@ -58,11 +60,6 @@ impl Widget<PageElement> for BetterLabel {
         data: &PageElement,
         env: &Env,
     ) {
-        /*
-        let mut data_m = data.clone();
-        data_m.size = Some(<(f64, f64)>::from(ctx.size()));
-        println!("UPDATED");
-        */
         self.child.update(ctx, old_data, &data, env);
     }
 

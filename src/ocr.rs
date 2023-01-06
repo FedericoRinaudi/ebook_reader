@@ -130,7 +130,7 @@ impl OcrData {
     pub fn new() -> Self {
         OcrData {
             mappings: Vector::new(),
-            first_chap: Some(8), //TODO: NOT HARDCODED VALUE
+            first_chap: None, //TODO: NOT HARDCODED VALUE
             first: None,
             other: None,
         }
@@ -162,12 +162,13 @@ impl OcrData {
         }
     }
 
-    pub fn ocr_log_first(&mut self, str: String) -> Result<(), Box<dyn Error>> {
+    pub fn ocr_log_first(&mut self, str: String, ch:usize) -> Result<(), Box<dyn Error>> {
         match Mapping::new(str) {
             Ok(mut mapping) => {
                 mapping.is_first = true;
                 self.mappings.push_back(mapping);
                 self.first = Some(&self.mappings.len() - 1);
+                self.first_chap = Some(ch);
                 return Ok(());
             }
             Err(e) => {
@@ -235,8 +236,6 @@ impl OcrData {
             sum += map.tot_chars;
             count += map.full_lines;
         }
-        //println!("AVERAGE CHARS PER LINE: {}\n", sum as f64/count as f64);
-        // CON CEIL ARROTONDO SEMPRE PER ECCESSO, PERCHE'
         sum as f64 / count as f64
     }
 }
