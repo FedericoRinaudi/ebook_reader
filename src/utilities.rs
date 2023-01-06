@@ -211,12 +211,13 @@ pub fn is_part(vec: Vector<PageElement>) -> bool {
     false
 }
 
-pub fn th_lepto_load(sink: ExtEventSink, path: PathBuf) {
-    thread::spawn(move || lepto_load(sink, path));
+pub fn th_lepto_load(sink: ExtEventSink, path: PathBuf, lang: &str) {
+    let s = lang.to_string().clone();
+    thread::spawn(move || lepto_load(sink, path, s));
 }
 
-fn lepto_load(sink: ExtEventSink, path: PathBuf) {
-    let mut lt = leptess::LepTess::new(None, "ita").unwrap();
+fn lepto_load(sink: ExtEventSink, path: PathBuf, lang: String) {
+    let mut lt = leptess::LepTess::new(None, &lang).unwrap();
     lt.set_image(path).unwrap();
     match lt.get_utf8_text() {
         Ok(text) => {

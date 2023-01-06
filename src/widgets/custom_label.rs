@@ -1,22 +1,22 @@
 use crate::book::page_element::PageElement;
-use druid::widget::{LineBreaking, RawLabel};
+use druid::widget::{ControllerHost, LineBreaking, RawLabel};
 use druid::{
     BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector,
     Size, UpdateCtx, Widget,
 };
+use crate::widgets::custom_tooltip::{TooltipCtrl, TipExt};
 
 pub const UPDATE_SIZE: Selector<()> = Selector::new("label.size_changed");
 
 pub struct BetterLabel {
-    child: RawLabel<PageElement>,
+    child: ControllerHost<RawLabel<PageElement>, TooltipCtrl<PageElement>>,
 }
 
 impl BetterLabel {
-    /*TODO: FAI CASO PER IMMAGINE*/
     pub fn new() -> BetterLabel {
         let mut rawlab = RawLabel::new();
         rawlab.set_line_break_mode(LineBreaking::WordWrap);
-        BetterLabel { child: rawlab }
+        BetterLabel { child: rawlab.tooltip(|data: &PageElement, _env: &Env| data.pg_offset.to_string()) }
     }
 }
 

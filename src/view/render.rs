@@ -231,25 +231,28 @@ fn render_library() -> impl Widget<ApplicationState> {
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_spacer(15.0)
                     .with_child(
-                        Label::new(&*book_info.name.clone())
+                        Label::new(&*book_info.title.clone())
                             .with_text_size(20.0)
                             .with_line_break_mode(LineBreaking::WordWrap),
                     )
                     .with_spacer(4.0)
-                    //TODO: Salvo su file e aggiungo le informazioni corrette
                     .with_child(Label::new(
-                        String::from("Path: ") + &*book_info.get_path().to_str().unwrap().to_string(),
-                    ))
+                        String::from("Path: ") + &*book_info.get_path().to_str().unwrap().to_string()
+                    ).with_line_break_mode(LineBreaking::WordWrap),
+                    )
                     .with_spacer(1.0)
                     .with_child(Label::new(
+                        String::from("Author: ") + &*book_info.creator.clone().to_string(),
+                    ))
+                    /*.with_child(Label::new(
                         String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string(),
-                    ))
+                    ))*/
                     .with_spacer(1.0)
-                    .with_child(Label::new(
+                    /*.with_child(Label::new(
                         String::from("Offset: ")
                             + &*book_info.start_element_number.clone().to_string(),
-                    ))
-                    .with_spacer(90.0)
+                    ))*/
+                    .with_spacer(10.0)
                     .with_child(
                         Flex::row()
                             .cross_axis_alignment(CrossAxisAlignment::Start)

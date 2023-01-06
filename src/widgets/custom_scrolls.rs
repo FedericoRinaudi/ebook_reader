@@ -4,6 +4,7 @@ use druid::{
     BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
     UpdateCtx, Widget,
 };
+use druid::commands::CLOSE_WINDOW;
 use crate::widgets::custom_label::UPDATE_SIZE;
 
 pub struct BetterScroll<W: Widget<ApplicationState>> {

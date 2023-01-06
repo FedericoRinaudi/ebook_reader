@@ -3,12 +3,13 @@ use druid::{im::Vector, Data, Lens, ImageBuf};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use std::{env, fs};
 use serde::{Serialize, Deserialize};
+use isolang::Language;
 
-const FILE_NAME: &str = "meta.txt";
+const FILE_NAME: &str = "meta.json";
 //const FILE_NAME: &str = "meta.bin";
 
 
@@ -22,6 +23,10 @@ pub struct BookInfo {
     pub cover_buf: ImageBuf,
     pub ocr: OcrData,
     pub mapped_pages: Vector<usize>,
+    pub title: String,
+    pub description: String,
+    pub language: String,
+    pub creator: String
 }
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
@@ -33,6 +38,10 @@ pub struct SerializableBookInfo {
     pub cover_path: String,
     pub ocr: SerializableOcrData,
     pub mapped_pages: Vec<usize>,
+    pub title: String,
+    pub description: String,
+    pub language: String,
+    pub creator: String
 }
 
 impl From<BookInfo> for SerializableBookInfo {
@@ -44,7 +53,11 @@ impl From<BookInfo> for SerializableBookInfo {
             start_element_number: b.start_element_number,
             cover_path: b.cover_path,
             ocr: b.ocr.into(),
-            mapped_pages: b.mapped_pages.iter().map(|m|*m).collect()
+            mapped_pages: b.mapped_pages.iter().map(|m|*m).collect(),
+            title: b.title,
+            description: b.description,
+            language: b.language,
+            creator: b.creator
         }
     }
 }
@@ -59,13 +72,28 @@ impl From<SerializableBookInfo> for BookInfo {
             cover_path: b.cover_path.clone(),
             cover_buf: ImageBuf::from_file(b.cover_path).unwrap_or(ImageBuf::from_file("./images/default.jpg").unwrap()),
             ocr: b.ocr.into(),
-            mapped_pages: b.mapped_pages.iter().map(|m|*m).collect()
+            mapped_pages: b.mapped_pages.iter().map(|m|*m).collect(),
+            title: b.title,
+            description: b.description,
+            language: b.language,
+            creator: b.creator
         }
     }
 }
 
 impl BookInfo {
-    pub fn new(path: String, start_chapter: usize, element_number: usize, cover_path: String) -> Self {
+    pub fn new(path: String) -> Result<Self, String> {
+        let mut doc = match EpubDoc::new(&path){
+            Ok(d) => d,
+            Err(_) => return Err(String::new())
+        };
+        let cover_path = Self::get_image(&mut doc);
+        let title = doc.mdata("title").unwrap_or("unknown".to_string()).replace("|", "_");
+        let creator = doc.mdata("creator").unwrap_or("unknown".to_string()).replace("|", "_");
+        let language = Language::from_639_1( &doc.mdata("language").unwrap_or("en".to_string()) ).unwrap().to_639_3().to_string();
+        let description = doc.mdata("description").unwrap_or("".to_string());
+        println!("{:?}", doc.metadata.clone());
+
         let name = PathBuf::from(path.clone())
             .file_stem()
             .unwrap()
@@ -73,21 +101,51 @@ impl BookInfo {
             .unwrap()
             .to_string();
 
-        Self {
+        Ok(Self {
             name,
             path,
-            start_chapter,
-            start_element_number: element_number,
+            start_chapter: 0,
+            start_element_number: 0,
             cover_path: cover_path.clone(),
             cover_buf: ImageBuf::from_file(cover_path).unwrap_or(ImageBuf::from_file("./images/default.jpg").unwrap()),
             ocr: OcrData::new(),
             mapped_pages: Vector::new(),
-        }
+            title,
+            description,
+            language,
+            creator
+        })
     }
 
     pub fn get_path(&self) -> PathBuf {
         PathBuf::from(&self.path)
     }
+
+    //TODO: BECCO PIU' INFO SUL LIBRO; TUTTE QUELLE CHE VOGLIO VISUALIZZARE
+    fn get_image(doc: &mut EpubDoc<BufReader<File>>) -> String {
+        //TODO: gestisco il caso di errore nell'apertura del libro
+        let title = doc.mdata("title").unwrap().replace("|", "_");
+        //println!("{}", title);
+        /*.split('/')
+        .into_iter()
+        .next()
+        .unwrap()
+        .to_string();*/
+
+        let cover_data = match doc.get_cover() {
+            Ok(data) => data,
+            Err(_) => return String::from("./images/default.jpeg"),
+        };
+        //TODO: se l'immagine non fosse jpeg rompo tutto
+        //TODO: gestisco caso in cui fallisca
+        let path = String::from("./images/") + title.as_str() + ".jpeg";
+        File::create(path.clone())
+            .unwrap()
+            .write_all(&cover_data)
+            .expect("Couldn't create a cover image");
+        path
+    }
+
 }
 
 #[derive(Default, Clone, Data, Lens)] //TODO: Cleanup
@@ -265,31 +323,4 @@ impl BookCase {
                 .expect("write failed");
         }
     }*/
-
-    //TODO: BECCO PIU' INFO SUL LIBRO; TUTTE QUELLE CHE VOGLIO VISUALIZZARE
-    pub fn get_image(book_path: &str) -> String {
-        //TODO: gestisco il caso di errore nell'apertura del libro
-        let mut doc = EpubDoc::new(book_path.to_string()).unwrap();
-        let title = doc.mdata("title").unwrap().replace("|", "_");
-
-        //println!("{}", title);
-        /*.split('/')
-        .into_iter()
-        .next()
-        .unwrap()
-        .to_string();*/
-
-        let cover_data = match doc.get_cover() {
-            Ok(data) => data,
-            Err(_) => return String::from("./images/default.jpeg"),
-        };
-        //TODO: se l'immagine non fosse jpeg rompo tutto
-        //TODO: gestisco caso in cui fallisca
-        let path = String::from("./images/") + title.as_str() + ".jpeg";
-        File::create(path.clone())
-            .unwrap()
-            .write_all(&cover_data)
-            .expect("Couldn't create a cover image");
-        path
-    }
 }

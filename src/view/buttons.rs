@@ -3,9 +3,11 @@ use crate::bookcase::BookInfo;
 use crate::utilities::{open_epub, open_image, save_file};
 use crate::{ApplicationState, Book};
 use druid::widget::{Align, Button, Click, ControllerHost, DisabledIf, Svg, SvgData, ViewSwitcher};
-use druid::{Widget, WidgetExt};
+use druid::{Env, Widget, WidgetExt};
 use druid::im::Vector;
+use crate::book::page_element::PageElement;
 use crate::ocr::OcrData;
+use crate::widgets::custom_tooltip::TipExt;
 
 //use crate::controllers::ClickableOpacity;
 const LIBRARY_SVG_DIM: f64 = 30.;
@@ -236,7 +238,7 @@ impl Buttons {
                     .unwrap(),
                 );
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
-            })
+            }).tooltip(|data:&ApplicationState, _env: &Env| "Jump to photo".to_string())
     }
 
     pub fn btn_close_book() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
@@ -261,14 +263,7 @@ impl Buttons {
             .on_click(move |_, data: &mut ApplicationState, _| {
                 let _ = data.bookcase.library.remove(index);
                 data.bookcase.update_meta();
-                //TODO: anzi che le print metto poi un pop-up o comunque do un feedback all'utente
-                /*
-                match fs::remove_file(removed_book_info.path.clone()) {
-                    Ok(()) => println!("Successfully removed file"),
-                    Err(e) => println!("Error deleting file: {}", e),
-                }
-                */
-            })
+            }).tooltip(|data:&ApplicationState, _env: &Env| "Remove book from library".to_string())
     }
 
     pub fn btn_add_book() -> impl Widget<ApplicationState> {
@@ -282,7 +277,7 @@ impl Buttons {
             .on_click(|ctx, data: &mut ApplicationState, _| {
                 data.i_mode = InputMode::EbookAdd;
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_epub()));
-            })
+            }).tooltip(|data:&ApplicationState, _env: &Env| "Add book to library".to_string())
     }
 
     pub fn btn_read_book(book_info: BookInfo) -> impl Widget<ApplicationState> {
@@ -304,7 +299,7 @@ impl Buttons {
                     .unwrap(),
                 );
                 data.update_view();
-            })
+            }).tooltip(|data:&ApplicationState, _env: &Env| "Read the book".to_string())
     }
 
     pub fn btn_submit_ocr_form() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {

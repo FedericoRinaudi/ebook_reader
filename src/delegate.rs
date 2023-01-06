@@ -46,7 +46,6 @@ impl AppDelegate<ApplicationState> for Delegate {
                         .to_str()
                         .unwrap()
                         .to_string();
-                    b_info.cover_path = BookCase::get_image(&target_path);
                     data.bookcase.update_meta();
                 },
                 None => {
@@ -73,29 +72,24 @@ impl AppDelegate<ApplicationState> for Delegate {
             match data.i_mode {
                 InputMode::OcrJump | InputMode::OcrSyn0 | InputMode::OcrSyn1 => {
                     /* Qui stiamo prendendo un immagine per usare l'OCR */
-                    th_lepto_load(ctx.get_external_handle(), file_info.path.clone());
+                    th_lepto_load(ctx.get_external_handle(), file_info.path.clone(), &data.get_current_book_info().language);
                 }
                 InputMode::EbookAdd => {
-                    if EpubDoc::new(file_info.path.clone()).is_ok() && file_info.path.is_file() {
-                        data.is_loading = true;
-                        //TODO: Controlla che il libro non sia già presente
-                        if data.bookcase.library.iter().find(|el | el.path == file_info.path.clone().to_str().unwrap().to_string()).is_some(){
-                            data.error_message= Some("Book already in library".to_string());
-                        } else {
-                            data.bookcase.library.push_back(
-                                BookInfo::new(
-                                    file_info.path.clone().to_str().unwrap().to_string(),
-                                    0,
-                                    0,
-                                    BookCase::get_image(file_info.path.to_str().unwrap())
-                                ));
-                            data.bookcase.update_meta();
-                        }
-                        data.is_loading = false;
+                    if data.bookcase.library.iter().find(|el | el.path == file_info.path.clone().to_str().unwrap().to_string()).is_some(){
+                        data.error_message= Some("Book already in library".to_string());
                     } else {
-                        data.error_message =
-                            Option::Some("Impossible to open selected Epub".to_string());
+                        match BookInfo::new(file_info.path.clone().to_str().unwrap().to_string()) {
+                            Ok(b) => {
+                                data.bookcase.library.push_back(b);
+                                data.bookcase.update_meta();
+                            }
+                            Err(_) => {
+                                data.error_message =
+                                Option::Some("Impossible to open selected Epub".to_string());
+                            }
+                        }
                     }
+                    data.is_loading = false;
                     data.i_mode = InputMode::None;
                 }
                 _ => (),
