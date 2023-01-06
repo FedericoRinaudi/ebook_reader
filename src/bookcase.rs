@@ -1,5 +1,5 @@
 use crate::ocr::{OcrData, SerializableOcrData};
-use druid::{im::Vector, Data, Lens};
+use druid::{im::Vector, Data, Lens, ImageBuf};
 use epub::doc::EpubDoc;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
@@ -12,18 +12,19 @@ const FILE_NAME: &str = "meta.txt";
 //const FILE_NAME: &str = "meta.bin";
 
 
-#[derive(Default, Clone, Data, Lens, Debug, PartialEq)]
+#[derive(Default, Clone, Data, Lens, Debug)]
 pub struct BookInfo {
     pub name: String,
     pub path: String,
     pub start_chapter: usize,
     pub start_element_number: usize,
     pub cover_path: String,
+    pub cover_buf: ImageBuf,
     pub ocr: OcrData,
     pub mapped_pages: Vector<usize>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct SerializableBookInfo {
     pub name: String,
     pub path: String,
@@ -55,7 +56,8 @@ impl From<SerializableBookInfo> for BookInfo {
             path: b.path,
             start_chapter: b.start_chapter,
             start_element_number: b.start_element_number,
-            cover_path: b.cover_path,
+            cover_path: b.cover_path.clone(),
+            cover_buf: ImageBuf::from_file(b.cover_path).unwrap_or(ImageBuf::from_file("./images/default.jpg").unwrap()),
             ocr: b.ocr.into(),
             mapped_pages: b.mapped_pages.iter().map(|m|*m).collect()
         }
@@ -76,7 +78,8 @@ impl BookInfo {
             path,
             start_chapter,
             start_element_number: element_number,
-            cover_path,
+            cover_path: cover_path.clone(),
+            cover_buf: ImageBuf::from_file(cover_path).unwrap_or(ImageBuf::from_file("./images/default.jpg").unwrap()),
             ocr: OcrData::new(),
             mapped_pages: Vector::new(),
         }
@@ -263,6 +266,7 @@ impl BookCase {
         }
     }*/
 
+    //TODO: BECCO PIU' INFO SUL LIBRO; TUTTE QUELLE CHE VOGLIO VISUALIZZARE
     pub fn get_image(book_path: &str) -> String {
         //TODO: gestisco il caso di errore nell'apertura del libro
         let mut doc = EpubDoc::new(book_path.to_string()).unwrap();

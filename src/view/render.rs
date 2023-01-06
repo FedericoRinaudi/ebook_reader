@@ -218,20 +218,12 @@ fn render_library() -> impl Widget<ApplicationState> {
                         .with_flex_spacer(0.7)
                         .with_child(Buttons::btn_add_book().padding(20.0)),
                 );
-            //TODO: provo con molti libri e valuto le tempistiche, valuto multithread
-            let mut images_threads = Vec::new();
-            for book_info in data.get_library().clone().into_iter(){
-                let cover_path = book_info.cover_path.clone();
-                images_threads.push(thread::spawn(move || ImageBuf::from_file(cover_path)));
-            }
             for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                 let mut pill = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
                 let uno = Flex::column()
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_child(
-                        Image::new(images_threads.remove(0).join().unwrap().unwrap_or(
-                            ImageBuf::from_file(PathBuf::from("./images/default.jpg")).unwrap(),
-                        ))
+                        Image::new(book_info.cover_buf.clone())
                         .fix_width(300.0)
                         .fix_height(200.0),
                     );
