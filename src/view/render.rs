@@ -11,12 +11,11 @@ use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::widgets::custom_tooltip::TipExt;
 use crate::{ApplicationState, ContentType};
-use druid::widget::{
-    Button, Container, ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
-    LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
+use druid::widget::{ Container, ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
+    LineBreaking, List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
     ViewSwitcher,
 };
-use druid::{lens, Color, Env, LensExt, RenderContext, Widget, WidgetExt, Lens};
+use druid::{lens, Color, Env, LensExt, RenderContext, Widget, WidgetExt};
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -153,7 +152,9 @@ fn render_edit_mode() -> impl Widget<ApplicationState> {
             /* Permette di modificare in xml l'appstate*/
             let host = ControllerHost::new(
                 editable_xml,
-                Update::new(|_, data: &mut ApplicationState, _| data.update_view()),
+                Update::new(|ctx, data: &mut ApplicationState, _| {
+                    data.update_view(ctx.get_external_handle())
+                }),
             );
 
             let xml = Scroll::new(host).vertical();
@@ -676,7 +677,7 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                                     .with_child(
                                         Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
                                     .with_child(
-                                        Label::new("6").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                        Label::new("6").with_text_size(25.))
                                     .with_flex_spacer(1.)
                             )
                             .with_spacer(20.)
@@ -708,14 +709,16 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
     )
 }
 
-
 enum OcrFormFields {
     NumLines,
-    PageNum
+    PageNum,
 }
 
-
-fn ocr_form(id: usize, data: &ApplicationState, field: OcrFormFields) -> impl Widget<ApplicationState> {
+fn ocr_form(
+    id: usize,
+    data: &ApplicationState,
+    field: OcrFormFields,
+) -> impl Widget<ApplicationState> {
     macro_rules! mapping_lens {
         ($field: tt) => {
             lens!(ApplicationState, bookcase)
@@ -734,24 +737,19 @@ fn ocr_form(id: usize, data: &ApplicationState, field: OcrFormFields) -> impl Wi
         };
     }
 
-
     match field {
-        OcrFormFields::NumLines => {
-            Container::new(
+        OcrFormFields::NumLines => Container::new(
             TextBox::new()
                 .with_formatter(CustomFormatter::new())
                 .update_data_while_editing(true)
-                .lens(mapping_lens!(page_lines))
-            )
-        },
-        OcrFormFields::PageNum => {
-            Container::new(
+                .lens(mapping_lens!(page_lines)),
+        ),
+        OcrFormFields::PageNum => Container::new(
             TextBox::new()
                 .with_formatter(CustomFormatter::new())
                 .update_data_while_editing(true)
-                .lens(mapping_lens!(page))
-            )
-        }
+                .lens(mapping_lens!(page)),
+        ),
     }
 
     /*let page_num_box = TextBox::new()

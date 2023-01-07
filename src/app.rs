@@ -4,7 +4,7 @@ use crate::ocr::find_ch;
 use crate::utilities::is_part;
 use crate::view::view::View;
 use crate::Book;
-use druid::{im::HashSet, im::Vector, Data, ExtEventSink, Lens, Selector, Target};
+use druid::{im::HashSet, im::Vector, Data, ExtEventSink, ImageBuf, Lens, Selector, Target};
 use std::thread;
 
 pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
@@ -14,6 +14,7 @@ pub const FINISH_SLOW_FUNCTION: Selector<Option<(usize, usize, String)>> =
     Selector::new("finish_slow_function");
 pub const FINISH_LEPTO_LOAD: Selector<Option<String>> = Selector::new("leptonica.finish_load");
 pub const FINISH_BOOK_LOAD: Selector<Option<Book>> = Selector::new("book.finish_load");
+pub const FINISH_IMAGE_LOAD: Selector<(ImageBuf, String)> = Selector::new("image.finish_load");
 
 #[derive(Clone, Data, PartialEq, Copy)]
 pub enum InputMode {
@@ -65,9 +66,9 @@ impl ApplicationState {
         app
     }
 
-    pub fn update_view(&mut self) {
+    pub fn update_view(&mut self, sink: ExtEventSink) {
         self.view
-            .update_view(self.book_to_view.format_current_chapter());
+            .update_view(self.book_to_view.format_current_chapter(sink));
         let ocr = self.get_current_book_info().ocr;
         if ocr.is_aligned() {
             let _ = self.view.guess_lines(
@@ -112,6 +113,7 @@ impl ApplicationState {
         //Return number of uncertain page as Err to ask for additional user input, lowprio TODO
 
         let chapters = self.book_to_align.chapters.clone();
+        let path = (*self).book_to_align.path.clone();
         let book_info = self.get_mut_current_book_info().unwrap();
         let ocr = book_info.ocr.clone();
         if overwrite {
@@ -124,7 +126,7 @@ impl ApplicationState {
                 continue;
             }
             if ocr.first_chap.unwrap() <= id {
-                temp_view.update_view(ch.format().clone());
+                temp_view.update_view(ch.format(None, None, &path));
                 if is_part(temp_view.current_view.clone()) {
                     if page % 2 == 0 {
                         page += 1;
@@ -149,11 +151,6 @@ impl ApplicationState {
                 book_info.mapped_pages.push_back(0);
             }
         }
-
-        println!(
-            "VETTORE DI FIRST_PAGES: {:?}",
-            book_info.mapped_pages.clone()
-        );
         return Ok(());
     }
 

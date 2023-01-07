@@ -6,14 +6,15 @@ use walkdir::WalkDir;
 
 use crate::book::chapter::Chapter;
 use crate::book::page_element::PageElement;
-use druid::im::HashSet;
-use druid::{im::Vector, Data, Lens};
+use druid::im::{HashMap, HashSet};
+use druid::{im::Vector, Data, ExtEventSink, ImageBuf, Lens};
 use epub::doc::EpubDoc;
 use std::env::current_dir;
-use std::fs;
+use std::error::Error;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::{fmt, fs};
 use zip::write::FileOptions;
 
 #[derive(Default, Debug, Clone, Data, Lens)]
@@ -49,6 +50,7 @@ pub struct Book {
     nav: Navigation,
     pub path: String, // Nel file system
     pub chapters: Vector<Chapter>,
+    pub imgs: HashMap<String, ImageBuf>,
 }
 
 impl Book {
@@ -65,30 +67,27 @@ impl Book {
         init_chapter: usize,
         init_element_number: usize,
         page_chapter: &Vector<usize>,
-    ) -> Result<Self, ()> {
+    ) -> Result<Self, Box<dyn Error>> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
             .as_ref()
             .to_path_buf()
             .into_os_string()
             .into_string()
-            .unwrap();
-        let mut epub_doc = match EpubDoc::new(path) {
-            Ok(epub) => epub,
-            Err(_) => return Result::Err(()),
-        };
+            .map_err(|_e| fmt::Error::default())?;
+
+        let mut epub_doc = EpubDoc::new(path)?;
 
         let mut ch_vec = Vector::new();
         let mut id = 0;
         while {
             //La libreria che fa il parsing fallisce quando incontra &nbsp; quindi lo sostiusco a priori con uno spazio
-            let ch_xml = epub_doc.get_current_str().unwrap(); //TODO: match for errors
+            let ch_xml = epub_doc.get_current_str()?; //TODO: match for errors
             let ch_path = epub_doc
-                .get_current_path()
-                .unwrap()
+                .get_current_path()?
                 .into_os_string()
                 .into_string()
-                .unwrap();
+                .map_err(|_e| fmt::Error::default())?;
 
             //Creiamo un nuovo capitolo
             let starting_page = match page_chapter.get(id) {
@@ -96,7 +95,7 @@ impl Book {
                 None => 0,
             };
 
-            let ch = Chapter::new(ch_path, ch_xml, &book_path, starting_page);
+            let ch = Chapter::new(ch_path, ch_xml, starting_page);
 
             ch_vec.push_back(ch);
             id += 1;
@@ -104,10 +103,11 @@ impl Book {
         } {}
 
         let nav_new = Navigation::new(init_chapter, init_element_number);
-        Result::Ok(Self {
+        Ok(Self {
             path: book_path,
             nav: nav_new,
             chapters: ch_vec,
+            imgs: HashMap::new(),
         })
     }
 
@@ -128,14 +128,14 @@ impl Book {
     }
     //pub fn _get_line(&self) -> f64 {self.nav.get_line()}
 
-    pub fn format_current_chapter(&mut self) -> Vector<PageElement> {
-        (*self).chapters[self.nav.get_ch()].format()
+    pub fn format_current_chapter(&mut self, ctx: ExtEventSink) -> Vector<PageElement> {
+        (*self).chapters[self.nav.get_ch()].format(Some(&(*self).imgs), Some(ctx), &self.path)
     }
 
-    pub fn _format_chapter(&mut self, chapter_n: usize) -> Vector<PageElement> {
+    /*pub fn _format_chapter(&mut self, chapter_n: usize) -> Vector<PageElement> {
         //TODO: Remove if unneeded
-        (*self).chapters[chapter_n].format()
-    }
+        (*self).chapters[chapter_n].format(&(*self).imgs)
+    }*/
 
     pub fn go_on(&mut self, n: usize) {
         self.get_mut_nav().set_element_number(0);

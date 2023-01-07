@@ -23,9 +23,9 @@ impl Buttons {
         Svg::new(right_svg.clone())
             .fix_width(LIBRARY_SVG_BIG)
             .center()
-            .on_click(|_ctx, data: &mut ApplicationState, _env| {
+            .on_click(|ctx, data: &mut ApplicationState, _env| {
                 data.book_to_view.go_on(1);
-                data.update_view()
+                data.update_view(ctx.get_external_handle())
             })
             .tooltip(
                 |_data: &ApplicationState, _env: &Env| "Next Page".to_string(),
@@ -41,9 +41,9 @@ impl Buttons {
         Svg::new(left_svg.clone())
             .fix_width(LIBRARY_SVG_BIG)
             .center()
-            .on_click(|_ctx, data: &mut ApplicationState, _env| {
+            .on_click(|ctx, data: &mut ApplicationState, _env| {
                 data.book_to_view.go_back(1);
-                data.update_view()
+                data.update_view(ctx.get_external_handle())
             })
             .tooltip(
                 |_data: &ApplicationState, _env: &Env| "Prev Page".to_string(),
@@ -208,10 +208,10 @@ impl Buttons {
         Svg::new(discard_svg.clone())
             .fix_width(LIBRARY_SVG_BIG)
             .center()
-            .on_click(|_ctx, data: &mut ApplicationState, _env| {
+            .on_click(|ctx, data: &mut ApplicationState, _env| {
                 /* EDIT MODE -> EDIT MODE, Discard Changes */
                 data.book_to_view.update_xml(data.xml_backup.clone());
-                data.update_view();
+                data.update_view(ctx.get_external_handle());
             })
             .tooltip(
                 |_data: &ApplicationState, _env: &Env| "Discard changes".to_string(),
@@ -409,18 +409,15 @@ impl Buttons {
     //TODO
     pub fn btn_submit_ocr_form1(
     ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-
         Button::new("NEXT").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let ocr = &data.get_current_book_info().ocr;
             if (*ocr).other.is_none() {
                 data.error_message = Option::Some("You have to fill all felds.".to_string());
             } else {
                 let other = &(*ocr).mappings[(*ocr).other.unwrap()];
-                if  (*other).page_lines != 0
-                {
+                if (*other).page_lines != 0 {
                     let _ = data.map_pages(true);
                     data.bookcase.update_meta();
-                    data.book_to_align = Book::empty_book();
                     data.view.ocr_form_stage = 6;
                 } else {
                     data.error_message = Option::Some("You have to fill all felds.".to_string());

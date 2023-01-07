@@ -1,4 +1,5 @@
-use crate::book::page_element::PageElement;
+use crate::book::page_element::ImageState::Present;
+use crate::book::page_element::{PageElement};
 use crate::{ApplicationState, ContentType};
 use druid::{im::Vector, Data, Lens, LocalizedString};
 use unicode_segmentation::UnicodeSegmentation;
@@ -16,7 +17,7 @@ pub struct View {
     window_size_home: (f64, f64),
     pub current_view: Vector<PageElement>,
     pub scroll_height: f64,
-    pub ocr_form_stage: usize
+    pub ocr_form_stage: usize,
 }
 
 impl View {
@@ -27,7 +28,7 @@ impl View {
             window_size_home: HOME_SIZE,
             current_view: Vector::new(),
             scroll_height: 0.0,
-            ocr_form_stage: 1
+            ocr_form_stage: 1,
         }
     }
 
@@ -113,7 +114,7 @@ impl View {
         max_chars: f64,
         first: usize,
         second: usize,
-        starting_page: usize
+        starting_page: usize,
     ) -> Result<usize, ()> {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
@@ -141,14 +142,16 @@ impl View {
                 };
             } else if let ContentType::Image(img_buf) = el.clone().content {
                 //TODO: SPERIMENTAL MIGHT REMOVE
-                let element_lines = img_buf.height() / 20;
-                let max_lines = if curr_page == 1 { first } else { second };
-                guessed_lines = if (guessed_lines + element_lines) <= max_lines {
-                    guessed_lines + element_lines
-                } else {
-                    curr_page += 1;
-                    element_lines
-                };
+                if let Present(img_buf) = img_buf {
+                    let element_lines = img_buf.height() / 20;
+                    let max_lines = if curr_page == 1 { first } else { second };
+                    guessed_lines = if (guessed_lines + element_lines) <= max_lines {
+                        guessed_lines + element_lines
+                    } else {
+                        curr_page += 1;
+                        element_lines
+                    };
+                }
             }
             el.pg_offset.0 = if starting_page == 0 {
                 0
@@ -158,7 +161,7 @@ impl View {
         }
 
         //println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
-        println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
+        //println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
         Ok(curr_page)
     }
 }

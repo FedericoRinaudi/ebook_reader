@@ -1,13 +1,15 @@
-use crate::app::{InputMode, FINISH_BOOK_LOAD, FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION};
+use crate::app::{
+    InputMode, FINISH_BOOK_LOAD, FINISH_IMAGE_LOAD, FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION,
+};
+use crate::book::page_element::{ContentType, ImageState};
 use crate::book::Book;
 use crate::bookcase::BookInfo;
 use crate::ocr::OcrData;
-use crate::utilities::th_lepto_load;
+use crate::utilities::{th_lepto_load};
 use crate::ApplicationState;
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::im::Vector;
 use druid::{commands, AppDelegate, Command, DelegateCtx, Env, Handled, Target};
-use std::error::Error;
 use std::path::PathBuf;
 
 extern crate num_cpus;
@@ -117,7 +119,7 @@ impl AppDelegate<ApplicationState> for Delegate {
                 match data.i_mode {
                     InputMode::OcrJump => {
                         data.book_to_view.get_mut_nav().set_ch(*ch);
-                        data.update_view();
+                        data.update_view(ctx.get_external_handle());
 
                         data.book_to_view
                             .get_mut_nav()
@@ -132,7 +134,12 @@ impl AppDelegate<ApplicationState> for Delegate {
                         }
                     }
                     InputMode::OcrSyn0 => {
-                        match data.get_mut_current_book_info().unwrap().ocr.ocr_log_first(str.clone(), *ch) {
+                        match data
+                            .get_mut_current_book_info()
+                            .unwrap()
+                            .ocr
+                            .ocr_log_first(str.clone(), *ch)
+                        {
                             Ok(_) => data.view.ocr_form_stage = 3,
                             Err(_) => {
                                 data.error_message = Some(
@@ -143,7 +150,12 @@ impl AppDelegate<ApplicationState> for Delegate {
                         };
                     }
                     InputMode::OcrSyn1 => {
-                        match data.get_mut_current_book_info().unwrap().ocr.ocr_log_other(str.clone()){
+                        match data
+                            .get_mut_current_book_info()
+                            .unwrap()
+                            .ocr
+                            .ocr_log_other(str.clone())
+                        {
                             Ok(_) => data.view.ocr_form_stage = 5,
                             Err(_) => {
                                 data.error_message = Some(
@@ -188,7 +200,7 @@ impl AppDelegate<ApplicationState> for Delegate {
             match book {
                 Some(book) => {
                     data.set_book_to_read(book.clone());
-                    data.update_view();
+                    data.update_view(ctx.get_external_handle());
                 }
                 None => {
                     data.error_message = Some("Couldn't load book".to_string());
@@ -196,6 +208,30 @@ impl AppDelegate<ApplicationState> for Delegate {
                 }
             }
             data.is_loading = false;
+            return Handled::Yes;
+        }
+
+        if let Some((img, path)) = cmd.get(FINISH_IMAGE_LOAD) {
+
+            if let Some(element) =
+                data.view
+                    .current_view
+                    .iter_mut()
+                    .find(|el| match el.content.clone() {
+                        ContentType::Image(ImageState::Waiting(str)) => str == *path,
+                        _ => false,
+                    })
+            {
+                println!("Found image to update");
+                element.content = ContentType::Image(ImageState::Present(img.clone()));
+                if !data.book_to_view.is_empty() {
+                    data.book_to_view
+                        .imgs
+                        .entry(path.clone())
+                        .or_insert(img.clone());
+                }
+                // data.update_view(ctx.get_external_handle());
+            }
             return Handled::Yes;
         }
 

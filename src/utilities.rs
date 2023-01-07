@@ -1,4 +1,4 @@
-use crate::app::{FINISH_BOOK_LOAD, FINISH_LEPTO_LOAD};
+use crate::app::{FINISH_BOOK_LOAD, FINISH_IMAGE_LOAD, FINISH_LEPTO_LOAD};
 use crate::book::page_element::PageElement;
 use crate::book::Book;
 use crate::ContentType;
@@ -33,19 +33,10 @@ pub fn convert_path_separators(href: String) -> String {
     path
 }
 
-pub fn get_image_buf(
-    book_path: &PathBuf,
-    chapter_path: &PathBuf,
-    image_path: PathBuf,
-) -> Option<ImageBuf> {
-    let zipfile = std::fs::File::open(book_path.clone()).unwrap();
+pub fn get_image_buf(book_path: PathBuf, image_path: String) -> Option<ImageBuf> {
+    let zipfile = std::fs::File::open(book_path).unwrap();
     let mut archive = zip::ZipArchive::new(zipfile).unwrap();
-    let complete_img_path = unify_paths(chapter_path.clone(), image_path.clone())
-        .into_os_string()
-        .into_string()
-        .unwrap();
-    let better_path = convert_path_separators(complete_img_path);
-    let mut file = match archive.by_name(&better_path) {
+    let mut file = match archive.by_name(&image_path) {
         Ok(file) => file,
         Err(e) => {
             eprintln!("Error in opening archive at {}", e);
@@ -53,7 +44,9 @@ pub fn get_image_buf(
         }
     };
     let mut contents: Vec<u8> = vec![];
+
     //TODO: match, Err() => Default photo
+
     file.read_to_end(&mut contents).unwrap(); //
     match ImageBuf::from_data(&contents) {
         Ok(im) => Some(im),
@@ -256,11 +249,35 @@ fn load_book(
 ) {
     match Book::new(path, init_ch, init_el, &ch_pg) {
         Ok(book) => sink
-            .submit_command(FINISH_BOOK_LOAD, Option::Some(book), Target::Auto)
+            .submit_command(FINISH_BOOK_LOAD, Some(book), Target::Auto)
             .expect("command failed to submit"),
-        Err(_) => {
-            sink.submit_command(FINISH_BOOK_LOAD, Option::None, Target::Auto)
+        Err(e) => {
+            println!("Error in loading book: {}", e);
+            sink.submit_command(FINISH_BOOK_LOAD, None, Target::Auto)
                 .expect("command failed to submit");
+        }
+    }
+}
+
+pub fn th_load_image(sink: ExtEventSink, epub_img_path: String, epub_path: String) {
+    thread::spawn(move || load_image(sink, epub_img_path, epub_path));
+}
+
+fn load_image(sink: ExtEventSink, epub_img_path: String, epub_path: String) {
+    match get_image_buf(PathBuf::from(epub_path), epub_img_path.clone()) {
+        Some(img) => sink
+            .submit_command(FINISH_IMAGE_LOAD, (img, epub_img_path), Target::Auto)
+            .expect("command failed to submit"),
+        None => {
+            sink.submit_command(
+                FINISH_IMAGE_LOAD,
+                (
+                    ImageBuf::from_file("./images/default.jpg").unwrap(),
+                    epub_img_path,
+                ),
+                Target::Auto,
+            )
+            .expect("command failed to submit");
         }
     }
 }

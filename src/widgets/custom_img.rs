@@ -1,9 +1,9 @@
-use crate::book::page_element::PageElement;
+use crate::book::page_element::{ImageState, PageElement};
 use crate::widgets::custom_label::UPDATE_SIZE;
-use druid::widget::{FillStrat, Flex, Image};
+use druid::widget::{FillStrat, Flex, Image, Spinner};
 use druid::{
-    BoxConstraints, Env, Event, EventCtx, ImageBuf, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Size, UpdateCtx, Widget,
+    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
+    Size, UpdateCtx, Widget, WidgetExt,
 };
 
 pub struct BetterImage {
@@ -12,13 +12,15 @@ pub struct BetterImage {
 
 impl BetterImage {
     /*TODO: FAI CASO PER IMMAGINE*/
-    pub fn new(buf: ImageBuf) -> BetterImage {
-        let img = Image::new(buf).fill_mode(FillStrat::ScaleDown);
-        let row = Flex::row();
-
-        BetterImage {
-            child: row.with_child(img),
+    pub fn new(buf: ImageState) -> BetterImage {
+        let mut row = Flex::row();
+        match buf {
+            ImageState::Present(buf) => {
+                row.add_child(Image::new(buf).fill_mode(FillStrat::ScaleDown))
+            }
+            ImageState::Waiting(_) => row.add_child(Spinner::new().fix_height(35.).center()),
         }
+        BetterImage { child: row }
     }
 }
 

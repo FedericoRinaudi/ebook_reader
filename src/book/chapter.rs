@@ -1,12 +1,12 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
 use druid::im::HashMap;
 use druid::text::Attribute;
-use druid::{im::Vector, Data, FontFamily, FontStyle, FontWeight, ImageBuf, Lens};
+use druid::{im::Vector, Data, ExtEventSink, FontFamily, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
-
-use crate::book::page_element::{ContentType, PageElement};
-use crate::utilities::get_image_buf;
+use crate::book::page_element::ImageState::{Present, Waiting};
+use crate::book::page_element::PageElement;
+use crate::utilities::{convert_path_separators, get_image_buf, unify_paths};
 
 const MAX_SIZE: f64 = 35.0;
 
@@ -14,96 +14,111 @@ const MAX_SIZE: f64 = 35.0;
 pub struct Chapter {
     path: String,
     pub xml: String,
-    imgs: HashMap<PathBuf, ImageBuf>,
+    // imgs: HashMap<PathBuf, ImageBuf>,
     pub initial_page: usize,
 }
 
 impl Chapter {
-    pub fn new(path: String, mut xml: String, ebook_path: &str, initial_page: usize) -> Self {
+    pub fn new(
+        path: String,
+        mut xml: String,
+        initial_page: usize,
+    ) -> Self {
         xml = xml.replace("&nbsp;", " ");
         xml = xml.replace("&ndash;", "-");
-        let mut imgs = HashMap::new();
-        let opt = ParsingOptions { allow_dtd: true };
-        let doc = match Document::parse_with_options(&xml, opt) {
-            Ok(d) => d,
-            Err(e) => {
-                println!("FAULTY XML: {}\n AAAAA\n {}", e, xml);
-                panic!()
-            }
-        };
-        let node = doc.root_element().last_element_child().unwrap();
-        Self::fetch_ch_imgs(node, &path, ebook_path, &mut imgs);
         Chapter {
             path,
             xml,
-            imgs,
             initial_page,
         }
     }
 
-    pub fn format(&self) -> Vector<PageElement> {
+    pub fn format(
+        &self,
+        images_cache: Option<&HashMap<String, ImageBuf>>,
+        sink: Option<ExtEventSink>,
+        ebook_path: &str,
+    ) -> Vector<PageElement> {
         let opt = ParsingOptions { allow_dtd: true };
         let doc = match Document::parse_with_options(&self.xml, opt) {
-            Result::Ok(doc) => doc,
+            Ok(doc) => doc,
             Err(e) => {
                 let mut v = Vector::new();
-                v.push_back(PageElement::new(
-                    ContentType::Error(EpubText::from(e.to_string())),
-                    true,
-                ));
+                v.push_back(PageElement::from_error(EpubText::from(e.to_string()), true));
                 return v;
             }
         };
         let node = doc.root_element().last_element_child().unwrap();
         let mut elements: Vector<PageElement> = Vector::new();
         let mut cur_text = EpubText::new();
-        Self::xml_to_elements(node, &mut elements, &mut cur_text, &(*self).imgs);
-        /*if !cur_text.text.is_empty() {
-            elements.push_back(PageElement::new(ContentType::Text(cur_text.clone())));
-        }*/
-        // println!("IS PART: {}", self.is_part);
+        Self::xml_to_elements(
+            node,
+            &mut elements,
+            &mut cur_text,
+            images_cache,
+            sink,
+            ebook_path,
+            &(*self).path,
+        );
 
         elements
     }
 
-    //TODO: SISTEMO L'IMMAGINE
-    fn fetch_ch_imgs(
+    /*fn fetch_ch_imgs(
         node: Node,
         chapter_path: &str,
         ebook_path: &str,
         imgs: &mut HashMap<PathBuf, ImageBuf>,
-    ) {
+    ) -> Result<(), ()> {
         if node.tag_name().name() == "img" {
             let ebook_path_buf = PathBuf::from(ebook_path);
             let chapter_path_buf = PathBuf::from(chapter_path);
-            let image_path = PathBuf::from(node.attribute("src").unwrap());
+            let image_path = PathBuf::from( match node.attribute("src") {
+                Some(attr) => attr,
+                None => return Err(())
+            });
             imgs.entry(image_path.clone())
-                .or_insert(get_image_buf(&ebook_path_buf, &chapter_path_buf, image_path).unwrap());
+                .or_insert(
+                    get_image_buf(ebook_path_buf, &chapter_path_buf, image_path)
+                        .unwrap_or(ImageBuf::from_file("./images/default.jpg").unwrap())
+                );
         }
         for child in node.children() {
             Self::fetch_ch_imgs(child, chapter_path, ebook_path, imgs);
         }
-    }
+        Ok(())
+    }*/
 
     fn xml_to_elements(
         node: Node,
         elements: &mut Vector<PageElement>,
         current_text: &mut EpubText,
-        images_cache: &HashMap<PathBuf, ImageBuf>,
+        images_cache: Option<&HashMap<String, ImageBuf>>,
+        sink: Option<ExtEventSink>,
+        ebook_path: &str,
+        chapter_path: &str,
     ) {
         /* Def Macros */
         macro_rules! recur_on_children {
             () => {
                 for child in node.children() {
-                    Self::xml_to_elements(child, elements, current_text, images_cache);
+                    Self::xml_to_elements(
+                        child,
+                        elements,
+                        current_text,
+                        images_cache,
+                        sink.clone(),
+                        ebook_path,
+                        chapter_path,
+                    );
                 }
             };
         }
 
         macro_rules! new_line {
             ($html: literal) => {
-                elements.push_back(PageElement::new(
-                    ContentType::Text(current_text.clone()),
+                elements.push_back(PageElement::from_text(
+                    current_text.clone(),
                     $html != "HTML",
                 ));
                 current_text.reset();
@@ -156,11 +171,34 @@ impl Chapter {
             }
             "img" => {
                 new_line!("NO_HTML");
-                let image_path = PathBuf::from(node.attribute("src").unwrap());
-                elements.push_back(PageElement::new(
-                    ContentType::Image(images_cache.get(&image_path).unwrap().clone()),
-                    false,
-                ));
+                let image_path = String::from(node.attribute("src").unwrap());
+                let mut complete_img_path =
+                    unify_paths(PathBuf::from(chapter_path), PathBuf::from(&image_path))
+                        .into_os_string()
+                        .into_string()
+                        .unwrap();
+                complete_img_path = convert_path_separators(complete_img_path);
+                /*LANCIO funzione su altro thread che mi carica il pathbuf*/
+                match (images_cache, sink) {
+                    (Some(cache), Some(sink)) => elements.push_back(PageElement::from_img_async(
+                        match cache.get(&complete_img_path) {
+                            Some(refe) => Present(refe.clone()),
+                            None => Waiting(complete_img_path.clone()),
+                        },
+                        false,
+                        sink,
+                        String::from(ebook_path),
+                    )),
+                    _ => elements.push_back(PageElement::from_img_sync(
+                        Present(
+                            match get_image_buf(PathBuf::from(ebook_path), complete_img_path) {
+                                None => ImageBuf::from_file("./images/default.jpg").unwrap(),
+                                Some(buff) => buff,
+                            },
+                        ),
+                        false,
+                    )),
+                }
                 new_line!("NO_HTML");
             }
             "a" => {

@@ -130,7 +130,7 @@ impl BookInfo {
             title,
             description,
             language,
-            creator
+            creator,
         })
     }
 
