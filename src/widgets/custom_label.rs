@@ -51,14 +51,6 @@ impl Widget<PageElement> for BetterLabel {
         data: &PageElement,
         env: &Env,
     ) {
-        match event {
-            LifeCycle::HotChanged(false) => {
-                self.child.set_text_color(Color::WHITE);
-                ctx.request_layout();
-                ctx.request_paint();
-            }
-            _ => {}
-        }
         self.child.lifecycle(ctx, event, data, env);
     }
 
