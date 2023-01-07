@@ -153,6 +153,7 @@ impl View {
                     };
                 }
             }
+
             el.pg_offset.0 = if starting_page == 0 {
                 0
             } else {
@@ -160,8 +161,6 @@ impl View {
             }
         }
 
-        //println!("GUESSED LINES VIA CHAR-COUNTING: {}", guessed_lines);
-        //println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
         Ok(curr_page)
     }
 }

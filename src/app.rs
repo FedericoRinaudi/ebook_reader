@@ -69,6 +69,7 @@ impl ApplicationState {
     pub fn update_view(&mut self, sink: ExtEventSink) {
         self.view
             .update_view(self.book_to_view.format_current_chapter(sink));
+
         let ocr = self.get_current_book_info().ocr;
         if ocr.is_aligned() {
             let _ = self.view.guess_lines(

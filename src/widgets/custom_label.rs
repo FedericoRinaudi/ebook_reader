@@ -30,6 +30,7 @@ impl Widget<PageElement> for BetterLabel {
                 }
             }
             Event::MouseDown(_e) => {
+                //println!("PAGE : {}", data.pg_offset.0.to_string());
                 self.child.set_text_color(Color::GRAY);
                 ctx.request_layout();
                 ctx.request_paint();
@@ -51,6 +52,11 @@ impl Widget<PageElement> for BetterLabel {
         env: &Env,
     ) {
         match event {
+            LifeCycle::HotChanged(false) => {
+                self.child.set_text_color(Color::WHITE);
+                ctx.request_layout();
+                ctx.request_paint();
+            }
             _ => {}
         }
         self.child.lifecycle(ctx, event, data, env);
