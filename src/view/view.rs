@@ -106,7 +106,13 @@ impl View {
         page_element_number
     }
 
-    pub fn guess_lines(&mut self, max_chars: f64, first: usize, second: usize, starting_page:usize) -> Result<usize, ()>  {
+    pub fn guess_lines(
+        &mut self,
+        max_chars: f64,
+        first: usize,
+        second: usize,
+        starting_page: usize,
+    ) -> Result<usize, ()> {
         let mut guessed_lines = 0;
         let mut curr_page = 1;
 
@@ -115,11 +121,11 @@ impl View {
                 continue;
             }
             if let ContentType::Text(text) = el.clone().content {
-
-                let mut element_lines =  (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
+                let mut element_lines =
+                    (text.text.trim().graphemes(true).count() as f64 / max_chars).ceil() as usize;
                 if element_lines == 0 {
                     element_lines = 1;
-                } else if text.text.trim().graphemes(true).count() % (max_chars as usize) <=3 {
+                } else if text.text.trim().graphemes(true).count() % (max_chars as usize) <= 3 {
                     element_lines -= 1;
                 }
 
@@ -131,9 +137,7 @@ impl View {
                     el.pg_offset.1 = true;
                     guessed_lines + element_lines - max_lines
                 };
-            }
-            else if let ContentType::Image(img_buf) = el.clone().content {
-
+            } else if let ContentType::Image(img_buf) = el.clone().content {
                 //TODO: SPERIMENTAL MIGHT REMOVE
                 let element_lines = img_buf.height() / 20;
                 let max_lines = if curr_page == 1 { first } else { second };
@@ -143,7 +147,6 @@ impl View {
                     curr_page += 1;
                     element_lines
                 };
-
             }
             el.pg_offset.0 = if starting_page == 0 {
                 0
@@ -156,5 +159,4 @@ impl View {
         println!("GUESSED PAGES IN CHAPTER: {}", curr_page);
         Ok(curr_page)
     }
-
 }

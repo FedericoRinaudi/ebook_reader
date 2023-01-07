@@ -1,6 +1,9 @@
 use crate::book::page_element::PageElement;
 use druid::widget::{LineBreaking, RawLabel};
-use druid::{BoxConstraints, Color, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Selector, Size, UpdateCtx, Widget};
+use druid::{
+    BoxConstraints, Color, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
+    Selector, Size, UpdateCtx, Widget,
+};
 
 pub const UPDATE_SIZE: Selector<()> = Selector::new("label.size_changed");
 

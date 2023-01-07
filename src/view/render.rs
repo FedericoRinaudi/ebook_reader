@@ -9,14 +9,14 @@ use crate::view::view::View;
 use crate::widgets::custom_img::BetterImage;
 use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
+use crate::widgets::custom_tooltip::TipExt;
 use crate::{ApplicationState, ContentType};
 use druid::widget::{
-    ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
+    Button, Container, ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
     LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
     ViewSwitcher,
 };
-use druid::{lens, Color, LensExt, RenderContext, Widget, WidgetExt, Env};
-use crate::widgets::custom_tooltip::TipExt;
+use druid::{lens, Color, Env, LensExt, RenderContext, Widget, WidgetExt};
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -180,9 +180,9 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                     |ele, data: &PageElement, _| -> Box<dyn Widget<PageElement>> {
                         match &ele {
                             ContentType::Text(_) => {
-                                return if data.pg_offset.0 !=0 {
-                                    Box::new(
-                                        BetterLabel::new().tooltip(|data: &PageElement, _env: &Env| {
+                                return if data.pg_offset.0 != 0 {
+                                    Box::new(BetterLabel::new().tooltip(
+                                        |data: &PageElement, _env: &Env| {
                                             let mut po = "Page ".to_string();
                                             if (*data).pg_offset.1 == true {
                                                 po.push_str(&((*data).pg_offset.0 - 1).to_string());
@@ -190,24 +190,30 @@ fn render_view_mode() -> impl Widget<ApplicationState> {
                                             };
                                             po.push_str(&data.pg_offset.0.to_string());
                                             String::from(po)
-                                        }, true))
+                                        },
+                                        true,
+                                    ))
                                 } else {
-                                    Box::new(
-                                        BetterLabel::new()
-                                    )
+                                    Box::new(BetterLabel::new())
                                 }
                             }
                             ContentType::Image(img_buf) => {
-                                if data.pg_offset.0!=0 {
-                                    Box::new(BetterImage::new(img_buf.clone())
-                                        .tooltip(|data: &PageElement, _env: &Env| {
-                                            let mut str = String::from("Page ".to_owned() + &data.pg_offset.0.to_string());
-                                            let str2 = String::from("-".to_owned() + &(data.pg_offset.0 - 1).to_string());
+                                if data.pg_offset.0 != 0 {
+                                    Box::new(BetterImage::new(img_buf.clone()).tooltip(
+                                        |data: &PageElement, _env: &Env| {
+                                            let mut str = String::from(
+                                                "Page ".to_owned() + &data.pg_offset.0.to_string(),
+                                            );
+                                            let str2 = String::from(
+                                                "-".to_owned()
+                                                    + &(data.pg_offset.0 - 1).to_string(),
+                                            );
                                             str.push_str(if data.pg_offset.1 { &str2 } else { "" });
                                             str
-                                        }, true)
-                                    )}
-                                else {
+                                        },
+                                        true,
+                                    ))
+                                } else {
                                     Box::new(BetterImage::new(img_buf.clone()))
                                 }
                             }
@@ -243,7 +249,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                                 .padding(30.0),
                         )
                         .with_flex_spacer(0.7)
-                        .with_child(Buttons::btn_add_book().padding(20.0)),
+                        .with_child(Buttons::btn_add_book().padding(20.)),
                 );
             for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                 let mut pill = Flex::row()
@@ -254,13 +260,14 @@ fn render_library() -> impl Widget<ApplicationState> {
                     .cross_axis_alignment(CrossAxisAlignment::Start)
                     .with_child(
                         Image::new(book_info.cover_buf.clone())
-                        .fix_width(300.0)
-                        .fix_height(200.0),
+                            .fix_width(300.0)
+                            .fix_height(200.0),
                     );
 
                 let due = Flex::column()
                     .with_child(
-                        Flex::row().must_fill_main_axis(true)
+                        Flex::row()
+                            .must_fill_main_axis(true)
                             .cross_axis_alignment(CrossAxisAlignment::Start)
                             .with_child(Buttons::btn_read_book(book_info.clone()))
                             .with_spacer(10.0)
@@ -278,25 +285,19 @@ fn render_library() -> impl Widget<ApplicationState> {
                             .with_line_break_mode(LineBreaking::WordWrap),
                     )
                     .with_spacer(4.0)
-                    .with_child(
-                        print_card_element("By", &book_info.creator)
-                    )
+                    .with_child(print_card_element("By", &book_info.creator))
                     .with_spacer(3.0)
-                    .with_child(
-                        print_card_element("Language", &book_info.language)
-                    )
+                    .with_child(print_card_element("Language", &book_info.language))
                     .with_spacer(3.0)
-                    .with_child(
-                        print_card_element("Directory", &book_info.path)
-                    );
+                    .with_child(print_card_element("Directory", &book_info.path));
 
-                    /*.with_child(Label::new(
-                        String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string(),
-                    ))*/
-                    /*.with_child(Label::new(
-                        String::from("Offset: ")
-                            + &*book_info.start_element_number.clone().to_string(),
-                    ))*/
+                /*.with_child(Label::new(
+                    String::from("Chapter: ") + &*book_info.start_chapter.clone().to_string(),
+                ))*/
+                /*.with_child(Label::new(
+                    String::from("Offset: ")
+                        + &*book_info.start_element_number.clone().to_string(),
+                ))*/
 
                 pill.add_flex_child(Padding::new((0.0, 2.0, 10.0, 2.0), uno), 0.2);
                 pill.add_flex_child(Padding::new((0.0, 0.0, 0.0, 10.0), due), 0.8);
@@ -325,24 +326,21 @@ fn render_library() -> impl Widget<ApplicationState> {
 fn print_card_element(label: &str, value: &str) -> impl Widget<ApplicationState> {
     return if value != "" {
         Flex::row()
+            .with_flex_child(Label::new(String::from(label.to_owned() + ":   ")), 1.)
             .with_flex_child(
-                Label::new(
-                    String::from(label.to_owned() + ":   "),
-                ), 1.
-            )
-            .with_flex_child(
-                Label::new(
-                    value.to_string(),
-                ).with_text_color(Color::grey(0.5)).with_line_break_mode(LineBreaking::WordWrap), 4.
+                Label::new(value.to_string())
+                    .with_text_color(Color::grey(0.5))
+                    .with_line_break_mode(LineBreaking::WordWrap),
+                4.,
             )
             .cross_axis_alignment(CrossAxisAlignment::Start)
             .must_fill_main_axis(true)
     } else {
         Flex::row()
-    }
+    };
 }
 
-fn render_ocr_syn() -> impl Widget<ApplicationState> {
+/*fn render_ocr_syn() -> impl Widget<ApplicationState> {
     ViewSwitcher::new(
         |data: &ApplicationState, _| {
             (
@@ -375,14 +373,18 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
             let ocr = data.get_current_book_info().ocr.clone();
 
             if let Some(id) = ocr.first {
-                row.add_flex_child(Padding::new((10.,0.,10.,0.),
+                row.add_flex_child(
+                    Container::new(
+                    Padding::new((10.,0.,10.,0.),
                     Flex::column()
+                        .with_child(Label::new("Dalla foto che hai caricato siamo riusciti a raccogliere i seguenti dati: ti chiedimo di correggerli in caso non fossero corretti (il titolo è da conteggiare nel numero di linee, eventuali intestazioni no)")
+                            .with_line_break_mode(LineBreaking::WordWrap))
                         .with_child(render_ocr_image_form(id, data))
-                        .with_child(Buttons::btn_remove_first_page())),
-                    0.5
+                        .with_child(Buttons::btn_remove_first_page()).must_fill_main_axis(true))).border(Color::WHITE, 3.).rounded(5.),
+                    1.
                     );
             } else {
-                row.add_child(Buttons::btn_add_first_page());
+                row.add_flex_child(Buttons::btn_add_first_page(), 1.);
             }
             row.add_spacer(20.);
 
@@ -408,6 +410,155 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
             col.add_flex_child(Padding::new((0., 0., 0., 40.), row), 1.);
             col.add_child(btn_row);
             Box::new(col)
+        },
+    )
+}*/
+
+fn render_ocr_syn() -> impl Widget<ApplicationState> {
+    ViewSwitcher::new(
+        |data: &ApplicationState, _| data.get_current_book_info().stage, /* Ad ora non funziona... lo fixo */
+        |stage, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+            match stage {
+                1 => {
+                    Box::new(
+                        Flex::column()
+                            .with_child(
+                                Flex::row()
+                                    .with_flex_spacer(1.)
+                                    .with_child(
+                                        Label::new("1").with_text_size(25.))
+                                    .with_child(
+                                        Label::new("2").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("3").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_flex_spacer(1.)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Label::new("Thanks to this function while reading the selected epub you can know the corresponding page of the paper book at any time.\
+                                \nIn order to be able to do this you will need to upload photos of a couple of pages of the paper book and you will have to a verify the correctness of some information from the photos.\
+                                \nPress 'NEXT' to proceed or 'LIBRARY' to return to the library.")
+                                    .with_text_size(18.)
+                                    .with_text_color(Color::grey(0.9))
+                                    .with_line_break_mode(LineBreaking::WordWrap)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Flex::row()
+                                    .must_fill_main_axis(true)
+                                    .with_flex_spacer(1.)
+                                    .with_child(Buttons::btn_ocr_form_close())
+                                    .with_spacer(5.)
+                                    .with_child(Buttons::btn_ocr_form_next())
+                                    .with_flex_spacer(1.)
+                            )
+                            .padding(20.)
+                    )
+                }
+                2 => {
+                    Box::new(
+                        Flex::column()
+                        .with_child(
+                            Flex::row()
+                                .with_flex_spacer(1.)
+                                .with_child(
+                                    Label::new("1").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                .with_child(
+                                    Label::new("2").with_text_size(25.))
+                                .with_child(
+                                    Label::new("3").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                .with_child(
+                                    Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                .with_child(
+                                    Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                .with_flex_spacer(1.)
+                        )
+                        .with_spacer(20.)
+                        .with_child(
+                            Label::new("Perfect! We recognized the page you uploaded.\
+                                                      \nNow you would need to check if the number of total rows on the page (counting also the title, but not the page number and any headers) and the page number we calculated are correct, if not, correct them.\
+                                                      \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '2' or 'LIBRARY' to return to the library.")
+                                .with_text_size(18.)
+                                .with_text_color(Color::grey(0.9))
+                                .with_line_break_mode(LineBreaking::WordWrap)
+                        )
+                        .with_spacer(20.)
+                        .with_child(
+                            Flex::row()
+                                .must_fill_main_axis(true)
+                                .with_flex_spacer(1.)
+                                .with_child(Buttons::btn_ocr_form_close())
+                                .with_spacer(5.)
+                                .with_child(Buttons::btn_ocr_form_prev())
+                                .with_spacer(5.)
+                                .with_child(Buttons::btn_add_first_page())
+                                .with_flex_spacer(1.)
+                        )
+                        .padding(20.))
+                }
+                3 => {
+                    Box::new(
+                        Flex::column()
+                            .with_child(
+                                Flex::row()
+                                    .with_flex_spacer(1.)
+                                    .with_child(
+                                        Label::new("1").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("2").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("3").with_text_size(25.))
+                                    .with_child(
+                                        Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_flex_spacer(1.)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Label::new("Here you need to upload a picture of the first page of the first chapter.\
+                                                \nFrom this page will start the alignment being the first for which there is a match between ebook and paper book.\
+                                                \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '1' or 'LIBRARY' to return to the library.")
+                                    .with_text_size(18.)
+                                    .with_text_color(Color::grey(0.9))
+                                    .with_line_break_mode(LineBreaking::WordWrap)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Flex::row()
+                                    .must_fill_main_axis(true)
+                                    .with_flex_spacer(1.)
+                                    .with_child(Buttons::btn_ocr_form_close())
+                                    .with_spacer(5.)
+                                    .with_child(Buttons::btn_submit_ocr_form0())
+                                    .with_spacer(5.)
+                                    .with_child(Buttons::btn_remove_first_page())
+                                    .with_flex_spacer(1.)
+                            )
+                            .padding(20.)
+                    )
+                }
+                4 =>{
+                    Box::new(Flex::row())
+                }
+                5 =>{
+                    Box::new(Flex::row())
+                }
+                6 =>{
+                    Box::new(Flex::row())
+                }
+                _ => {
+                    unreachable!()
+                }
+            }
         },
     )
 }
@@ -438,10 +589,8 @@ fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<Appl
         .update_data_while_editing(true)
         .lens(mapping_lens!().then(lens!(Mapping, page_lines)));
 
-    let page_num_label = Label::new(
-        String::from("Page number:  "));
-    let num_lines_label = Label::new(
-        String::from("Number of lines in page:  "));
+    let page_num_label = Label::new(String::from("Page number:  "));
+    let num_lines_label = Label::new(String::from("Number of lines in page:  "));
 
     let mut row1 = Flex::row();
     let mut row2 = Flex::row();
@@ -451,7 +600,6 @@ fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<Appl
     row2.add_child(num_lines_label);
     row2.add_spacer(5.);
     row2.add_child(num_lines_box);
-
 
     Flex::column()
         .must_fill_main_axis(true)

@@ -1,12 +1,12 @@
-use regex::Regex;
-use std::error::Error;
-use unicode_segmentation::UnicodeSegmentation;
-use regex;
 use crate::algorithms::OcrAlgorithms;
 use crate::book::chapter::Chapter;
 use crate::utilities::xml_to_text;
 use druid::{im::Vector, Data, Lens};
-use serde::{Serialize, Deserialize};
+use regex;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::error::Error;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Copy, Clone, Default, Data, Lens, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Mapping {
@@ -60,10 +60,12 @@ impl Mapping {
                 let last = s.chars().last().unwrap();
                 last.is_alphabetic() || last == '-'
             })
-            .map(|s|s.clone())
+            .map(|s| s.clone())
             .collect::<Vec<String>>();
 
-        let (mut sum,mut count) = lines
+        //println!("{:?}", lines);
+
+        let (mut sum, mut count) = lines
             .iter()
             .map(|s| s.graphemes(true).count())
             .fold((0, 0), |(sum, count), value| (sum + value, count + 1));
@@ -72,15 +74,14 @@ impl Mapping {
 
         (sum, count) = lines
             .iter()
-            .filter(|s|{
-                if s.graphemes(true).count() as f64 > first_avg - 5. {
-                    // println!("{}", s);
-                }
+            .filter(|s| {
+                /*if s.graphemes(true).count() as f64 > first_avg - 5. {
+                    println!("{}", s);
+                }*/
                 s.trim().graphemes(true).count() as f64 > first_avg - 5.
             })
             .map(|s| s.graphemes(true).count())
             .fold((0, 0), |(sum, count), value| (sum + value, count + 1));
-
 
         self.full_lines = count;
         self.tot_chars = sum;
@@ -106,22 +107,22 @@ pub struct SerializableOcrData {
 
 impl From<OcrData> for SerializableOcrData {
     fn from(ocr_data: OcrData) -> Self {
-        SerializableOcrData{
-            mappings: ocr_data.mappings.iter().map(|m|*m).collect(),
+        SerializableOcrData {
+            mappings: ocr_data.mappings.iter().map(|m| *m).collect(),
             first_chap: ocr_data.first_chap,
             first: ocr_data.first,
-            other: ocr_data.other
+            other: ocr_data.other,
         }
     }
 }
 
 impl From<SerializableOcrData> for OcrData {
     fn from(s_ocr_data: SerializableOcrData) -> Self {
-        OcrData{
-            mappings: s_ocr_data.mappings.iter().map(|m|*m).collect(),
+        OcrData {
+            mappings: s_ocr_data.mappings.iter().map(|m| *m).collect(),
             first_chap: s_ocr_data.first_chap,
             first: s_ocr_data.first,
-            other: s_ocr_data.other
+            other: s_ocr_data.other,
         }
     }
 }
@@ -162,7 +163,7 @@ impl OcrData {
         }
     }
 
-    pub fn ocr_log_first(&mut self, str: String, ch:usize) -> Result<(), Box<dyn Error>> {
+    pub fn ocr_log_first(&mut self, str: String, ch: usize) -> Result<(), Box<dyn Error>> {
         match Mapping::new(str) {
             Ok(mut mapping) => {
                 mapping.is_first = true;

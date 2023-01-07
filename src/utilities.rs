@@ -1,5 +1,6 @@
-use crate::app::{FINISH_LEPTO_LOAD, FINISH_BOOK_LOAD};
+use crate::app::{FINISH_BOOK_LOAD, FINISH_LEPTO_LOAD};
 use crate::book::page_element::PageElement;
+use crate::book::Book;
 use crate::ContentType;
 use druid::im::Vector;
 use druid::{ExtEventSink, FileDialogOptions, FileSpec, ImageBuf, Target};
@@ -8,7 +9,6 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::thread;
 use unicode_segmentation::UnicodeSegmentation;
-use crate::book::Book;
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
     if !p1.is_dir() {
@@ -237,25 +237,27 @@ fn lepto_load(sink: ExtEventSink, path: PathBuf, lang: String) {
     }
 }
 
-pub fn th_load_book(sink: ExtEventSink, path:PathBuf, init_ch:usize, init_el:usize, ch_pg:Vector<usize> ) {
+pub fn th_load_book(
+    sink: ExtEventSink,
+    path: PathBuf,
+    init_ch: usize,
+    init_el: usize,
+    ch_pg: Vector<usize>,
+) {
     thread::spawn(move || load_book(sink, path, init_ch, init_el, ch_pg));
 }
 
-fn load_book(sink:ExtEventSink,path:PathBuf,init_ch:usize,init_el:usize,ch_pg:Vector<usize>) {
-    match Book::new(
-        path,
-        init_ch,
-        init_el,
-        &ch_pg
-    ){
-        Ok(book) => {
-            sink.submit_command(
-                FINISH_BOOK_LOAD,
-                Option::Some(book),
-                Target::Auto,
-            )
-                .expect("command failed to submit")
-        }
+fn load_book(
+    sink: ExtEventSink,
+    path: PathBuf,
+    init_ch: usize,
+    init_el: usize,
+    ch_pg: Vector<usize>,
+) {
+    match Book::new(path, init_ch, init_el, &ch_pg) {
+        Ok(book) => sink
+            .submit_command(FINISH_BOOK_LOAD, Option::Some(book), Target::Auto)
+            .expect("command failed to submit"),
         Err(_) => {
             sink.submit_command(FINISH_BOOK_LOAD, Option::None, Target::Auto)
                 .expect("command failed to submit");

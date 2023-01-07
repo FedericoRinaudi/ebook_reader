@@ -15,18 +15,21 @@ pub struct Chapter {
     path: String,
     pub xml: String,
     imgs: HashMap<PathBuf, ImageBuf>,
-    pub initial_page:usize
+    pub initial_page: usize,
 }
 
 impl Chapter {
-    pub fn new(path: String, mut xml: String, ebook_path: &str, initial_page: usize
-    ) -> Self {
+    pub fn new(path: String, mut xml: String, ebook_path: &str, initial_page: usize) -> Self {
         xml = xml.replace("&nbsp;", " ");
+        xml = xml.replace("&ndash;", "-");
         let mut imgs = HashMap::new();
         let opt = ParsingOptions { allow_dtd: true };
-        let doc = match Document::parse_with_options(&xml, opt){
+        let doc = match Document::parse_with_options(&xml, opt) {
             Ok(d) => d,
-            Err(e) => {println!("FAULTY XML: {}\n AAAAA\n {}", e, xml); panic!()}
+            Err(e) => {
+                println!("FAULTY XML: {}\n AAAAA\n {}", e, xml);
+                panic!()
+            }
         };
         let node = doc.root_element().last_element_child().unwrap();
         Self::fetch_ch_imgs(node, &path, ebook_path, &mut imgs);
@@ -34,7 +37,7 @@ impl Chapter {
             path,
             xml,
             imgs,
-            initial_page
+            initial_page,
         }
     }
 
@@ -270,14 +273,13 @@ impl Chapter {
                 new_line!("HTML");
             }
             "blockquote" | "div" | "p" | "tr" => {
-                new_line!("NO_HTML");
                 // TODO: compress newlines
-                current_text.push_str("    ");
+                current_text.push_str("  ");
                 recur_on_children!();
                 new_line!("HTML");
             }
             "li" => {
-                current_text.push_str("    - ");
+                current_text.push_str("  - ");
                 recur_on_children!();
                 new_line!("HTML");
             }

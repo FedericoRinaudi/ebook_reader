@@ -1,10 +1,10 @@
 use crate::app::{ApplicationState, SCROLL_REQUEST, TRIGGER_OFF, TRIGGER_ON};
+use crate::widgets::custom_label::UPDATE_SIZE;
 use druid::widget::{Axis, Scroll};
 use druid::{
-    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle,
-    LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget,
+    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget,
 };
-use crate::widgets::custom_label::UPDATE_SIZE;
 
 pub struct BetterScroll<W: Widget<ApplicationState>> {
     child: Scroll<ApplicationState, W>,

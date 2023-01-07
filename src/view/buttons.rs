@@ -1,12 +1,12 @@
 use crate::app::InputMode;
 use crate::bookcase::BookInfo;
+use crate::ocr::OcrData;
 use crate::utilities::{open_epub, open_image, save_file, th_load_book};
+use crate::widgets::custom_tooltip::TipExt;
 use crate::{ApplicationState, Book};
+use druid::im::Vector;
 use druid::widget::{Align, Button, Click, ControllerHost, Svg, SvgData, ViewSwitcher};
 use druid::{Env, Widget, WidgetExt};
-use druid::im::Vector;
-use crate::ocr::OcrData;
-use crate::widgets::custom_tooltip::TipExt;
 
 //use crate::controllers::ClickableOpacity;
 const LIBRARY_SVG_DIM: f64 = 30.;
@@ -26,10 +26,14 @@ impl Buttons {
             .on_click(|_ctx, data: &mut ApplicationState, _env| {
                 data.book_to_view.go_on(1);
                 data.update_view()
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Next Page".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Next Page".to_string(),
+                false,
+            )
     }
 
-    pub fn btn_prev() -> impl Widget <ApplicationState> {
+    pub fn btn_prev() -> impl Widget<ApplicationState> {
         let left_svg = match include_str!("../../icons/left.svg").parse::<SvgData>() {
             Ok(svg) => svg,
             Err(_) => SvgData::default(),
@@ -40,7 +44,11 @@ impl Buttons {
             .on_click(|_ctx, data: &mut ApplicationState, _env| {
                 data.book_to_view.go_back(1);
                 data.update_view()
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Prev Page".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Prev Page".to_string(),
+                false,
+            )
     }
 
     pub fn btn_confirm() -> impl Widget<ApplicationState> {
@@ -48,13 +56,16 @@ impl Buttons {
             Ok(svg) => svg,
             Err(_) => SvgData::default(),
         };
-        let confirm_disabled_svg = match include_str!("../../icons/confirm_disabled.svg").parse::<SvgData>() {
-            Ok(svg) => svg,
-            Err(_) => SvgData::default(),
-        };
+        let confirm_disabled_svg =
+            match include_str!("../../icons/confirm_disabled.svg").parse::<SvgData>() {
+                Ok(svg) => svg,
+                Err(_) => SvgData::default(),
+            };
 
         ViewSwitcher::new(
-            move |data: &ApplicationState, _| !(data.view.current_view.len()==0 || data.view.current_view[0].content.is_err()),
+            move |data: &ApplicationState, _| {
+                !(data.view.current_view.len() == 0 || data.view.current_view[0].content.is_err())
+            },
             move |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
                 match cond {
                     true => {
@@ -71,13 +82,11 @@ impl Buttons {
                                 .tooltip(|_data:&ApplicationState, _env: &Env| "Confirm Changes locally".to_string(), false)
                         )
                     }
-                    false => {
-                        Box::new(
-                            Svg::new(confirm_disabled_svg.clone())
-                                .fix_width(LIBRARY_SVG_DIM)
-                                .center()
-                        )
-                    }
+                    false => Box::new(
+                        Svg::new(confirm_disabled_svg.clone())
+                            .fix_width(LIBRARY_SVG_DIM)
+                            .center(),
+                    ),
                 }
             },
         )
@@ -102,7 +111,11 @@ impl Buttons {
                 ctx.window().set_title("EDIT MODE");
 
                 data.edit = !data.edit
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Edit XML".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Edit XML".to_string(),
+                false,
+            )
     }
 
     pub fn btn_view() -> impl Widget<ApplicationState> {
@@ -120,12 +133,14 @@ impl Buttons {
                 ctx.window().set_size(data.view.get_window_size_view());
                 ctx.window().set_title("VIEW MODE");
                 data.edit = !data.edit;
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Back to View Mode".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Back to View Mode".to_string(),
+                false,
+            )
     }
 
-    pub fn btn_ocr_syn(
-        book_info_id: usize,
-    ) -> ViewSwitcher<ApplicationState, bool> {
+    pub fn btn_ocr_syn(book_info_id: usize) -> ViewSwitcher<ApplicationState, bool> {
         let align_svg = match include_str!("../../icons/align.svg").parse::<SvgData>() {
             Ok(svg) => svg,
             Err(_) => SvgData::default(),
@@ -135,41 +150,51 @@ impl Buttons {
             Err(_) => SvgData::default(),
         };
         ViewSwitcher::new(
-            move |data: &ApplicationState, _| data.bookcase.library[book_info_id].mapped_pages.is_empty(),
+            move |data: &ApplicationState, _| {
+                data.bookcase.library[book_info_id].mapped_pages.is_empty()
+            },
             move |cond, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
                 match cond {
-                    true => {
-                        Box::new(
-                            Svg::new(align_svg.clone())
-                                .fix_width(LIBRARY_SVG_DIM)
-                                .center()
-                                .on_click(move |_ctx, data: &mut ApplicationState, _env| {
+                    true => Box::new(
+                        Svg::new(align_svg.clone())
+                            .fix_width(LIBRARY_SVG_DIM)
+                            .center()
+                            .on_click(move |_ctx, data: &mut ApplicationState, _env| {
                                 let book_info = data.bookcase.library[book_info_id].clone();
                                 data.set_book_to_align(
                                     Book::new(
                                         book_info.get_path(),
                                         book_info.start_chapter,
                                         book_info.start_element_number,
-                                        &book_info.mapped_pages
+                                        &book_info.mapped_pages,
                                     )
-                                        .unwrap(),
+                                    .unwrap(),
                                 );
-                            }).tooltip(|_data:&ApplicationState, _env: &Env| "Phisical book alignment".to_string(), false)
-                        )
-                    }
-                    false => {
-                        Box::new(
-                            Svg::new(misalign_svg.clone())
-                                .fix_width(LIBRARY_SVG_DIM)
-                                .center()
-                                .on_click(move |_ctx, data: &mut ApplicationState, _env| {
+                            })
+                            .tooltip(
+                                |_data: &ApplicationState, _env: &Env| {
+                                    "Phisical book alignment".to_string()
+                                },
+                                false,
+                            ),
+                    ),
+                    false => Box::new(
+                        Svg::new(misalign_svg.clone())
+                            .fix_width(LIBRARY_SVG_DIM)
+                            .center()
+                            .on_click(move |_ctx, data: &mut ApplicationState, _env| {
                                 let mut book_info = &mut data.bookcase.library[book_info_id];
                                 book_info.ocr = OcrData::new();
                                 book_info.mapped_pages = Vector::new();
                                 data.bookcase.update_meta();
-                            }).tooltip(|_data:&ApplicationState, _env: &Env| "Remove alignment".to_string(), false)
-                        )
-                    }
+                            })
+                            .tooltip(
+                                |_data: &ApplicationState, _env: &Env| {
+                                    "Remove alignment".to_string()
+                                },
+                                false,
+                            ),
+                    ),
                 }
             },
         )
@@ -187,7 +212,11 @@ impl Buttons {
                 /* EDIT MODE -> EDIT MODE, Discard Changes */
                 data.book_to_view.update_xml(data.xml_backup.clone());
                 data.update_view();
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Discard changes".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Discard changes".to_string(),
+                false,
+            )
     }
 
     pub fn btn_close_error() -> ControllerHost<Align<ApplicationState>, Click<ApplicationState>> {
@@ -229,7 +258,13 @@ impl Buttons {
                                                 + &*String::from(".epub"),
                                         ),
                                     ));
-                                }).tooltip(|_data:&ApplicationState, _env: &Env| "Save on file".to_string(), false),
+                                })
+                                .tooltip(
+                                    |_data: &ApplicationState, _env: &Env| {
+                                        "Save on file".to_string()
+                                    },
+                                    false,
+                                ),
                         )
                     }
                     false => {
@@ -267,12 +302,16 @@ impl Buttons {
                         book_info.get_path(),
                         book_info.start_chapter,
                         book_info.start_element_number,
-                        &book_info.mapped_pages
+                        &book_info.mapped_pages,
                     )
                     .unwrap(),
                 );
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Jump to photo".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Jump to photo".to_string(),
+                false,
+            )
     }
 
     pub fn btn_close_book() -> impl Widget<ApplicationState> {
@@ -284,7 +323,10 @@ impl Buttons {
             .fix_width(LIBRARY_SVG_BIG)
             .center()
             .on_click(|_ctx, data: &mut ApplicationState, _env| data.close_current_book())
-            .tooltip(|_data:&ApplicationState, _env: &Env| "Close Book".to_string(), false)
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Close Book".to_string(),
+                false,
+            )
     }
 
     pub fn btn_remove_book(index: usize) -> impl Widget<ApplicationState> {
@@ -298,7 +340,11 @@ impl Buttons {
             .on_click(move |_, data: &mut ApplicationState, _| {
                 let _ = data.bookcase.library.remove(index);
                 data.bookcase.update_meta();
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Remove book from library".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Remove book from library".to_string(),
+                false,
+            )
     }
 
     pub fn btn_add_book() -> impl Widget<ApplicationState> {
@@ -312,7 +358,11 @@ impl Buttons {
             .on_click(|ctx, data: &mut ApplicationState, _| {
                 data.i_mode = InputMode::EbookAdd;
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_epub()));
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Add book to library".to_string(), false)
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Add book to library".to_string(),
+                false,
+            )
     }
 
     pub fn btn_read_book(book_info: BookInfo) -> impl Widget<ApplicationState> {
@@ -325,23 +375,53 @@ impl Buttons {
             .center()
             .on_click(move |ctx, data: &mut ApplicationState, _env| {
                 data.is_loading = true;
-                th_load_book(ctx.get_external_handle(),
-                             book_info.get_path(),
-                             book_info.start_chapter,
-                             book_info.start_element_number,
-                             book_info.mapped_pages.clone());
-            }).tooltip(|_data:&ApplicationState, _env: &Env| "Read the book".to_string(),false)
+                th_load_book(
+                    ctx.get_external_handle(),
+                    book_info.get_path(),
+                    book_info.start_chapter,
+                    book_info.start_element_number,
+                    book_info.mapped_pages.clone(),
+                );
+            })
+            .tooltip(
+                |_data: &ApplicationState, _env: &Env| "Read the book".to_string(),
+                false,
+            )
     }
 
-    pub fn btn_submit_ocr_form() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+    pub fn btn_submit_ocr_form0(
+    ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+        Button::new("CONFIRM").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let book_info = data.get_mut_current_book_info().unwrap();
+            if (*book_info).ocr.first.is_none() {
+                data.error_message = Option::Some("You have to fill all felds.".to_string());
+            } else {
+                let first = &(*book_info).ocr.mappings[(*book_info).ocr.first.unwrap()];
+                if (*first).page_lines != 0 && (*first).page != 0 {
+                    (*book_info).stage += 1;
+                } else {
+                    data.error_message = Option::Some("You have to fill all felds.".to_string());
+                }
+            }
+        })
+    }
+
+    //TODO
+    pub fn btn_submit_ocr_form1(
+    ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
+
         Button::new("SUBMIT").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let ocr = &data.get_current_book_info().ocr;
-            if (*ocr).first.is_none() || (*ocr).other.is_none(){
+            if (*ocr).first.is_none() || (*ocr).other.is_none() {
                 data.error_message = Option::Some("You have to fill all felds.".to_string());
             } else {
                 let first = &(*ocr).mappings[(*ocr).first.unwrap()];
                 let other = &(*ocr).mappings[(*ocr).other.unwrap()];
-                if (*first).page_lines != 0 && (*first).page != 0 && (*other).page_lines != 0 && (*other).page != 0 {
+                if (*first).page_lines != 0
+                    && (*first).page != 0
+                    && (*other).page_lines != 0
+                    && (*other).page != 0
+                {
                     let _ = data.map_pages(true);
                     data.i_mode = InputMode::None; //SERVE ANCORA?
                     data.bookcase.update_meta();
@@ -353,19 +433,38 @@ impl Buttons {
         })
     }
 
-    pub fn btn_close_ocr_form() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("GO BACK").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
-            *ocr = OcrData::new();
+    pub fn btn_ocr_form_close() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
+    {
+        Button::new("LIBRARY").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let book_info = &mut data.get_mut_current_book_info().unwrap();
+            (**book_info).stage = 1;
+            (**book_info).ocr = OcrData::new();
             data.book_to_align = Book::empty_book();
+        })
+    }
+
+    pub fn btn_ocr_form_next() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
+    {
+        Button::new("NEXT").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let book_info = &mut data.get_mut_current_book_info().unwrap();
+            (**book_info).stage += 1;
+        })
+    }
+
+    pub fn btn_ocr_form_prev() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
+    {
+        Button::new("GO BACK").on_click(|_ctx, data: &mut ApplicationState, _env| {
+            let book_info = &mut data.get_mut_current_book_info().unwrap();
+            (**book_info).stage -= 1;
         })
     }
 
     pub fn btn_add_first_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
     {
-        Button::new("ADD FIRST PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
+        Button::new("LOAD PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
             data.i_mode = InputMode::OcrSyn0;
             ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
+            data.is_loading = true;
         })
     }
 
@@ -377,32 +476,32 @@ impl Buttons {
         })
     }
 
-    pub fn btn_remove_first_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
-    {
+    pub fn btn_remove_first_page(
+    ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("REMOVE").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
             ocr.mappings.remove((*ocr).first.unwrap());
             if let Some(other_id) = ocr.other {
-                if other_id > (*ocr).first.unwrap(){
-                    ocr.other = Some(other_id -1)
+                if other_id > (*ocr).first.unwrap() {
+                    ocr.other = Some(other_id - 1)
                 }
             }
             ocr.first = None;
+            data.get_mut_current_book_info().unwrap().stage = 2;
         })
     }
 
-    pub fn btn_remove_other_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
-    {
+    pub fn btn_remove_other_page(
+    ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("REMOVE").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
             ocr.mappings.remove((*ocr).other.unwrap());
             if let Some(first_id) = ocr.first {
-                if first_id > (*ocr).other.unwrap(){
-                    ocr.first = Some(first_id -1)
+                if first_id > (*ocr).other.unwrap() {
+                    ocr.first = Some(first_id - 1)
                 }
             }
             ocr.other = None;
         })
     }
-
 }

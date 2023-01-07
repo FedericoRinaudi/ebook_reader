@@ -64,7 +64,7 @@ impl Book {
         path: P,
         init_chapter: usize,
         init_element_number: usize,
-        page_chapter: &Vector<usize>
+        page_chapter: &Vector<usize>,
     ) -> Result<Self, ()> {
         // Apriamo come EpubDoc il file passato
         let book_path = path
@@ -91,9 +91,9 @@ impl Book {
                 .unwrap();
 
             //Creiamo un nuovo capitolo
-            let starting_page = match page_chapter.get(id){
+            let starting_page = match page_chapter.get(id) {
                 Some(page) => *page,
-                None => 0
+                None => 0,
             };
 
             let ch = Chapter::new(ch_path, ch_xml, &book_path, starting_page);
@@ -101,7 +101,6 @@ impl Book {
             ch_vec.push_back(ch);
             id += 1;
             epub_doc.go_next().is_ok()
-
         } {}
 
         let nav_new = Navigation::new(init_chapter, init_element_number);
@@ -133,7 +132,8 @@ impl Book {
         (*self).chapters[self.nav.get_ch()].format()
     }
 
-    pub fn _format_chapter(&mut self, chapter_n: usize) -> Vector<PageElement> { //TODO: Remove if unneeded
+    pub fn _format_chapter(&mut self, chapter_n: usize) -> Vector<PageElement> {
+        //TODO: Remove if unneeded
         (*self).chapters[chapter_n].format()
     }
 
@@ -165,7 +165,6 @@ impl Book {
     */
     #[allow(deprecated)]
     pub fn save(&mut self, set: HashSet<usize>, target_path: String) {
-
         let file_path = (&self).path.clone();
         let file = fs::File::open(file_path).unwrap();
 
@@ -194,7 +193,7 @@ impl Book {
             let mut target_path = dir.clone(); // current_dir/tmp
             target_path.push_str(&self.chapters[ch_n].get_path()); // current_dir/temp/pathdelcapitolodamodificare
                                                                    // println!("{}", dir);
-            //Svuotiamo il file prima di sovrascriverlo altrimenti malfunziona
+                                                                   //Svuotiamo il file prima di sovrascriverlo altrimenti malfunziona
             fs::write(target_path.clone(), "").expect("Failed to write to output.txt");
             let mut target = OpenOptions::new()
                 .read(true)

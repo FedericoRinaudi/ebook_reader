@@ -1,11 +1,11 @@
 use crate::book::chapter::Chapter;
 use crate::bookcase::{BookCase, BookInfo};
 use crate::ocr::find_ch;
+use crate::utilities::is_part;
+use crate::view::view::View;
 use crate::Book;
 use druid::{im::HashSet, im::Vector, Data, ExtEventSink, Lens, Selector, Target};
 use std::thread;
-use crate::utilities::is_part;
-use crate::view::view::View;
 
 pub const TRIGGER_ON: Selector<()> = Selector::new("wrapper.focus_on");
 pub const TRIGGER_OFF: Selector<()> = Selector::new("wrapper.focus_off");
@@ -69,12 +69,16 @@ impl ApplicationState {
         self.view
             .update_view(self.book_to_view.format_current_chapter());
         let ocr = self.get_current_book_info().ocr;
-        if ocr.is_aligned(){
+        if ocr.is_aligned() {
             let _ = self.view.guess_lines(
                 ocr.get_avg_ch(),
-                ocr.get_first_page_lines(), ocr.get_other_page_lines(),
-                self.book_to_view.chapters.get(self.book_to_view.get_ch())
-                    .unwrap_or(&Chapter::default()).initial_page
+                ocr.get_first_page_lines(),
+                ocr.get_other_page_lines(),
+                self.book_to_view
+                    .chapters
+                    .get(self.book_to_view.get_ch())
+                    .unwrap_or(&Chapter::default())
+                    .initial_page,
             );
         }
     }
@@ -116,7 +120,7 @@ impl ApplicationState {
         let mut page = ocr.get_mapping(ocr.first.unwrap()).unwrap().page;
         let mut temp_view = View::new();
         for (id, ch) in chapters.iter().enumerate() {
-            if id +1 <= book_info.mapped_pages.len() {
+            if id + 1 <= book_info.mapped_pages.len() {
                 continue;
             }
             if ocr.first_chap.unwrap() <= id {
@@ -132,20 +136,25 @@ impl ApplicationState {
                     }
                 } else {
                     book_info.mapped_pages.push_back(page);
-                    page += temp_view.guess_lines(
-                        ocr.get_avg_ch(),
-                        ocr.get_first_page_lines(),
-                        ocr.get_other_page_lines(),
-                        0
-                    ).unwrap();
+                    page += temp_view
+                        .guess_lines(
+                            ocr.get_avg_ch(),
+                            ocr.get_first_page_lines(),
+                            ocr.get_other_page_lines(),
+                            0,
+                        )
+                        .unwrap();
                 }
             } else {
                 book_info.mapped_pages.push_back(0);
             }
         }
 
-        println!("VETTORE DI FIRST_PAGES: {:?}", book_info.mapped_pages.clone());
-        return Ok(())
+        println!(
+            "VETTORE DI FIRST_PAGES: {:?}",
+            book_info.mapped_pages.clone()
+        );
+        return Ok(());
     }
 
     pub fn get_current_book_info(&self) -> BookInfo {
@@ -172,7 +181,12 @@ impl ApplicationState {
             return None;
         };
 
-        if let Some(res) = self.bookcase.library.iter_mut().find(|b| (**b).path == path) {
+        if let Some(res) = self
+            .bookcase
+            .library
+            .iter_mut()
+            .find(|b| (**b).path == path)
+        {
             return Some(res);
         }
 
@@ -182,7 +196,9 @@ impl ApplicationState {
     pub fn ocr_jump(&mut self, sink: ExtEventSink, str: String) {
         match self.i_mode {
             InputMode::OcrJump => th_find(str.clone(), sink, self.book_to_view.chapters.clone()),
-            InputMode::OcrSyn1 | InputMode::OcrSyn0 => th_find(str.clone(), sink, self.book_to_align.chapters.clone()),
+            InputMode::OcrSyn1 | InputMode::OcrSyn0 => {
+                th_find(str.clone(), sink, self.book_to_align.chapters.clone())
+            }
             _ => (),
         }
     }
