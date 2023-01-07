@@ -10,7 +10,7 @@ mod utilities;
 mod view;
 mod widgets;
 
-use druid::{AppLauncher, WindowDesc};
+use druid::{AppLauncher, WindowDesc, Env, Key};
 use view::view::WINDOW_TITLE;
 
 use crate::app::ApplicationState;
@@ -29,6 +29,9 @@ fn main() {
 
     // Start the Application
     AppLauncher::with_window(main_window)
+        .configure_env(|e, data|{
+            e.set(Key::<bool>::new("TOOLTIP_DISABLED"), false);
+        })
         .delegate(Delegate {})
         .launch(app)
         .expect("Failed to launch application");
