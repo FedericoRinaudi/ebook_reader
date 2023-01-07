@@ -1,10 +1,7 @@
 use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
 use druid::widget::{Controller, ControllerHost, Label, LabelText};
-use druid::{
-    Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowHandle, WindowId,
-    WindowLevel, WindowSizePolicy,
-};
+use druid::{Color, Data, Key, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowHandle, WindowId, WindowLevel, WindowSizePolicy};
 use druid::{InternalLifeCycle, Rect, Scalable, Screen};
 use std::time::{Duration, Instant};
 
@@ -39,6 +36,10 @@ pub struct TooltipCtrl<T> {
 
 impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
     fn event(&mut self, child: &mut W, ctx: &mut EventCtx, ev: &Event, data: &mut T, env: &Env) {
+        match env.try_get(Key::<bool>::new("TOOLTIP_DISABLED")){
+            Ok(v) => println!("{}", v),
+            Err(_) => println!("not able to get")
+        }
         self.state = match self.state {
             TooltipState::Waiting {
                 timer,
