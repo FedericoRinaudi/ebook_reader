@@ -16,7 +16,7 @@ use druid::widget::{
     LineBreaking, List, MainAxisAlignment, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
     ViewSwitcher,
 };
-use druid::{lens, Color, Env, LensExt, RenderContext, Widget, WidgetExt};
+use druid::{lens, Color, Env, LensExt, RenderContext, Widget, WidgetExt, Lens};
 
 //SWITCH TRA VISUALIZZATORE ELENCO EBOOK E VISUALIZZATORE EBOOK
 pub fn build_main_view() -> impl Widget<ApplicationState> {
@@ -249,7 +249,7 @@ fn render_library() -> impl Widget<ApplicationState> {
                                 .padding(30.0),
                         )
                         .with_flex_spacer(0.7)
-                        .with_child(Buttons::btn_add_book().padding(20.)),
+                        .with_child(Padding::new(20., Buttons::btn_add_book())),
                 );
             for (i, book_info) in data.get_library().clone().into_iter().enumerate() {
                 let mut pill = Flex::row()
@@ -416,7 +416,7 @@ fn print_card_element(label: &str, value: &str) -> impl Widget<ApplicationState>
 
 fn render_ocr_syn() -> impl Widget<ApplicationState> {
     ViewSwitcher::new(
-        |data: &ApplicationState, _| data.get_current_book_info().stage, /* Ad ora non funziona... lo fixo */
+        |data: &ApplicationState, _| data.view.ocr_form_stage,
         |stage, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
             match stage {
                 1 => {
@@ -435,6 +435,8 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                                         Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
                                     .with_child(
                                         Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("6").with_text_size(25.).with_text_color(Color::grey(0.5)))
                                     .with_flex_spacer(1.)
                             )
                             .with_spacer(20.)
@@ -475,13 +477,15 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                                     Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
                                 .with_child(
                                     Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                .with_child(
+                                    Label::new("6").with_text_size(25.).with_text_color(Color::grey(0.5)))
                                 .with_flex_spacer(1.)
                         )
                         .with_spacer(20.)
                         .with_child(
-                            Label::new("Perfect! We recognized the page you uploaded.\
-                                                      \nNow you would need to check if the number of total rows on the page (counting also the title, but not the page number and any headers) and the page number we calculated are correct, if not, correct them.\
-                                                      \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '2' or 'LIBRARY' to return to the library.")
+                            Label::new("Here you need to upload a picture of the first page of the first chapter.\
+                                                \nFrom this page will start the alignment being the first for which there is a match between ebook and paper book.\
+                                                \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '2' or 'LIBRARY' to return to the library.")
                                 .with_text_size(18.)
                                 .with_text_color(Color::grey(0.9))
                                 .with_line_break_mode(LineBreaking::WordWrap)
@@ -516,20 +520,31 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                                         Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
                                     .with_child(
                                         Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("6").with_text_size(25.).with_text_color(Color::grey(0.5)))
                                     .with_flex_spacer(1.)
                             )
                             .with_spacer(20.)
                             .with_child(
-                                Label::new("Here you need to upload a picture of the first page of the first chapter.\
-                                                \nFrom this page will start the alignment being the first for which there is a match between ebook and paper book.\
-                                                \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '1' or 'LIBRARY' to return to the library.")
+                                Label::new("Perfect! We recognized the page you uploaded.\
+                                                      \nNow you would need to check if the number of total rows on the page (counting also the title, but not the page number and any headers) and the page number we calculated are correct, if not, correct them.\
+                                                      \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '1' or 'LIBRARY' to return to the library.")
                                     .with_text_size(18.)
                                     .with_text_color(Color::grey(0.9))
                                     .with_line_break_mode(LineBreaking::WordWrap)
                             )
                             .with_spacer(20.)
                             .with_child(
-
+                                Flex::row()
+                                    .with_flex_spacer(1.)
+                                    .with_child(Label::new(String::from("PAGE:")).with_text_color(Color::grey(0.9)))
+                                    .with_spacer(5.)
+                                    .with_child(ocr_form(data.get_current_book_info().ocr.first.unwrap(), data, OcrFormFields::PageNum))
+                                    .with_spacer(20.)
+                                    .with_child(Label::new(String::from("LINES:")).with_text_color(Color::grey(0.9)))
+                                    .with_spacer(5.)
+                                    .with_child(ocr_form(data.get_current_book_info().ocr.first.unwrap(), data, OcrFormFields::NumLines))
+                                    .with_flex_spacer(1.)
                             )
                             .with_spacer(20.)
                             .with_child(
@@ -547,13 +562,143 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                     )
                 }
                 4 =>{
-                    Box::new(Flex::row())
+                    Box::new(
+                        Flex::column()
+                            .with_child(
+                                Flex::row()
+                                    .with_flex_spacer(1.)
+                                    .with_child(
+                                        Label::new("1").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("2").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("3").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("4").with_text_size(25.))
+                                    .with_child(
+                                        Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("6").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_flex_spacer(1.)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Label::new("Here you need to upload an image of a page from the book.\
+                                                      \nYou need to upload a picture of a page with little dialogue (possibly long periods).\
+                                                      \nThe page must not be truncated for some reason.\
+                                                      \nUsually any page taken in the middle of a chapter will meet the requirements.\
+                                                      \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '3' or 'LIBRARY' to return to the library.")
+                                    .with_text_size(18.)
+                                    .with_text_color(Color::grey(0.9))
+                                    .with_line_break_mode(LineBreaking::WordWrap)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Flex::row()
+                                    .must_fill_main_axis(true)
+                                    .with_flex_spacer(1.)
+                                    .with_child(Buttons::btn_ocr_form_close())
+                                    .with_spacer(5.)
+                                    .with_child(Buttons::btn_ocr_form_prev())
+                                    .with_spacer(5.)
+                                    .with_child(Buttons::btn_add_other_page())
+                                    .with_flex_spacer(1.)
+                            )
+                            .padding(20.))
                 }
                 5 =>{
-                    Box::new(Flex::row())
+                    Box::new(
+                        Flex::column()
+                            .with_child(
+                                Flex::row()
+                                    .with_flex_spacer(1.)
+                                    .with_child(
+                                        Label::new("1").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("2").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("3").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("5").with_text_size(25.))
+                                    .with_child(
+                                        Label::new("6").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_flex_spacer(1.)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Label::new("Perfect! We recognized the page you uploaded.\
+                                                      \nNow you would need to check if the number of total rows on the page (counting also the title, but not the page number and any headers) we calculated is correct, if not, correct them.\
+                                                      \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '4' or 'LIBRARY' to return to the library.")
+                                    .with_text_size(18.)
+                                    .with_text_color(Color::grey(0.9))
+                                    .with_line_break_mode(LineBreaking::WordWrap)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Flex::row()
+                                    .with_flex_spacer(1.)
+                                    .with_child(Label::new(String::from("LINES:")).with_text_color(Color::grey(0.9)))
+                                    .with_spacer(5.)
+                                    .with_child(ocr_form(data.get_current_book_info().ocr.other.unwrap(), data, OcrFormFields::NumLines))
+                                    .with_flex_spacer(1.)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Flex::row()
+                                    .must_fill_main_axis(true)
+                                    .with_flex_spacer(1.)
+                                    .with_child(Buttons::btn_ocr_form_close())
+                                    .with_spacer(5.)
+                                    .with_child(Buttons::btn_submit_ocr_form1())
+                                    .with_spacer(5.)
+                                    .with_child(Buttons::btn_remove_other_page())
+                                    .with_flex_spacer(1.)
+                            )
+                            .padding(20.)
+                    )
                 }
                 6 =>{
-                    Box::new(Flex::row())
+                    Box::new(
+                        Flex::column()
+                            .with_child(
+                                Flex::row()
+                                    .with_flex_spacer(1.)
+                                    .with_child(
+                                        Label::new("1").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("2").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("3").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("4").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("5").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_child(
+                                        Label::new("6").with_text_size(25.).with_text_color(Color::grey(0.5)))
+                                    .with_flex_spacer(1.)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Label::new("Perfect!\
+                                                      \nEverything went well and now your book is aligned with the paper version.\
+                                                      \nNow clicking on a paragraph (only if it is after the first page you uploaded) will show you the page number on the physical book!\
+                                                      \nPress 'LIBRARY' to return to the bookstore. ")
+                                    .with_text_size(18.)
+                                    .with_text_color(Color::grey(0.9))
+                                    .with_line_break_mode(LineBreaking::WordWrap)
+                            )
+                            .with_spacer(20.)
+                            .with_child(
+                                Flex::row()
+                                    .must_fill_main_axis(true)
+                                    .with_flex_spacer(1.)
+                                    .with_child(Buttons::btn_ocr_form_close())
+                                    .with_flex_spacer(1.)
+                            )
+                            .padding(20.)
+                    )
                 }
                 _ => {
                     unreachable!()
@@ -563,9 +708,16 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
     )
 }
 
-fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<ApplicationState> {
+
+enum OcrFormFields {
+    NumLines,
+    PageNum
+}
+
+
+fn ocr_form(id: usize, data: &ApplicationState, field: OcrFormFields) -> impl Widget<ApplicationState> {
     macro_rules! mapping_lens {
-        () => {
+        ($field: tt) => {
             lens!(ApplicationState, bookcase)
                 .then(lens!(BookCase, library))
                 .index(
@@ -578,23 +730,44 @@ fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<Appl
                 .then(lens!(BookInfo, ocr))
                 .then(lens!(OcrData, mappings))
                 .index(id)
+                .then(lens!(Mapping, $field))
         };
     }
-    let page_num_box = TextBox::new()
+
+
+    match field {
+        OcrFormFields::NumLines => {
+            Container::new(
+            TextBox::new()
+                .with_formatter(CustomFormatter::new())
+                .update_data_while_editing(true)
+                .lens(mapping_lens!(page_lines))
+            )
+        },
+        OcrFormFields::PageNum => {
+            Container::new(
+            TextBox::new()
+                .with_formatter(CustomFormatter::new())
+                .update_data_while_editing(true)
+                .lens(mapping_lens!(page))
+            )
+        }
+    }
+
+    /*let page_num_box = TextBox::new()
         .with_formatter(CustomFormatter::new())
         .update_data_while_editing(true)
-        .lens(mapping_lens!().then(lens!(Mapping, page)));
-    let num_lines_box = TextBox::new()
-        .with_formatter(CustomFormatter::new())
-        .update_data_while_editing(true)
-        .lens(mapping_lens!().then(lens!(Mapping, page_lines)));
+        .lens(mapping_lens!().then(lens!(Mapping, match t {
+            OcrFormType::Page => page,
+            OcrFormType::NumLines => page_lines
+        })));
 
     let page_num_label = Label::new(String::from("Page number:  "));
     let num_lines_label = Label::new(String::from("Number of lines in page:  "));
 
-    let mut row1 = Flex::row();
+    let mut row = Flex::row();
     let mut row2 = Flex::row();
-    row1.add_child(page_num_label);
+    row.add_child(page_num_label);
     row1.add_spacer(5.);
     row1.add_child(page_num_box);
     row2.add_child(num_lines_label);
@@ -606,5 +779,5 @@ fn render_ocr_image_form(id: usize, data: &ApplicationState) -> impl Widget<Appl
         .cross_axis_alignment(CrossAxisAlignment::End)
         .with_child(row1)
         .with_child(row2)
-        .with_spacer(5.0)
+        .with_spacer(5.0)*/
 }

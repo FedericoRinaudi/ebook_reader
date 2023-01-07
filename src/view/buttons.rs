@@ -398,7 +398,7 @@ impl Buttons {
             } else {
                 let first = &(*book_info).ocr.mappings[(*book_info).ocr.first.unwrap()];
                 if (*first).page_lines != 0 && (*first).page != 0 {
-                    (*book_info).stage += 1;
+                    data.view.ocr_form_stage += 1;
                 } else {
                     data.error_message = Option::Some("You have to fill all felds.".to_string());
                 }
@@ -410,22 +410,18 @@ impl Buttons {
     pub fn btn_submit_ocr_form1(
     ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
 
-        Button::new("SUBMIT").on_click(|_ctx, data: &mut ApplicationState, _env| {
+        Button::new("NEXT").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let ocr = &data.get_current_book_info().ocr;
-            if (*ocr).first.is_none() || (*ocr).other.is_none() {
+            if (*ocr).other.is_none() {
                 data.error_message = Option::Some("You have to fill all felds.".to_string());
             } else {
-                let first = &(*ocr).mappings[(*ocr).first.unwrap()];
                 let other = &(*ocr).mappings[(*ocr).other.unwrap()];
-                if (*first).page_lines != 0
-                    && (*first).page != 0
-                    && (*other).page_lines != 0
-                    && (*other).page != 0
+                if  (*other).page_lines != 0
                 {
                     let _ = data.map_pages(true);
-                    data.i_mode = InputMode::None; //SERVE ANCORA?
                     data.bookcase.update_meta();
                     data.book_to_align = Book::empty_book();
+                    data.view.ocr_form_stage = 6;
                 } else {
                     data.error_message = Option::Some("You have to fill all felds.".to_string());
                 }
@@ -436,9 +432,8 @@ impl Buttons {
     pub fn btn_ocr_form_close() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
     {
         Button::new("LIBRARY").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            let book_info = &mut data.get_mut_current_book_info().unwrap();
-            (**book_info).stage = 1;
-            (**book_info).ocr = OcrData::new();
+            data.view.ocr_form_stage = 1;
+            (*data.get_mut_current_book_info().unwrap()).ocr = OcrData::new();
             data.book_to_align = Book::empty_book();
         })
     }
@@ -446,16 +441,14 @@ impl Buttons {
     pub fn btn_ocr_form_next() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
     {
         Button::new("NEXT").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            let book_info = &mut data.get_mut_current_book_info().unwrap();
-            (**book_info).stage += 1;
+            data.view.ocr_form_stage += 1;
         })
     }
 
     pub fn btn_ocr_form_prev() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
     {
         Button::new("GO BACK").on_click(|_ctx, data: &mut ApplicationState, _env| {
-            let book_info = &mut data.get_mut_current_book_info().unwrap();
-            (**book_info).stage -= 1;
+            data.view.ocr_form_stage -= 1;
         })
     }
 
@@ -470,7 +463,7 @@ impl Buttons {
 
     pub fn btn_add_other_page() -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
     {
-        Button::new("ADD OTHER PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
+        Button::new("LOAD PAGE").on_click(|ctx, data: &mut ApplicationState, _env| {
             data.i_mode = InputMode::OcrSyn1;
             ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_image()));
         })
@@ -478,16 +471,11 @@ impl Buttons {
 
     pub fn btn_remove_first_page(
     ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
-        Button::new("REMOVE").on_click(|_ctx, data: &mut ApplicationState, _env| {
+        Button::new("GO BACK").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
             ocr.mappings.remove((*ocr).first.unwrap());
-            if let Some(other_id) = ocr.other {
-                if other_id > (*ocr).first.unwrap() {
-                    ocr.other = Some(other_id - 1)
-                }
-            }
             ocr.first = None;
-            data.get_mut_current_book_info().unwrap().stage = 2;
+            data.view.ocr_form_stage = 2;
         })
     }
 
@@ -496,12 +484,8 @@ impl Buttons {
         Button::new("REMOVE").on_click(|_ctx, data: &mut ApplicationState, _env| {
             let ocr = &mut data.get_mut_current_book_info().unwrap().ocr;
             ocr.mappings.remove((*ocr).other.unwrap());
-            if let Some(first_id) = ocr.first {
-                if first_id > (*ocr).other.unwrap() {
-                    ocr.first = Some(first_id - 1)
-                }
-            }
             ocr.other = None;
+            data.view.ocr_form_stage = 4;
         })
     }
 }

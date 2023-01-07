@@ -16,6 +16,7 @@ pub struct View {
     window_size_home: (f64, f64),
     pub current_view: Vector<PageElement>,
     pub scroll_height: f64,
+    pub ocr_form_stage: usize
 }
 
 impl View {
@@ -26,6 +27,7 @@ impl View {
             window_size_home: HOME_SIZE,
             current_view: Vector::new(),
             scroll_height: 0.0,
+            ocr_form_stage: 1
         }
     }
 
@@ -111,7 +113,7 @@ impl View {
         max_chars: f64,
         first: usize,
         second: usize,
-        starting_page: usize,
+        starting_page: usize
     ) -> Result<usize, ()> {
         let mut guessed_lines = 0;
         let mut curr_page = 1;

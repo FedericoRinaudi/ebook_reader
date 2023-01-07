@@ -132,9 +132,8 @@ impl AppDelegate<ApplicationState> for Delegate {
                         }
                     }
                     InputMode::OcrSyn0 => {
-                        let book_info = data.get_mut_current_book_info().unwrap();
-                        match book_info.ocr.ocr_log_first(str.clone(), *ch) {
-                            Ok(_) => book_info.stage = 3,
+                        match data.get_mut_current_book_info().unwrap().ocr.ocr_log_first(str.clone(), *ch) {
+                            Ok(_) => data.view.ocr_form_stage = 3,
                             Err(_) => {
                                 data.error_message = Some(
                                     "Image not recognized, please try with another image."
@@ -144,11 +143,15 @@ impl AppDelegate<ApplicationState> for Delegate {
                         };
                     }
                     InputMode::OcrSyn1 => {
-                        let _ = data
-                            .get_mut_current_book_info()
-                            .unwrap()
-                            .ocr
-                            .ocr_log_other(str.clone());
+                        match data.get_mut_current_book_info().unwrap().ocr.ocr_log_other(str.clone()){
+                            Ok(_) => data.view.ocr_form_stage = 5,
+                            Err(_) => {
+                                data.error_message = Some(
+                                    "Image not recognized, please try with another image."
+                                        .to_string(),
+                                )
+                            }
+                        }
                     }
                     _ => {}
                 }

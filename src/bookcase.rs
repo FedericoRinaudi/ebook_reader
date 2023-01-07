@@ -26,7 +26,6 @@ pub struct BookInfo {
     pub description: String,
     pub language: String,
     pub creator: String,
-    pub stage: usize, //TODO: lo sposto in ocr..
 }
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
@@ -78,7 +77,6 @@ impl From<SerializableBookInfo> for BookInfo {
             description: b.description,
             language: b.language,
             creator: b.creator,
-            stage: 1,
         }
     }
 }
@@ -132,8 +130,7 @@ impl BookInfo {
             title,
             description,
             language,
-            creator,
-            stage: 1,
+            creator
         })
     }
 
@@ -145,12 +142,6 @@ impl BookInfo {
     fn get_image(doc: &mut EpubDoc<BufReader<File>>) -> String {
         //TODO: gestisco il caso di errore nell'apertura del libro
         let title = doc.mdata("title").unwrap().replace("|", "_");
-        //println!("{}", title);
-        /*.split('/')
-        .into_iter()
-        .next()
-        .unwrap()
-        .to_string();*/
 
         let cover_data = match doc.get_cover() {
             Ok(data) => data,
@@ -306,32 +297,4 @@ impl BookCase {
         let ser_book_case: SerializableBookCase = self.clone().into();
         serde_json::to_writer(&mut output, &ser_book_case).unwrap();
     }
-
-    /*pub fn update(&self) {
-        /* Write file containing our BookInfos */
-        let mut output = match OpenOptions::new().write(true).open(FILE_NAME) {
-            Ok(out) => out,
-            Err(_) => OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .open(FILE_NAME)
-                .unwrap(),
-        };
-
-        for infos in self.library.iter() {
-            output
-                .write_all(
-                    (infos.path.clone()
-                        + "|"
-                        + &(infos.start_chapter.to_string())
-                        + "|"
-                        + &(infos.start_element_number.to_string())
-                        + "|"
-                        + &(infos.cover_path.to_string())
-                        + "\n")
-                        .as_bytes(),
-                )
-                .expect("write failed");
-        }
-    }*/
 }
