@@ -1,15 +1,12 @@
 use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
 use druid::widget::{Controller, ControllerHost, Label, LabelText};
-use druid::{
-    Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowHandle, WindowId,
-    WindowLevel, WindowSizePolicy,
-};
+use druid::{Color, Data, MouseButton, MouseButtons, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowHandle, WindowId, WindowLevel, WindowSizePolicy};
 use druid::{InternalLifeCycle, Rect, Scalable, Screen};
 use std::time::{Duration, Instant};
 
 const TOOLTIP_DELAY: Duration = Duration::from_millis(150);
-const TOOLTIP_DELAY_CHECK: Duration = Duration::from_millis(120);
+const TOOLTIP_DELAY_CHECK: Duration = Duration::from_millis(130);
 const TOOLTIP_BORDER_COLOR: Color = Color::GREEN;
 const TOOLTIP_BORDER_WIDTH: f64 = 1.0;
 const TOOLTIP_OFFSET: Vec2 = Vec2::new(15.0, 15.0);
@@ -50,7 +47,8 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
                     last_mouse_move: Instant::now(),
                     last_mouse_pos: ev.window_pos,
                 },
-                Event::MouseUp(_) | Event::MouseMove(_) | Event::Wheel(_) => TooltipState::Off,
+                Event::MouseUp(_) | Event::MouseMove(_) | Event::Wheel(_)  => TooltipState::Off,
+                Event::MouseDown(_) => { TooltipState::Off},
                 Event::Timer(tok) if tok == &timer => {
                     ctx.set_handled();
                     let elapsed = Instant::now().duration_since(last_mouse_move);
@@ -88,11 +86,13 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
             },
             TooltipState::Off => match ev {
                 Event::MouseMove(ev) if ctx.is_hot() && !self.show_if_click => {
-                    TooltipState::Waiting {
-                        timer: ctx.request_timer(TOOLTIP_DELAY),
-                        last_mouse_move: Instant::now(),
-                        last_mouse_pos: ev.window_pos,
-                    }
+                    if ev.buttons.is_empty() {
+                        TooltipState::Waiting {
+                            timer: ctx.request_timer(TOOLTIP_DELAY),
+                            last_mouse_move: Instant::now(),
+                            last_mouse_pos: ev.window_pos,
+                        }
+                    } else { TooltipState::Off }
                 }
                 Event::MouseDown(ev) if self.show_if_click => TooltipState::Waiting {
                     timer: ctx.request_timer(TOOLTIP_DELAY),
