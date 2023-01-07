@@ -122,7 +122,7 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
                     ctx.submit_command(CLOSE_WINDOW.to(id));
                     self.state.clone()
                 }
-                Event::MouseDown(_) if !self.show_if_click => {
+                Event::MouseDown(_) | Event::MouseUp(_) if !self.show_if_click => {
                     ctx.submit_command(CLOSE_WINDOW.to(id));
                     self.state.clone()
                 }
