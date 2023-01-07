@@ -1,6 +1,7 @@
 /Cargo.lock
-/alices.epub
 /.idea
 /target/
 /libri/
 *.txt
+*.json
+/images/
