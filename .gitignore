@@ -4,3 +4,6 @@
 /target/
 /libri/
 *.txt
+*.json
+meta.json
+/images/
