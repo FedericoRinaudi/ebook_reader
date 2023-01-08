@@ -356,6 +356,7 @@ impl Buttons {
             .fix_width(LIBRARY_SVG_BIG)
             .center()
             .on_click(|ctx, data: &mut ApplicationState, _| {
+                data.is_loading = true;
                 data.i_mode = InputMode::EbookAdd;
                 ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_epub()));
             })
@@ -426,11 +427,14 @@ impl Buttons {
         })
     }
 
-    pub fn btn_ocr_form_close(reset_ocr: bool) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>>
-    {
+    pub fn btn_ocr_form_close(
+        reset_ocr: bool,
+    ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("LIBRARY").on_click(move |_ctx, data: &mut ApplicationState, _env| {
             data.view.ocr_form_stage = 1;
-            if reset_ocr { (*data.get_mut_current_book_info().unwrap()).ocr = OcrData::new(); }
+            if reset_ocr {
+                (*data.get_mut_current_book_info().unwrap()).ocr = OcrData::new();
+            }
             data.book_to_align = Book::empty_book();
         })
     }

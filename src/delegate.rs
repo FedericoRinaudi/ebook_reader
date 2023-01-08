@@ -5,7 +5,7 @@ use crate::book::page_element::{ContentType, ImageState};
 use crate::book::Book;
 use crate::bookcase::BookInfo;
 use crate::ocr::OcrData;
-use crate::utilities::{th_lepto_load};
+use crate::utilities::th_lepto_load;
 use crate::ApplicationState;
 use druid::commands::{OPEN_PANEL_CANCELLED, SAVE_PANEL_CANCELLED};
 use druid::im::Vector;
@@ -104,9 +104,9 @@ impl AppDelegate<ApplicationState> for Delegate {
                                     Option::Some("Impossible to open selected Epub".to_string());
                             }
                         }
-                        data.is_loading = false;
                         data.i_mode = InputMode::None;
                     }
+                    data.is_loading = false;
                 }
                 _ => (),
             }
@@ -212,7 +212,6 @@ impl AppDelegate<ApplicationState> for Delegate {
         }
 
         if let Some((img, path)) = cmd.get(FINISH_IMAGE_LOAD) {
-
             if let Some(element) =
                 data.view
                     .current_view

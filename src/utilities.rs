@@ -11,13 +11,10 @@ use std::thread;
 use unicode_segmentation::UnicodeSegmentation;
 
 pub fn unify_paths(mut p1: PathBuf, p2: PathBuf) -> PathBuf {
-    if !p1.is_dir() {
-        p1.pop();
-    }
     for el in p2.into_iter() {
         if el == ".." {
             p1.pop();
-        } else {
+        } else if el != "." {
             p1.push(el);
         }
     }
@@ -106,7 +103,7 @@ pub fn xml_to_text(xml: &str) -> String {
     cur_text
 }
 
-fn xml_to_plain(node: Node, current_text: &mut String) {
+pub fn xml_to_plain(node: Node, current_text: &mut String) {
     /* Def Macros */
     macro_rules! recur_on_children {
         () => {
@@ -281,3 +278,4 @@ fn load_image(sink: ExtEventSink, epub_img_path: String, epub_path: String) {
         }
     }
 }
+

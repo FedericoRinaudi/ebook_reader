@@ -6,11 +6,12 @@ mod controllers;
 mod delegate;
 mod formatters;
 mod ocr;
+mod tests;
 mod utilities;
 mod view;
 mod widgets;
 
-use druid::{AppLauncher, WindowDesc, Env, Key};
+use druid::{AppLauncher, Env, Key, WindowDesc};
 use view::view::WINDOW_TITLE;
 
 use crate::app::ApplicationState;

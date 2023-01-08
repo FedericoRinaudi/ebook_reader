@@ -11,9 +11,9 @@ use crate::widgets::custom_label::BetterLabel;
 use crate::widgets::custom_scrolls::{BetterScroll, SyncScroll};
 use crate::widgets::custom_tooltip::TipExt;
 use crate::{ApplicationState, ContentType};
-use druid::widget::{ Container, ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label,
-    LineBreaking, List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox,
-    ViewSwitcher,
+use druid::widget::{
+    Container, ControllerHost, CrossAxisAlignment, Flex, FlexParams, Image, Label, LineBreaking,
+    List, Padding, Painter, RawLabel, Scroll, Spinner, TextBox, ViewSwitcher,
 };
 use druid::{lens, Color, Env, LensExt, RenderContext, Widget, WidgetExt};
 
@@ -129,16 +129,7 @@ fn render_book() -> impl Widget<ApplicationState> {
 
 fn render_edit_mode() -> impl Widget<ApplicationState> {
     let mut viewport = Flex::row();
-    let view = ViewSwitcher::new(
-        |data: &ApplicationState, _env| {
-            data.book_to_view.chapters[data.book_to_view.get_nav().get_ch()]
-                .xml
-                .clone()
-        },
-        |_vec, _data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {
-            Box::new(BetterScroll::new(render_view_mode()))
-        },
-    );
+    let view = Scroll::new(render_view_mode()).vertical();
     let edit = ViewSwitcher::new(
         |data: &ApplicationState, _| data.book_to_view.get_nav().get_ch(),
         |_, data: &ApplicationState, _| -> Box<dyn Widget<ApplicationState>> {

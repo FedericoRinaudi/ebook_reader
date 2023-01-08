@@ -1,5 +1,5 @@
 use crate::book::page_element::ImageState::Present;
-use crate::book::page_element::{PageElement};
+use crate::book::page_element::PageElement;
 use crate::{ApplicationState, ContentType};
 use druid::{im::Vector, Data, Lens, LocalizedString};
 use unicode_segmentation::UnicodeSegmentation;

@@ -1,12 +1,12 @@
 use crate::book::epub_text::{AttributeCase, EpubText};
+use crate::book::page_element::ImageState::{Present, Waiting};
+use crate::book::page_element::PageElement;
+use crate::utilities::{convert_path_separators, get_image_buf, unify_paths};
 use druid::im::HashMap;
 use druid::text::Attribute;
 use druid::{im::Vector, Data, ExtEventSink, FontFamily, FontStyle, FontWeight, ImageBuf, Lens};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::path::PathBuf;
-use crate::book::page_element::ImageState::{Present, Waiting};
-use crate::book::page_element::PageElement;
-use crate::utilities::{convert_path_separators, get_image_buf, unify_paths};
 
 const MAX_SIZE: f64 = 35.0;
 
@@ -19,11 +19,7 @@ pub struct Chapter {
 }
 
 impl Chapter {
-    pub fn new(
-        path: String,
-        mut xml: String,
-        initial_page: usize,
-    ) -> Self {
+    pub fn new(path: String, mut xml: String, initial_page: usize) -> Self {
         xml = xml.replace("&nbsp;", " ");
         xml = xml.replace("&ndash;", "-");
         Chapter {
@@ -172,8 +168,10 @@ impl Chapter {
             "img" => {
                 new_line!("NO_HTML");
                 let image_path = String::from(node.attribute("src").unwrap());
+                let mut p1 = PathBuf::from(chapter_path);
+                p1.pop(); //RIMUOVO IL FILE XML DAL PATH
                 let mut complete_img_path =
-                    unify_paths(PathBuf::from(chapter_path), PathBuf::from(&image_path))
+                    unify_paths(p1, PathBuf::from(&image_path))
                         .into_os_string()
                         .into_string()
                         .unwrap();

@@ -2,8 +2,8 @@ use crate::book::page_element::{ImageState, PageElement};
 use crate::widgets::custom_label::UPDATE_SIZE;
 use druid::widget::{FillStrat, Flex, Image, Spinner};
 use druid::{
-    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Size, UpdateCtx, Widget, WidgetExt,
+    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget, WidgetExt,
 };
 
 pub struct BetterImage {
