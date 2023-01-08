@@ -36,10 +36,6 @@ pub struct TooltipCtrl<T> {
 
 impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipCtrl<T> {
     fn event(&mut self, child: &mut W, ctx: &mut EventCtx, ev: &Event, data: &mut T, env: &Env) {
-        match env.try_get(Key::<bool>::new("TOOLTIP_DISABLED")){
-            Ok(v) => println!("{}", v),
-            Err(_) => println!("not able to get")
-        }
         self.state = match self.state {
             TooltipState::Waiting {
                 timer,
