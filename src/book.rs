@@ -2,8 +2,6 @@ pub mod chapter;
 mod epub_text;
 pub(crate) mod page_element;
 
-use walkdir::WalkDir;
-
 use crate::book::chapter::Chapter;
 use crate::book::page_element::PageElement;
 use druid::im::{HashMap, HashSet};
@@ -11,14 +9,12 @@ use druid::{im::Vector, Data, ExtEventSink, ImageBuf, Lens};
 use epub::doc::EpubDoc;
 use std::env::current_dir;
 use std::error::Error;
-use std::fs::{File, OpenOptions, Permissions};
-use std::io::{Read, Write};
+use std::fs::{OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{fmt, fs};
 use zip::write::FileOptions;
-use std::os::unix::fs::PermissionsExt;
-use zip::result::ZipResult;
-use zip::{ZipArchive, ZipWriter};
+use zip::ZipWriter;
 
 #[derive(Default, Debug, Clone, Data, Lens)]
 pub struct Navigation {
@@ -160,125 +156,26 @@ impl Book {
     /*
     Save new xml to a new version of the archive
     */
-    /*
-    #[allow(deprecated)]
+
     pub fn save(&mut self, set: HashSet<usize>, target_path: String) -> Result<(), Box<dyn Error>> {
+
         let file_path = (&self).path.clone();
-        let file = fs::File::open(file_path.clone())?;
-        file.set_permissions(Permissions::from_mode(0o777))?;
-        println!("Permission set");
 
-        //file.set_permissions(fs::Permissions::from_mode(0o644)).expect("Error changing perms");
-
-        let mut archive = zip::ZipArchive::new(file)?;
-        /*
-        Unzip the file into a tmp dir to edit before zipping again
-         */
-
-        let mut dir = current_dir()?.to_str().ok_or("No string conversion")?.to_string();
-        dir.push_str("/temp/");
-        let path_dir = PathBuf::from(&dir).into_os_string();
-
-        archive.extract(path_dir)?;
-        println!("Archive extracted");
-
-        /*
-        Modify the file at path chapters_xml_and_path[current_chapter_number].1
-         */
-        // println!("target_path : {}, file_path:{}", target_path.clone(), file_path);
-
-        for ch_n in set {
-            let mut target_path = dir.clone(); // current_dir/tmp
-            target_path.push_str(&self.chapters[ch_n].get_path()); // current_dir/temp/pathdelcapitolodamodificare
-                                                                   //Svuotiamo il file prima di sovrascriverlo altrimenti malfunziona
-            fs::write(target_path.clone(), "")?;
-            let mut target = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .create(true)
-                .open(target_path.clone())?;
-            target
-                .write_all(&self.chapters[ch_n].xml.clone().as_bytes())?;
-        }
-        println!("All file modified");
-
-        /*
-        Zip the file again with the target epub's name
-         */
-
-        let walkdir = WalkDir::new(dir.to_string());
-        let it = walkdir.into_iter();
-
-        let writer = match OpenOptions::new()
-            .write(true)
-            .open(PathBuf::from(target_path.clone()))
-        {
-            Ok(out) => out,
-            Err(_) => OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .open(PathBuf::from(target_path.clone()))?,
+        let new_target_path = if target_path == file_path {
+            let mut new = current_dir()?.to_str().ok_or("No string conversion")?.to_string();
+            new.push_str("/tmp.epub");
+            new
+        } else {
+            let _ = fs::remove_file(&target_path); //Non mettere '?' -> se non c'è non è un problema: con questa istruzione mi assicuro soltanto che non esista già
+            target_path.clone()
         };
 
-        let mut zip = zip::ZipWriter::new(writer);
-        let options = FileOptions::default()
-            .unix_permissions(0o755);
-
-        let mut buffer = Vec::new();
-        for entry in it.filter_map(|e| e.ok()) {
-            let path = entry.path();
-            let name = path.strip_prefix(Path::new(&dir))?;
-            if path.is_file() {
-                zip.start_file_from_path(name, options)?;
-                let mut f = File::open(path)?;
-                f.read_to_end(&mut buffer)?;
-                zip.write_all(&*buffer)?;
-                buffer.clear();
-            } else if name.as_os_str().len() != 0 {
-                zip.add_directory_from_path(name, options)?;
-            }
-        }
-        println!("File re-zipped");
-        zip.finish()?;
-
-        //Cleanup by deleting the tmp folder
-        fs::remove_dir_all(&dir)?;
-        Ok(())// Cancella tmp dir
-    }*/
-    /*
-    pub fn save(&mut self, set: HashSet<usize>, target_path: String) -> Result<(), Box<dyn Error>> {
-
-        let file_path = (&self).path.clone();
         let file = fs::File::open(file_path.clone())?;
-        let mut zip_wr = ZipWriter::new_append(file)?;
-        let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-
-        for ch_n in set {
-            let path_str = self.chapters[ch_n].get_path().clone();
-            let ch_path = Path::new(&path_str);
-            zip_wr.
-            zip_wr.start_file_from_path(ch_path, options);
-            zip_wr.write_all(&self.chapters[ch_n].xml.clone().as_bytes())?;
-        }
-        zip_wr.finish()?;
-
-        Ok(())
-    }*/
-
-    pub fn save(&mut self, set: HashSet<usize>, target_path: String) -> Result<(), Box<dyn Error>> {
-
-        let file_path = (&self).path.clone();
-        let file = fs::File::open(file_path.clone())?;
-        let writer = match OpenOptions::new()
+        let writer = OpenOptions::new()
+            .create_new(true)
             .write(true)
-            .open(PathBuf::from(target_path.clone()))
-        {
-            Ok(out) => out,
-            Err(_) => OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .open(PathBuf::from(target_path.clone()))?,
-        };
+            .open(PathBuf::from(new_target_path.clone()))?;
+
 
 
         let mut archive = zip::ZipArchive::new(file)?;
@@ -292,7 +189,7 @@ impl Book {
 
         // Iterate through the entries in the ZipArchive and add them to the ZipWriter, except for the entry to be deleted
         for i in 0..archive.len() {
-            let mut zip_entry = archive.by_index(i)?;
+            let zip_entry = archive.by_index(i)?;
             let file_name = zip_entry.name();
 
             if !path_map.contains_key(file_name) {
@@ -309,6 +206,14 @@ impl Book {
                 zip_writer.write_all(&self.chapters[*path_map.get(file_name).ok_or("No match")?].xml.clone().as_bytes())?;
             }
 
+        }
+
+        zip_writer.finish()?;
+
+        if target_path != new_target_path {
+            fs::remove_file(target_path.clone())?;
+            fs::copy(&new_target_path, &target_path)?;
+            fs::remove_file(&new_target_path)?;
         }
 
         Ok(())
