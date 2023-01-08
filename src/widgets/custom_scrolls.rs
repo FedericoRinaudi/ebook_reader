@@ -35,7 +35,6 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
             }
             Event::Command(cmd) => {
                 if cmd.get(TRIGGER_ON).is_some() {
-                    //println!("Triggered on to {}", self.child.offset_for_axis(Axis::Vertical));
                     self.child.scroll_to_on_axis(
                         Axis::Vertical,
                         data.view
@@ -43,14 +42,12 @@ impl<W: Widget<ApplicationState>> Widget<ApplicationState> for BetterScroll<W> {
                     );
                     ctx.request_paint();
                 } else if cmd.get(TRIGGER_OFF).is_some() {
-                    //println!("Triggered off to {} out of {}", self.child.offset_for_axis(Axis::Vertical), self.child.child_size().height);
                     data.book_to_view.get_mut_nav().set_element_number(
                         data.view
                             .get_element_from_offset(self.child.offset_for_axis(Axis::Vertical)),
                     );
                     data.view.scroll_height = self.child.child_size().height;
                 } else if cmd.get(SCROLL_REQUEST).is_some() {
-                    //println!("Triggered off to {} out of {}", self.child.offset_for_axis(Axis::Vertical), self.child.child_size().height);
                     self.child.scroll_to_on_axis(
                         Axis::Vertical,
                         data.view

@@ -108,7 +108,6 @@ impl BookInfo {
         .to_639_3()
         .to_string();
         let description = doc.mdata("description").unwrap_or("".to_string());
-        println!("{:?}", doc.metadata.clone());
 
         let name = PathBuf::from(path.clone())
             .file_stem()
@@ -138,17 +137,13 @@ impl BookInfo {
         PathBuf::from(&self.path)
     }
 
-    //TODO: BECCO PIU' INFO SUL LIBRO; TUTTE QUELLE CHE VOGLIO VISUALIZZARE
     fn get_image(doc: &mut EpubDoc<BufReader<File>>) -> String {
-        //TODO: gestisco il caso di errore nell'apertura del libro
         let title = doc.mdata("title").unwrap().replace("|", "_");
 
         let cover_data = match doc.get_cover() {
             Ok(data) => data,
             Err(_) => return String::from("./images/default.jpeg"),
         };
-        //TODO: se l'immagine non fosse jpeg rompo tutto
-        //TODO: gestisco caso in cui fallisca
         let path = String::from("./images/") + title.as_str() + ".jpeg";
         File::create(path.clone())
             .unwrap()
@@ -158,12 +153,12 @@ impl BookInfo {
     }
 }
 
-#[derive(Default, Clone, Data, Lens)] //TODO: Cleanup
+#[derive(Default, Clone, Data, Lens)]
 pub struct BookCase {
     pub(crate) library: Vector<BookInfo>,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)] //TODO: Cleanup
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct SerializableBookCase {
     pub(crate) library: Vec<SerializableBookInfo>,
 }
@@ -203,10 +198,8 @@ impl BookCase {
             folder_books.push((*(entry.unwrap().path().to_str().unwrap())).to_string());
         }
         */
-        //println!("folder books {:?}", folder_books.clone());
 
         let mut saved_books: HashMap<String, BookInfo> = Self::fetch_saved(); //contiene tutti i libri letti dal file
-                                                                              //println!("saved books: {:?}", saved_books.clone());
         if instance.populate(&mut saved_books) {
             instance.update_meta()
         }
@@ -233,7 +226,6 @@ impl BookCase {
                     let relative_path = match absolute_path.clone().strip_prefix(cwd.clone()) {
                         Ok(path) => ".".to_string() + path.to_str().unwrap(),
                         Err(_e) => {
-                            //eprintln!("Error stripping prefix from path {}", e);
                             absolute_path.clone().to_str().unwrap().to_string()
                         }
                     };
@@ -252,22 +244,6 @@ impl BookCase {
 
     fn populate(&mut self, saved_books: &mut HashMap<String, BookInfo>) -> bool {
         let mut file_need_update = false;
-        /*
-        for book_path in folder_books {
-            //println!("Matching compare {:?} {}", saved_books.get(book_path), book_path.clone());
-            self.library.push_back(match saved_books.get(book_path) {
-                Some(book_info) => {
-                    let info = book_info.clone();
-                    saved_books.remove(book_path);
-                    info
-                }
-                None => {
-                    file_need_update = true;
-                    BookInfo::new(book_path.clone(), 0, 0, Self::get_image(book_path))
-                }
-            })
-        }
-        */
         /* Aggiungiamo libri al di fuori della cartella libri */
 
         for fs_book in saved_books.into_iter() {

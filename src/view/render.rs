@@ -47,7 +47,7 @@ pub fn build_main_view() -> impl Widget<ApplicationState> {
                                 return if *cond {
                                     Box::new(ViewSwitcher::new(
                                         |data: &ApplicationState, _| data.book_to_view.is_empty(), /* Condizione della useEffect (?) */
-                                        |_ctx, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
+                                        |_, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
                                             if data.book_to_view.is_empty() {
                                                 /* Renderizziamo la libreria di libri disponibili */
                                                 Box::new(render_library())
@@ -332,79 +332,6 @@ fn print_card_element(label: &str, value: &str) -> impl Widget<ApplicationState>
     };
 }
 
-/*fn render_ocr_syn() -> impl Widget<ApplicationState> {
-    ViewSwitcher::new(
-        |data: &ApplicationState, _| {
-            (
-                data.get_current_book_info().ocr.first,
-                data.get_current_book_info().ocr.other,
-            )
-        }, /* Ad ora non funziona... lo fixo */
-        |_ocr_values, data: &ApplicationState, _env| -> Box<dyn Widget<ApplicationState>> {
-
-            let intro = Label::new(
-                String::from("Con questa funzione è possibile 'allineare' un libro cartaceo con un epub.\
-                E' necessario inserire la foto della prima pagina del primo capitolo. \
-                La seconda foto richiesta è di una pagina 'normale' ossia le quali righe sono tutte\
-                 occupate. Nel caso in cui il numero di righe e il numero della pagina siano errati perfavore\
-                 aggiustarli nei moduli presentati sotto. \
-                 L'allineamento è ottenuto distribuendo il testo formattato dell'epub in righe in funzione del numero stimato\
-                 di caratteri rilevati dalle foto. Essendo una media statistica questo puo' portare a imprecisioni che andranno a ridursi\
-                 con l'inserimento di ulteriori foto attraverso la funzione di ocr jump nel corso del tempo\
-                 Una volta effettuato un OCR Synch è possibile cliccare sul testo del libro per ottenere una stima\
-                 della pagina del libro cartaceo in cui trovare una corrispondenza"))
-                .with_line_break_mode(LineBreaking::WordWrap);
-
-            let mut col = Flex::column()
-                .cross_axis_alignment(CrossAxisAlignment::Start)
-                .main_axis_alignment(MainAxisAlignment::Center);
-            let mut row = Flex::row()
-                .main_axis_alignment(MainAxisAlignment::Center)
-                .cross_axis_alignment(CrossAxisAlignment::Center)
-                .must_fill_main_axis(true);
-            let ocr = data.get_current_book_info().ocr.clone();
-
-            if let Some(id) = ocr.first {
-                row.add_flex_child(
-                    Container::new(
-                    Padding::new((10.,0.,10.,0.),
-                    Flex::column()
-                        .with_child(Label::new("Dalla foto che hai caricato siamo riusciti a raccogliere i seguenti dati: ti chiedimo di correggerli in caso non fossero corretti (il titolo è da conteggiare nel numero di linee, eventuali intestazioni no)")
-                            .with_line_break_mode(LineBreaking::WordWrap))
-                        .with_child(render_ocr_image_form(id, data))
-                        .with_child(Buttons::btn_remove_first_page()).must_fill_main_axis(true))).border(Color::WHITE, 3.).rounded(5.),
-                    1.
-                    );
-            } else {
-                row.add_flex_child(Buttons::btn_add_first_page(), 1.);
-            }
-            row.add_spacer(20.);
-
-            if let Some(id) = ocr.other {
-                row.add_flex_child(Padding::new((10.,0.,10.,0.),
-                    Flex::column()
-                        .with_child(render_ocr_image_form(id, data))
-                        .with_child(Buttons::btn_remove_other_page())),
-                    0.5
-                );
-            } else {
-                row.add_child(Buttons::btn_add_other_page());
-            }
-
-            let btn_row = Flex::row()
-                .must_fill_main_axis(true)
-                .main_axis_alignment(MainAxisAlignment::End)
-                .with_child(Padding::new((10.,0.,10.,0.),Buttons::btn_close_ocr_form()))
-                .with_child(Padding::new((10.,0.,10.,0.),Buttons::btn_submit_ocr_form()));
-
-
-            col.add_child(Padding::new((10.,15.,10.,40.), intro));
-            col.add_flex_child(Padding::new((0., 0., 0., 40.), row), 1.);
-            col.add_child(btn_row);
-            Box::new(col)
-        },
-    )
-}*/
 
 fn render_ocr_syn() -> impl Widget<ApplicationState> {
     ViewSwitcher::new(
@@ -435,7 +362,7 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                             .with_child(
                                 Label::new("Thanks to this function while reading the selected epub you can know the corresponding page of the paper book at any time.\
                                 \nIn order to be able to do this you will need to upload photos of a couple of pages of the paper book and you will have to a verify the correctness of some information from the photos.\
-                                \nPress 'NEXT' to proceed or 'LIBRARY' to return to the library.")
+                                \nPress 'NEXT' to proceed or 'LIBRARY' to return to the home page.")
                                     .with_text_size(18.)
                                     .with_text_color(Color::grey(0.9))
                                     .with_line_break_mode(LineBreaking::WordWrap)
@@ -477,7 +404,7 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                         .with_child(
                             Label::new("Here you need to upload a picture of the first page of the first chapter.\
                                                 \nFrom this page will start the alignment being the first for which there is a match between ebook and paper book.\
-                                                \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '2' or 'LIBRARY' to return to the library.")
+                                                \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '2' or 'LIBRARY' to return to the home page.")
                                 .with_text_size(18.)
                                 .with_text_color(Color::grey(0.9))
                                 .with_line_break_mode(LineBreaking::WordWrap)
@@ -520,7 +447,7 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                             .with_child(
                                 Label::new("Perfect! We recognized the page you uploaded.\
                                                       \nNow you would need to check if the number of total rows on the page (counting also the title, but not the page number and any headers) and the page number we calculated are correct, if not, correct them.\
-                                                      \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '1' or 'LIBRARY' to return to the library.")
+                                                      \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '2' or 'LIBRARY' to return to the home page.")
                                     .with_text_size(18.)
                                     .with_text_color(Color::grey(0.9))
                                     .with_line_break_mode(LineBreaking::WordWrap)
@@ -579,7 +506,7 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                                                       \nYou need to upload a picture of a page with little dialogue (possibly long periods).\
                                                       \nThe page must not be truncated for some reason.\
                                                       \nUsually any page taken in the middle of a chapter will meet the requirements.\
-                                                      \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '3' or 'LIBRARY' to return to the library.")
+                                                      \nPress 'LOAD PAGE' to load the page, 'GO BACK' to return to '3' or 'LIBRARY' to return to the home page.")
                                     .with_text_size(18.)
                                     .with_text_color(Color::grey(0.9))
                                     .with_line_break_mode(LineBreaking::WordWrap)
@@ -622,7 +549,7 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                             .with_child(
                                 Label::new("Perfect! We recognized the page you uploaded.\
                                                       \nNow you would need to check if the number of total rows on the page (counting also the title, but not the page number and any headers) we calculated is correct, if not, correct them.\
-                                                      \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '4' or 'LIBRARY' to return to the library.")
+                                                      \nPress 'CONFIRM' to confirm, 'GO BACK' to return to '4' or 'LIBRARY' to return to the home page.")
                                     .with_text_size(18.)
                                     .with_text_color(Color::grey(0.9))
                                     .with_line_break_mode(LineBreaking::WordWrap)
@@ -676,7 +603,7 @@ fn render_ocr_syn() -> impl Widget<ApplicationState> {
                                 Label::new("Perfect!\
                                                       \nEverything went well and now your book is aligned with the paper version.\
                                                       \nNow clicking on a paragraph (only if it is after the first page you uploaded) will show you the page number on the physical book!\
-                                                      \nPress 'LIBRARY' to return to the bookstore. ")
+                                                      \nPress 'LIBRARY' to return to the home page. ")
                                     .with_text_size(18.)
                                     .with_text_color(Color::grey(0.9))
                                     .with_line_break_mode(LineBreaking::WordWrap)
@@ -743,30 +670,4 @@ fn ocr_form(
         ),
     }
 
-    /*let page_num_box = TextBox::new()
-        .with_formatter(CustomFormatter::new())
-        .update_data_while_editing(true)
-        .lens(mapping_lens!().then(lens!(Mapping, match t {
-            OcrFormType::Page => page,
-            OcrFormType::NumLines => page_lines
-        })));
-
-    let page_num_label = Label::new(String::from("Page number:  "));
-    let num_lines_label = Label::new(String::from("Number of lines in page:  "));
-
-    let mut row = Flex::row();
-    let mut row2 = Flex::row();
-    row.add_child(page_num_label);
-    row1.add_spacer(5.);
-    row1.add_child(page_num_box);
-    row2.add_child(num_lines_label);
-    row2.add_spacer(5.);
-    row2.add_child(num_lines_box);
-
-    Flex::column()
-        .must_fill_main_axis(true)
-        .cross_axis_alignment(CrossAxisAlignment::End)
-        .with_child(row1)
-        .with_child(row2)
-        .with_spacer(5.0)*/
 }

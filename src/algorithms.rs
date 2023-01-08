@@ -50,7 +50,6 @@ impl OcrAlgorithms {
         };
         for w in chapter.windows(page.len()) {
             if algorithm(w, &page, 0.5) {
-                println!("Finito con offset: {}", offset);
                 return Some(offset);
             }
             offset += 1
@@ -65,22 +64,7 @@ impl OcrAlgorithms {
             if *e == *(b.get(i).unwrap_or(&String::new())) {
                 eq += 1;
             }
-            //println!("{} -> {}, eq = {}", e, b.get(i).unwrap(), eq)
         }
-        /*
-        if (eq as f64/a.len() as f64) >= 0.4{
-            eq = 0;
-            for (i, e) in a.iter().enumerate(){
-                if *e == *(b.get(i).unwrap_or(&String::new())) {
-                    eq += 1;
-                }
-                println!("{} -> {}, eq = {}", e, b.get(i).unwrap(), eq)
-            }
-            println!("rate = {}", (eq as f64/a.len() as f64));
-        }
-        if (eq as f64/a.len() as f64) > 0.95{
-            println!("{}", (eq as f64/a.len() as f64));
-        }*/
         (eq as f64 / a.len() as f64) >= tol
     }
 }

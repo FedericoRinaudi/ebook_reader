@@ -5,7 +5,7 @@ use druid::{im::Vector, Data, Lens, LocalizedString};
 use unicode_segmentation::UnicodeSegmentation;
 
 pub const WINDOW_TITLE: LocalizedString<ApplicationState> =
-    LocalizedString::new("Ebook Reader - Library");
+    LocalizedString::new("Ebook Reader");
 const VIEW_SIZE: (f64, f64) = (800.0, 800.0);
 const EDIT_SIZE: (f64, f64) = (1600.0, 800.0);
 const HOME_SIZE: (f64, f64) = (800.0, 800.0);
@@ -65,7 +65,6 @@ impl View {
         for el in self.current_view.iter().take(if n == 0 { 0 } else { n }) {
             sum += el.size.unwrap_or((0.0, 0.0)).1;
         }
-        //println!("sum: {}", sum);
         sum
     }
 
@@ -104,7 +103,6 @@ impl View {
                 }
             }
             page_element_number += 1;
-            //println!("pen: {} : {:?}", page_element_number, page_element.content);
         }
         page_element_number
     }
@@ -141,7 +139,6 @@ impl View {
                     guessed_lines + element_lines - max_lines
                 };
             } else if let ContentType::Image(img_buf) = el.clone().content {
-                //TODO: SPERIMENTAL MIGHT REMOVE
                 if let Present(img_buf) = img_buf {
                     let element_lines = img_buf.height() / 20;
                     let max_lines = if curr_page == 1 { first } else { second };

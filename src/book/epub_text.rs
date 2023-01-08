@@ -6,7 +6,7 @@ use druid::Data;
 pub enum AttributeCase {
     FontSize,
     Style,
-    Weight, //TODO: aggiungo e aggiorno i casi man mano che mi servono
+    Weight,
 }
 
 #[derive(Debug, Clone, Data)]

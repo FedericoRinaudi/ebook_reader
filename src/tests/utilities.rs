@@ -1,6 +1,9 @@
+#[allow(unused_imports)]
 use crate::utilities::{unify_paths, xml_to_plain, xml_to_text};
+#[allow(unused_imports)]
 use std::path::PathBuf;
-use roxmltree::{Document, Node, NodeType};
+#[allow(unused_imports)]
+use roxmltree::{Document};
 
 #[test]
 fn test_unify_paths_case_1() {

@@ -28,7 +28,6 @@ impl PageElement {
         sink: ExtEventSink,
         epub_path: String,
     ) -> PageElement {
-        //TODO: caso senza sink
         if let ImageState::Waiting(buf) = con.clone() {
             /**/
             th_load_image(sink, buf.clone(), epub_path);

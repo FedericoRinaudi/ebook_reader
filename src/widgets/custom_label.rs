@@ -30,7 +30,6 @@ impl Widget<PageElement> for BetterLabel {
                 }
             }
             Event::MouseDown(_e) => {
-                //println!("PAGE : {}", data.pg_offset.0.to_string());
                 self.child.set_text_color(Color::GRAY);
                 ctx.request_layout();
                 ctx.request_paint();

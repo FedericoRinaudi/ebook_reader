@@ -1,3 +1,5 @@
+use std::env::current_dir;
+use std::fs;
 use crate::app::{
     InputMode, FINISH_BOOK_LOAD, FINISH_IMAGE_LOAD, FINISH_LEPTO_LOAD, FINISH_SLOW_FUNCTION,
 };
@@ -28,8 +30,21 @@ impl AppDelegate<ApplicationState> for Delegate {
         if let Some(file_info) = cmd.get(commands::SAVE_FILE_AS) {
             let target_path = file_info.path.clone().to_str().unwrap().to_string();
 
-            data.book_to_view
-                .save(data.modified.clone(), target_path.clone());
+            if let Err(e) = data.book_to_view.save(data.modified.clone(), target_path.clone()){
+                data.error_message =
+                    Option::Some("Impossible to save epub: ".to_string() + &e.to_string());
+
+                let mut dir = current_dir().unwrap().to_str().unwrap().to_string();
+                dir.push_str("/tmp/");
+                let path_dir = PathBuf::from(&dir);
+                if path_dir.is_dir() {
+                    fs::remove_dir_all(&dir).unwrap();
+                    println!("removed dir");
+                }
+
+                data.is_loading = false;
+                return Handled::Yes;
+            };
             data.modified.clear();
 
             let mut current = data.get_current_book_info().clone();
@@ -41,7 +56,6 @@ impl AppDelegate<ApplicationState> for Delegate {
                 .find(|el| el.path == target_path.clone())
             {
                 Some(b_info) => {
-                    //TODO: Known Bug sovrascrivere libri diversi da una copia del corrente crea qualcosa di rotto
                     b_info.start_chapter = current.start_chapter;
                     b_info.start_element_number = current.start_element_number;
                     b_info.ocr = OcrData::new();
@@ -71,12 +85,14 @@ impl AppDelegate<ApplicationState> for Delegate {
             }
             data.set_book_to_read(Book::empty_book());
             data.edit = false;
+            data.is_loading = false;
             return Handled::Yes;
         }
 
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
             match data.i_mode {
                 InputMode::OcrJump | InputMode::OcrSyn0 | InputMode::OcrSyn1 => {
+
                     /* Qui stiamo prendendo un immagine per usare l'OCR */
                     th_lepto_load(
                         ctx.get_external_handle(),
@@ -168,7 +184,6 @@ impl AppDelegate<ApplicationState> for Delegate {
                     _ => {}
                 }
             } else {
-                // println!("CIAOOOO {:?}", res);
                 data.error_message = Some(
                     "No matches were found, please try again with a better quality image."
                         .to_string(),
@@ -221,7 +236,6 @@ impl AppDelegate<ApplicationState> for Delegate {
                         _ => false,
                     })
             {
-                println!("Found image to update");
                 element.content = ContentType::Image(ImageState::Present(img.clone()));
                 if !data.book_to_view.is_empty() {
                     data.book_to_view

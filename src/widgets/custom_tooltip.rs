@@ -2,7 +2,7 @@ use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
 use druid::widget::{Controller, ControllerHost, Label, LabelText};
 use druid::{
-    Color, Data, Key, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowHandle,
+    Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowHandle,
     WindowId, WindowLevel, WindowSizePolicy,
 };
 use druid::{InternalLifeCycle, Rect, Scalable, Screen};

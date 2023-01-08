@@ -11,7 +11,7 @@ mod utilities;
 mod view;
 mod widgets;
 
-use druid::{AppLauncher, Env, Key, WindowDesc};
+use druid::{AppLauncher, WindowDesc};
 use view::view::WINDOW_TITLE;
 
 use crate::app::ApplicationState;

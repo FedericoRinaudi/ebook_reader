@@ -27,7 +27,6 @@ impl Mapping {
             page_lines: 0,
         };
         init.page_stats(str)?;
-        //println!("{:?}", init);
         Ok(init)
     }
 
@@ -37,10 +36,8 @@ impl Mapping {
             .split("\n")
             .filter(|s| {
                 if s.graphemes(true).count() < 4 {
-                    //TODO: Riconosci intestazioni al posto di controllare solo numero caratteri, hint: usa funzione di spaziatura (?)
                     if let Some(pg_num) = Regex::new(r"\d+").unwrap().captures(s) {
                         self.page = pg_num[0].parse::<usize>().unwrap();
-                        println!("Found page number: {}", self.page)
                     }
                     return false;
                 } else {
@@ -49,10 +46,8 @@ impl Mapping {
             })
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
-        // Lines adesso contiene solo le linee "vere" ossia con almeno 4 caratteri
-        // TODO: COnsidera linee con meno di 4 caratteri potenzialmente valide
 
-        self.page_lines = lines.len(); //Salviamo il numero di linee trovate nella pagina
+        self.page_lines = lines.len();
 
         lines = lines
             .iter()
@@ -62,8 +57,6 @@ impl Mapping {
             })
             .map(|s| s.clone())
             .collect::<Vec<String>>();
-
-        //println!("{:?}", lines);
 
         let (mut sum, mut count) = lines
             .iter()
@@ -75,9 +68,6 @@ impl Mapping {
         (sum, count) = lines
             .iter()
             .filter(|s| {
-                /*if s.graphemes(true).count() as f64 > first_avg - 5. {
-                    println!("{}", s);
-                }*/
                 s.trim().graphemes(true).count() as f64 > first_avg - 5.
             })
             .map(|s| s.graphemes(true).count())
@@ -131,7 +121,7 @@ impl OcrData {
     pub fn new() -> Self {
         OcrData {
             mappings: Vector::new(),
-            first_chap: None, //TODO: NOT HARDCODED VALUE
+            first_chap: None,
             first: None,
             other: None,
         }
@@ -157,7 +147,7 @@ impl OcrData {
                 return Ok(&self.mappings.len() - 1);
             }
             Err(e) => {
-                eprintln!("{:?}", e);
+                eprintln!("{}", e);
                 Err(())
             }
         }

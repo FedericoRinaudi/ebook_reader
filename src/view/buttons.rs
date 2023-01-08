@@ -108,7 +108,7 @@ impl Buttons {
                 data.view
                     .set_window_size_view(<(f64, f64)>::from(ctx.window().get_size()));
                 ctx.window().set_size(data.view.get_window_size_edit());
-                ctx.window().set_title("EDIT MODE");
+                //ctx.window().set_title("EDIT MODE");
 
                 data.edit = !data.edit
             })
@@ -131,7 +131,7 @@ impl Buttons {
                 data.view
                     .set_window_size_edit(<(f64, f64)>::from(ctx.window().get_size()));
                 ctx.window().set_size(data.view.get_window_size_view());
-                ctx.window().set_title("VIEW MODE");
+                //ctx.window().set_title("VIEW MODE");
                 data.edit = !data.edit;
             })
             .tooltip(
@@ -233,7 +233,6 @@ impl Buttons {
             })
     }
 
-    //TODO: Button to save on file
     pub fn btn_save() -> ViewSwitcher<ApplicationState, bool> {
         //VIWE SWITCHER PER DISABILITARE O MENO L'ICONA
         ViewSwitcher::new(
@@ -252,6 +251,7 @@ impl Buttons {
                                 .center()
                                 .on_click(|ctx, data: &mut ApplicationState, _env| {
                                     /* SAVE CHANGES ON NEW FILE */
+                                    data.is_loading = true;
                                     ctx.submit_command(druid::commands::SHOW_SAVE_PANEL.with(
                                         save_file(
                                             data.get_current_book_info().name.clone()
@@ -322,7 +322,11 @@ impl Buttons {
         Svg::new(library_svg.clone())
             .fix_width(LIBRARY_SVG_BIG)
             .center()
-            .on_click(|_ctx, data: &mut ApplicationState, _env| data.close_current_book())
+            .on_click(|ctx, data: &mut ApplicationState, _env| {
+                data.close_current_book();
+                ctx.window().set_size(data.view.get_window_size_home());
+                //ctx.window().set_title("HOME");
+            })
             .tooltip(
                 |_data: &ApplicationState, _env: &Env| "Close Book".to_string(),
                 false,
@@ -407,7 +411,6 @@ impl Buttons {
         })
     }
 
-    //TODO
     pub fn btn_submit_ocr_form1(
     ) -> ControllerHost<Button<ApplicationState>, Click<ApplicationState>> {
         Button::new("NEXT").on_click(|_ctx, data: &mut ApplicationState, _env| {

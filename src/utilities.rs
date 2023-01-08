@@ -42,12 +42,11 @@ pub fn get_image_buf(book_path: PathBuf, image_path: String) -> Option<ImageBuf>
     };
     let mut contents: Vec<u8> = vec![];
 
-    //TODO: match, Err() => Default photo
 
     file.read_to_end(&mut contents).unwrap(); //
     match ImageBuf::from_data(&contents) {
         Ok(im) => Some(im),
-        Err(_) => None, //TODO: default image
+        Err(_) => None,
     }
 }
 
@@ -212,7 +211,6 @@ fn lepto_load(sink: ExtEventSink, path: PathBuf, lang: String) {
     lt.set_image(path).unwrap();
     match lt.get_utf8_text() {
         Ok(text) => {
-            // println!("{:?}", text);
             sink.submit_command(
                 FINISH_LEPTO_LOAD,
                 Option::Some(String::from(text)),

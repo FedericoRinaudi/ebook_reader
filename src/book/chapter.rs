@@ -60,31 +60,6 @@ impl Chapter {
         elements
     }
 
-    /*fn fetch_ch_imgs(
-        node: Node,
-        chapter_path: &str,
-        ebook_path: &str,
-        imgs: &mut HashMap<PathBuf, ImageBuf>,
-    ) -> Result<(), ()> {
-        if node.tag_name().name() == "img" {
-            let ebook_path_buf = PathBuf::from(ebook_path);
-            let chapter_path_buf = PathBuf::from(chapter_path);
-            let image_path = PathBuf::from( match node.attribute("src") {
-                Some(attr) => attr,
-                None => return Err(())
-            });
-            imgs.entry(image_path.clone())
-                .or_insert(
-                    get_image_buf(ebook_path_buf, &chapter_path_buf, image_path)
-                        .unwrap_or(ImageBuf::from_file("./images/default.jpg").unwrap())
-                );
-        }
-        for child in node.children() {
-            Self::fetch_ch_imgs(child, chapter_path, ebook_path, imgs);
-        }
-        Ok(())
-    }*/
-
     fn xml_to_elements(
         node: Node,
         elements: &mut Vector<PageElement>,
@@ -150,12 +125,6 @@ impl Chapter {
             }
             current_text.rm_attr(AttributeCase::FontSize);
         }
-
-        /* TODO: gestisco gli id
-        if let Some(id) = n.attribute("id") {
-            c.frag.push((id.to_string(), c.len()));
-        }*/
-        //TODo: gestione new_line
         match node.tag_name().name() {
             "br" => {
                 new_line!("HTML");
@@ -199,29 +168,10 @@ impl Chapter {
                 }
                 new_line!("NO_HTML");
             }
-            "a" => {
-                /*match n.attribute("href") {
-                    // TODO open external urls in browser
-                    Some(url) if !url.starts_with("http") => {
-                        let start = c.text.len();
-                        c.render(n, Attribute::Underlined, Attribute::NoUnderline);
-                        c.links.push((start, c.text.len(), url.to_string()));
-                    }
-                    _ => c.render_text(n),
-                }*/
-                //TODO: gestisco il tag prima di ricorrere
-                recur_on_children!();
-            }
             "em" | "i" => {
-                //TODO: aggiungo le righe commentate se penso sia il caso di gestire il caso in cui sia presente il tag 'em' nonstante il font fosse già italic
-                //let prev_style = current_rich_text.attributes.get(AttributeCase::Style).map(|el|{(*el).clone()});
                 current_text.add_attr(AttributeCase::Style, Attribute::Style(FontStyle::Italic));
                 recur_on_children!();
                 current_text.rm_attr(AttributeCase::Style);
-                /*match prev_style {
-                    Some(p_s) => current_rich_text.add_attr("Style".to_string(), p_s.attribute),
-                    None => {}
-                }*/
             }
             "strong" => {
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
@@ -229,10 +179,8 @@ impl Chapter {
                 current_text.rm_attr(AttributeCase::Weight);
             }
 
-            /* TODO: Determinare se sia il caso di gestire diversamente i vari hx */
             "h1" => {
                 new_line!("NO_HTML");
-                //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
                     AttributeCase::FontSize,
@@ -242,9 +190,9 @@ impl Chapter {
                 current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
             "h2" => {
-                //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 new_line!("NO_HTML");
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
@@ -255,10 +203,10 @@ impl Chapter {
                 current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
             "h3" => {
                 new_line!("NO_HTML");
-                //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
                     AttributeCase::FontSize,
@@ -268,10 +216,10 @@ impl Chapter {
                 current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
             "h4" => {
                 new_line!("NO_HTML");
-                //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
                     AttributeCase::FontSize,
@@ -281,10 +229,10 @@ impl Chapter {
                 current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
             "h5" => {
                 new_line!("NO_HTML");
-                //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
                     AttributeCase::FontSize,
@@ -294,10 +242,10 @@ impl Chapter {
                 current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
             "h6" => {
                 new_line!("NO_HTML");
-                //TODO: cambio font e fontSize? gestisco il caso in cui il testo fosse già bold?
                 current_text.add_attr(AttributeCase::Weight, Attribute::Weight(FontWeight::BOLD));
                 current_text.add_attr(
                     AttributeCase::FontSize,
@@ -307,19 +255,20 @@ impl Chapter {
                 current_text.rm_attr(AttributeCase::FontSize);
                 current_text.rm_attr(AttributeCase::Weight);
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
             "blockquote" | "div" | "p" | "tr" => {
-                // TODO: compress newlines
                 current_text.push_str("  ");
                 recur_on_children!();
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
             "li" => {
                 current_text.push_str("  - ");
                 recur_on_children!();
                 new_line!("HTML");
+                new_line!("NO_HTML");
             }
-            //TODO: implementare tag pre
             /*"pre" => {
                 c.text.push_str("\n  ");
                 n
