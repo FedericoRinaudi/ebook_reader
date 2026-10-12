@@ -12,7 +12,7 @@ roxmltree = "0.15.0"
 druid = { git = "https://github.com/linebender/druid.git" , rev="fc05e965c85fced8720c655685e02478e0530e94", features=["im", "svg", "image", "png", "jpeg"] }
 unicode-segmentation = "1.10.0"
 zip = "0.6.3"
-leptess = "0.13.4"
+leptess = "0.14"
 num_cpus = "*"
 rayon = "*"
 regex = "1.3"
